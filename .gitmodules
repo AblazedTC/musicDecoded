@@ -1,0 +1,6 @@
+[submodule "backend/models/Beat-Transformer"]
+	path = backend/models/Beat-Transformer
+	url = https://github.com/AblazedTC/Beat-Transformer.git
+[submodule "backend/models/chord-recognition-model"]
+	path = backend/models/chord-recognition-model
+	url = https://github.com/AblazedTC/chord-recognition-model.git
