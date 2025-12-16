@@ -16,7 +16,7 @@ backend_dir = Path(__file__).parent.parent
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-from services.beat_transformer_service import BeatTransformerDetectorService
+from services.madmom_detector_service import MadmomDetectorService
 from services.librosa_detector_service import LibrosaDetectorService
 from services.chord_cnn_lstm_service import ChordCNNLSTMDetectorService
 
@@ -24,39 +24,39 @@ from services.chord_cnn_lstm_service import ChordCNNLSTMDetectorService
 class ChordBeatAnalyzer:
     """Analyzer that combines chord recognition with beat detection."""
     
-    def __init__(self, chord_model_dir: str, use_librosa_fallback: bool = True):
+    def __init__(self, chord_model_dir: str, use_madmom_fallback: bool = True):
         """
         Initialize the analyzer.
         
         Args:
             chord_model_dir: Path to chord recognition model directory
-            use_librosa_fallback: Use librosa as fallback if Beat Transformer fails
+            use_madmom_fallback: Use madmom as fallback if librosa fails
         """
         self.chord_service = ChordCNNLSTMDetectorService(chord_model_dir)
-        self.beat_service = BeatTransformerDetectorService()
-        self.librosa_service = LibrosaDetectorService() if use_librosa_fallback else None
+        self.librosa_service = LibrosaDetectorService()
+        self.madmom_service = MadmomDetectorService() if use_madmom_fallback else None
         
         # Check if at least one beat detection method is available
-        beat_available = self.beat_service.is_available()
-        librosa_available = self.librosa_service.is_available() if self.librosa_service else False
+        librosa_available = self.librosa_service.is_available()
+        madmom_available = self.madmom_service.is_available() if self.madmom_service else False
         
-        if not beat_available and not librosa_available:
-            raise RuntimeError("No beat detection service available (tried Beat Transformer and Librosa)")
+        if not librosa_available and not madmom_available:
+            raise RuntimeError("No beat detection service available (tried Librosa and madmom)")
         
         if not self.chord_service.is_available():
             raise RuntimeError("Chord-CNN-LSTM is not available")
         
         # Determine which beat detector to use
-        if beat_available:
-            print("Chord-Beat Analyzer initialized (using Beat Transformer)")
+        if librosa_available:
+            print("Chord-Beat Analyzer initialized (using Librosa)")
         else:
-            print("Chord-Beat Analyzer initialized (using Librosa fallback)")
+            print("Chord-Beat Analyzer initialized (using madmom fallback)")
         
-        self.use_transformer = beat_available
+        self.use_librosa = librosa_available
     
     def extract_beats(self, audio_path: str) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Extract beats and downbeats from audio using Beat Transformer or Librosa fallback.
+        Extract beats and downbeats from audio using Librosa or madmom fallback.
         
         Args:
             audio_path: Path to audio file
@@ -66,17 +66,17 @@ class ChordBeatAnalyzer:
         """
         print(f"\nExtracting beats from {Path(audio_path).name}...")
         
-        # Try Beat Transformer first if available
-        if self.use_transformer:
-            result = self.beat_service.detect_beats(audio_path)
-            
-            # If Beat Transformer fails and librosa fallback is available, use it
-            if not result["success"] and self.librosa_service:
-                print(f"  Beat Transformer failed, falling back to Librosa...")
-                result = self.librosa_service.detect_beats(audio_path)
-        else:
-            # Use librosa directly
+        # Try librosa first if available
+        if self.use_librosa:
             result = self.librosa_service.detect_beats(audio_path)
+            
+            # If librosa fails and madmom fallback is available, use it
+            if not result["success"] and self.madmom_service:
+                print(f"  Librosa failed, falling back to madmom...")
+                result = self.madmom_service.detect_beats(audio_path)
+        else:
+            # Use madmom directly
+            result = self.madmom_service.detect_beats(audio_path)
         
         if not result["success"]:
             raise RuntimeError(f"Beat detection failed: {result.get('error', 'Unknown error')}")
