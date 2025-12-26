@@ -1,0 +1,3272 @@
+{
+  "audio_file": "bad.mp3",
+  "total_duration": 263.40716553287984,
+  "total_beats": 581,
+  "total_downbeats": 146,
+  "total_chords": 94,
+  "analysis": [
+    {
+      "chord": "N",
+      "start_time": 0.0,
+      "end_time": 0.7198185941043084,
+      "duration": 0.7198185941043084,
+      "beats": [
+        {
+          "time": 0.33668934240362813,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 1,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:maj",
+      "start_time": 0.7198185941043084,
+      "end_time": 1.1377777777777778,
+      "duration": 0.4179591836734694,
+      "beats": [
+        {
+          "time": 0.7894784580498866,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 1,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "D:maj",
+      "start_time": 1.1377777777777778,
+      "end_time": 2.345215419501134,
+      "duration": 1.207437641723356,
+      "beats": [
+        {
+          "time": 1.242267573696145,
+          "is_downbeat": false
+        },
+        {
+          "time": 1.6718367346938776,
+          "is_downbeat": false
+        },
+        {
+          "time": 2.10140589569161,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 2.345215419501134,
+      "end_time": 5.596009070294785,
+      "duration": 3.250793650793651,
+      "beats": [
+        {
+          "time": 2.5309750566893423,
+          "is_downbeat": false
+        },
+        {
+          "time": 2.972154195011338,
+          "is_downbeat": false
+        },
+        {
+          "time": 3.4249433106575964,
+          "is_downbeat": false
+        },
+        {
+          "time": 3.8545124716553287,
+          "is_downbeat": true
+        },
+        {
+          "time": 4.307301587301588,
+          "is_downbeat": false
+        },
+        {
+          "time": 4.748480725623582,
+          "is_downbeat": false
+        },
+        {
+          "time": 5.201269841269841,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "F#:min7",
+      "start_time": 5.596009070294785,
+      "end_time": 8.661043083900227,
+      "duration": 3.065034013605442,
+      "beats": [
+        {
+          "time": 5.642448979591837,
+          "is_downbeat": true
+        },
+        {
+          "time": 6.0836281179138325,
+          "is_downbeat": false
+        },
+        {
+          "time": 6.513197278911565,
+          "is_downbeat": false
+        },
+        {
+          "time": 6.965986394557823,
+          "is_downbeat": false
+        },
+        {
+          "time": 7.395555555555555,
+          "is_downbeat": true
+        },
+        {
+          "time": 7.848344671201814,
+          "is_downbeat": false
+        },
+        {
+          "time": 8.277913832199546,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:min7",
+      "start_time": 8.661043083900227,
+      "end_time": 12.654875283446712,
+      "duration": 3.9938321995464854,
+      "beats": [
+        {
+          "time": 8.719092970521542,
+          "is_downbeat": false
+        },
+        {
+          "time": 9.160272108843538,
+          "is_downbeat": true
+        },
+        {
+          "time": 9.601451247165533,
+          "is_downbeat": false
+        },
+        {
+          "time": 10.042630385487529,
+          "is_downbeat": false
+        },
+        {
+          "time": 10.495419501133787,
+          "is_downbeat": false
+        },
+        {
+          "time": 10.913378684807256,
+          "is_downbeat": true
+        },
+        {
+          "time": 11.34294784580499,
+          "is_downbeat": false
+        },
+        {
+          "time": 11.80734693877551,
+          "is_downbeat": false
+        },
+        {
+          "time": 12.26013605442177,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "B:7",
+      "start_time": 12.654875283446712,
+      "end_time": 16.207528344671204,
+      "duration": 3.5526530612244915,
+      "beats": [
+        {
+          "time": 12.689705215419501,
+          "is_downbeat": true
+        },
+        {
+          "time": 13.130884353741497,
+          "is_downbeat": false
+        },
+        {
+          "time": 13.56045351473923,
+          "is_downbeat": false
+        },
+        {
+          "time": 14.001632653061224,
+          "is_downbeat": false
+        },
+        {
+          "time": 14.44281179138322,
+          "is_downbeat": true
+        },
+        {
+          "time": 14.883990929705215,
+          "is_downbeat": false
+        },
+        {
+          "time": 15.32517006802721,
+          "is_downbeat": false
+        },
+        {
+          "time": 15.777959183673469,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "E:min9",
+      "start_time": 16.207528344671204,
+      "end_time": 19.71374149659864,
+      "duration": 3.5062131519274367,
+      "beats": [
+        {
+          "time": 16.219138321995466,
+          "is_downbeat": true
+        },
+        {
+          "time": 16.66031746031746,
+          "is_downbeat": false
+        },
+        {
+          "time": 17.101496598639457,
+          "is_downbeat": false
+        },
+        {
+          "time": 17.554285714285715,
+          "is_downbeat": false
+        },
+        {
+          "time": 17.98385487528345,
+          "is_downbeat": true
+        },
+        {
+          "time": 18.42503401360544,
+          "is_downbeat": false
+        },
+        {
+          "time": 18.854603174603174,
+          "is_downbeat": false
+        },
+        {
+          "time": 19.319002267573698,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "G:min7",
+      "start_time": 19.71374149659864,
+      "end_time": 21.478458049886623,
+      "duration": 1.7647165532879825,
+      "beats": [
+        {
+          "time": 19.760181405895693,
+          "is_downbeat": true
+        },
+        {
+          "time": 20.201360544217685,
+          "is_downbeat": false
+        },
+        {
+          "time": 20.63092970521542,
+          "is_downbeat": false
+        },
+        {
+          "time": 21.072108843537414,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:7",
+      "start_time": 21.478458049886623,
+      "end_time": 22.80199546485261,
+      "duration": 1.3235374149659869,
+      "beats": [
+        {
+          "time": 21.51328798185941,
+          "is_downbeat": true
+        },
+        {
+          "time": 21.954467120181405,
+          "is_downbeat": false
+        },
+        {
+          "time": 22.407256235827663,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 22.80199546485261,
+      "end_time": 26.795827664399095,
+      "duration": 3.9938321995464854,
+      "beats": [
+        {
+          "time": 22.836825396825397,
+          "is_downbeat": false
+        },
+        {
+          "time": 23.278004535147392,
+          "is_downbeat": true
+        },
+        {
+          "time": 23.73079365079365,
+          "is_downbeat": false
+        },
+        {
+          "time": 24.160362811791384,
+          "is_downbeat": false
+        },
+        {
+          "time": 24.61315192743764,
+          "is_downbeat": false
+        },
+        {
+          "time": 25.054331065759637,
+          "is_downbeat": true
+        },
+        {
+          "time": 25.48390022675737,
+          "is_downbeat": false
+        },
+        {
+          "time": 25.925079365079366,
+          "is_downbeat": false
+        },
+        {
+          "time": 26.377868480725624,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "Bb:hdim7",
+      "start_time": 26.795827664399095,
+      "end_time": 28.514104308390024,
+      "duration": 1.7182766439909294,
+      "beats": [
+        {
+          "time": 26.81904761904762,
+          "is_downbeat": true
+        },
+        {
+          "time": 27.248616780045353,
+          "is_downbeat": false
+        },
+        {
+          "time": 27.68979591836735,
+          "is_downbeat": false
+        },
+        {
+          "time": 28.15419501133787,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:7",
+      "start_time": 28.514104308390024,
+      "end_time": 29.442902494331065,
+      "duration": 0.9287981859410408,
+      "beats": [
+        {
+          "time": 28.583764172335602,
+          "is_downbeat": true
+        },
+        {
+          "time": 29.024943310657598,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 2,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 29.442902494331065,
+      "end_time": 33.85469387755102,
+      "duration": 4.411791383219956,
+      "beats": [
+        {
+          "time": 29.466122448979593,
+          "is_downbeat": false
+        },
+        {
+          "time": 29.90730158730159,
+          "is_downbeat": false
+        },
+        {
+          "time": 30.34848072562358,
+          "is_downbeat": true
+        },
+        {
+          "time": 30.789659863945577,
+          "is_downbeat": false
+        },
+        {
+          "time": 31.230839002267572,
+          "is_downbeat": false
+        },
+        {
+          "time": 31.672018140589568,
+          "is_downbeat": false
+        },
+        {
+          "time": 32.1015873015873,
+          "is_downbeat": true
+        },
+        {
+          "time": 32.55437641723356,
+          "is_downbeat": false
+        },
+        {
+          "time": 32.98394557823129,
+          "is_downbeat": false
+        },
+        {
+          "time": 33.436734693877554,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 10,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "F#:min7",
+      "start_time": 33.85469387755102,
+      "end_time": 37.33768707482993,
+      "duration": 3.4829931972789083,
+      "beats": [
+        {
+          "time": 33.877913832199546,
+          "is_downbeat": true
+        },
+        {
+          "time": 34.319092970521545,
+          "is_downbeat": false
+        },
+        {
+          "time": 34.76027210884354,
+          "is_downbeat": false
+        },
+        {
+          "time": 35.2130612244898,
+          "is_downbeat": false
+        },
+        {
+          "time": 35.631020408163266,
+          "is_downbeat": true
+        },
+        {
+          "time": 36.08380952380952,
+          "is_downbeat": false
+        },
+        {
+          "time": 36.51337868480726,
+          "is_downbeat": false
+        },
+        {
+          "time": 36.96616780045351,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:min7",
+      "start_time": 37.33768707482993,
+      "end_time": 40.867120181405895,
+      "duration": 3.529433106575965,
+      "beats": [
+        {
+          "time": 37.39573696145125,
+          "is_downbeat": true
+        },
+        {
+          "time": 37.79047619047619,
+          "is_downbeat": false
+        },
+        {
+          "time": 38.27809523809524,
+          "is_downbeat": false
+        },
+        {
+          "time": 38.74249433106576,
+          "is_downbeat": false
+        },
+        {
+          "time": 39.172063492063494,
+          "is_downbeat": true
+        },
+        {
+          "time": 39.613242630385486,
+          "is_downbeat": false
+        },
+        {
+          "time": 40.04281179138322,
+          "is_downbeat": false
+        },
+        {
+          "time": 40.50721088435374,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "B:7",
+      "start_time": 40.867120181405895,
+      "end_time": 44.419773242630384,
+      "duration": 3.5526530612244898,
+      "beats": [
+        {
+          "time": 40.936780045351476,
+          "is_downbeat": true
+        },
+        {
+          "time": 41.37795918367347,
+          "is_downbeat": false
+        },
+        {
+          "time": 41.807528344671205,
+          "is_downbeat": false
+        },
+        {
+          "time": 42.26031746031746,
+          "is_downbeat": false
+        },
+        {
+          "time": 42.67827664399093,
+          "is_downbeat": true
+        },
+        {
+          "time": 43.13106575963719,
+          "is_downbeat": false
+        },
+        {
+          "time": 43.58385487528345,
+          "is_downbeat": false
+        },
+        {
+          "time": 44.036643990929704,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "E:min7",
+      "start_time": 44.419773242630384,
+      "end_time": 48.01886621315193,
+      "duration": 3.5990929705215464,
+      "beats": [
+        {
+          "time": 44.46621315192744,
+          "is_downbeat": true
+        },
+        {
+          "time": 44.90739229024943,
+          "is_downbeat": false
+        },
+        {
+          "time": 45.33696145124716,
+          "is_downbeat": false
+        },
+        {
+          "time": 45.789750566893424,
+          "is_downbeat": false
+        },
+        {
+          "time": 46.20770975056689,
+          "is_downbeat": true
+        },
+        {
+          "time": 46.66049886621315,
+          "is_downbeat": false
+        },
+        {
+          "time": 47.11328798185941,
+          "is_downbeat": false
+        },
+        {
+          "time": 47.56607709750567,
+          "is_downbeat": false
+        },
+        {
+          "time": 47.98403628117914,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "G:min7",
+      "start_time": 48.01886621315193,
+      "end_time": 49.71392290249433,
+      "duration": 1.695056689342401,
+      "beats": [
+        {
+          "time": 48.39038548752834,
+          "is_downbeat": false
+        },
+        {
+          "time": 48.854784580498865,
+          "is_downbeat": false
+        },
+        {
+          "time": 49.31918367346939,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "A:7",
+      "start_time": 49.71392290249433,
+      "end_time": 51.50185941043084,
+      "duration": 1.7879365079365073,
+      "beats": [
+        {
+          "time": 49.74875283446712,
+          "is_downbeat": true
+        },
+        {
+          "time": 50.20154195011338,
+          "is_downbeat": false
+        },
+        {
+          "time": 50.64272108843537,
+          "is_downbeat": false
+        },
+        {
+          "time": 51.095510204081634,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 51.50185941043084,
+      "end_time": 55.031292517006804,
+      "duration": 3.529433106575965,
+      "beats": [
+        {
+          "time": 51.525079365079364,
+          "is_downbeat": true
+        },
+        {
+          "time": 51.9546485260771,
+          "is_downbeat": false
+        },
+        {
+          "time": 52.39582766439909,
+          "is_downbeat": false
+        },
+        {
+          "time": 52.848616780045354,
+          "is_downbeat": false
+        },
+        {
+          "time": 53.278185941043084,
+          "is_downbeat": true
+        },
+        {
+          "time": 53.719365079365076,
+          "is_downbeat": false
+        },
+        {
+          "time": 54.160544217687075,
+          "is_downbeat": false
+        },
+        {
+          "time": 54.61333333333334,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "Bb:hdim7",
+      "start_time": 55.031292517006804,
+      "end_time": 56.726349206349205,
+      "duration": 1.695056689342401,
+      "beats": [
+        {
+          "time": 55.05451247165533,
+          "is_downbeat": true
+        },
+        {
+          "time": 55.49569160997732,
+          "is_downbeat": false
+        },
+        {
+          "time": 55.92526077097506,
+          "is_downbeat": false
+        },
+        {
+          "time": 56.37804988662131,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:7",
+      "start_time": 56.726349206349205,
+      "end_time": 58.537505668934244,
+      "duration": 1.8111564625850392,
+      "beats": [
+        {
+          "time": 56.80761904761905,
+          "is_downbeat": true
+        },
+        {
+          "time": 57.24879818594104,
+          "is_downbeat": false
+        },
+        {
+          "time": 57.68997732426304,
+          "is_downbeat": false
+        },
+        {
+          "time": 58.13115646258503,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "G:maj7",
+      "start_time": 58.537505668934244,
+      "end_time": 62.090158730158734,
+      "duration": 3.5526530612244898,
+      "beats": [
+        {
+          "time": 58.57233560090703,
+          "is_downbeat": true
+        },
+        {
+          "time": 59.025124716553286,
+          "is_downbeat": false
+        },
+        {
+          "time": 59.45469387755102,
+          "is_downbeat": false
+        },
+        {
+          "time": 59.87265306122449,
+          "is_downbeat": false
+        },
+        {
+          "time": 60.32544217687075,
+          "is_downbeat": true
+        },
+        {
+          "time": 60.78984126984127,
+          "is_downbeat": false
+        },
+        {
+          "time": 61.23102040816327,
+          "is_downbeat": false
+        },
+        {
+          "time": 61.67219954648526,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "C:7",
+      "start_time": 62.090158730158734,
+      "end_time": 65.15519274376418,
+      "duration": 3.065034013605441,
+      "beats": [
+        {
+          "time": 62.11337868480726,
+          "is_downbeat": true
+        },
+        {
+          "time": 62.54294784580499,
+          "is_downbeat": false
+        },
+        {
+          "time": 62.98412698412698,
+          "is_downbeat": false
+        },
+        {
+          "time": 63.448526077097505,
+          "is_downbeat": false
+        },
+        {
+          "time": 63.87809523809524,
+          "is_downbeat": true
+        },
+        {
+          "time": 64.31927437641724,
+          "is_downbeat": false
+        },
+        {
+          "time": 64.74884353741497,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 65.15519274376418,
+      "end_time": 67.87192743764173,
+      "duration": 2.716734693877555,
+      "beats": [
+        {
+          "time": 65.19002267573696,
+          "is_downbeat": false
+        },
+        {
+          "time": 65.64281179138322,
+          "is_downbeat": true
+        },
+        {
+          "time": 66.08399092970521,
+          "is_downbeat": false
+        },
+        {
+          "time": 66.51356009070295,
+          "is_downbeat": false
+        },
+        {
+          "time": 66.93151927437641,
+          "is_downbeat": false
+        },
+        {
+          "time": 67.39591836734694,
+          "is_downbeat": true
+        },
+        {
+          "time": 67.83709750566894,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "D:maj",
+      "start_time": 67.87192743764173,
+      "end_time": 69.1025850340136,
+      "duration": 1.23065759637187,
+      "beats": [
+        {
+          "time": 68.27827664399094,
+          "is_downbeat": false
+        },
+        {
+          "time": 68.73106575963719,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 2,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "D:7",
+      "start_time": 69.1025850340136,
+      "end_time": 72.65523809523809,
+      "duration": 3.5526530612244898,
+      "beats": [
+        {
+          "time": 69.16063492063492,
+          "is_downbeat": true
+        },
+        {
+          "time": 69.59020408163265,
+          "is_downbeat": false
+        },
+        {
+          "time": 70.03138321995465,
+          "is_downbeat": false
+        },
+        {
+          "time": 70.47256235827665,
+          "is_downbeat": false
+        },
+        {
+          "time": 70.91374149659863,
+          "is_downbeat": true
+        },
+        {
+          "time": 71.3665306122449,
+          "is_downbeat": false
+        },
+        {
+          "time": 71.8077097505669,
+          "is_downbeat": false
+        },
+        {
+          "time": 72.26049886621315,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "G:maj7",
+      "start_time": 72.65523809523809,
+      "end_time": 76.27755102040817,
+      "duration": 3.6223129251700783,
+      "beats": [
+        {
+          "time": 72.70167800453515,
+          "is_downbeat": true
+        },
+        {
+          "time": 73.14285714285714,
+          "is_downbeat": false
+        },
+        {
+          "time": 73.57242630385487,
+          "is_downbeat": false
+        },
+        {
+          "time": 73.97877551020409,
+          "is_downbeat": false
+        },
+        {
+          "time": 74.45478458049887,
+          "is_downbeat": true
+        },
+        {
+          "time": 74.89596371882087,
+          "is_downbeat": false
+        },
+        {
+          "time": 75.34875283446712,
+          "is_downbeat": false
+        },
+        {
+          "time": 75.78993197278912,
+          "is_downbeat": false
+        },
+        {
+          "time": 76.21950113378685,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "Bb:aug",
+      "start_time": 76.27755102040817,
+      "end_time": 77.92616780045351,
+      "duration": 1.6486167800453444,
+      "beats": [
+        {
+          "time": 76.6722902494331,
+          "is_downbeat": false
+        },
+        {
+          "time": 77.10185941043083,
+          "is_downbeat": false
+        },
+        {
+          "time": 77.56625850340136,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "C:7",
+      "start_time": 77.92616780045351,
+      "end_time": 79.27292517006804,
+      "duration": 1.3467573696145223,
+      "beats": [
+        {
+          "time": 77.99582766439909,
+          "is_downbeat": true
+        },
+        {
+          "time": 78.43700680272109,
+          "is_downbeat": false
+        },
+        {
+          "time": 78.87818594104309,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 79.27292517006804,
+      "end_time": 90.30240362811791,
+      "duration": 11.02947845804988,
+      "beats": [
+        {
+          "time": 79.30775510204082,
+          "is_downbeat": false
+        },
+        {
+          "time": 79.77215419501134,
+          "is_downbeat": true
+        },
+        {
+          "time": 80.20172335600907,
+          "is_downbeat": false
+        },
+        {
+          "time": 80.6312925170068,
+          "is_downbeat": false
+        },
+        {
+          "time": 81.0724716553288,
+          "is_downbeat": false
+        },
+        {
+          "time": 81.5136507936508,
+          "is_downbeat": true
+        },
+        {
+          "time": 81.9548299319728,
+          "is_downbeat": false
+        },
+        {
+          "time": 82.39600907029478,
+          "is_downbeat": false
+        },
+        {
+          "time": 82.83718820861678,
+          "is_downbeat": false
+        },
+        {
+          "time": 83.27836734693878,
+          "is_downbeat": true
+        },
+        {
+          "time": 83.68471655328798,
+          "is_downbeat": false
+        },
+        {
+          "time": 84.16072562358276,
+          "is_downbeat": false
+        },
+        {
+          "time": 84.62512471655329,
+          "is_downbeat": false
+        },
+        {
+          "time": 85.05469387755102,
+          "is_downbeat": true
+        },
+        {
+          "time": 85.49587301587302,
+          "is_downbeat": false
+        },
+        {
+          "time": 85.94866213151927,
+          "is_downbeat": false
+        },
+        {
+          "time": 86.378231292517,
+          "is_downbeat": false
+        },
+        {
+          "time": 86.80780045351474,
+          "is_downbeat": true
+        },
+        {
+          "time": 87.24897959183673,
+          "is_downbeat": false
+        },
+        {
+          "time": 87.67854875283447,
+          "is_downbeat": false
+        },
+        {
+          "time": 88.14294784580498,
+          "is_downbeat": false
+        },
+        {
+          "time": 88.57251700680273,
+          "is_downbeat": true
+        },
+        {
+          "time": 89.02530612244898,
+          "is_downbeat": false
+        },
+        {
+          "time": 89.45487528344671,
+          "is_downbeat": false
+        },
+        {
+          "time": 89.90766439909297,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 25,
+      "num_downbeats": 6
+    },
+    {
+      "chord": "F#:min7",
+      "start_time": 90.30240362811791,
+      "end_time": 93.39065759637188,
+      "duration": 3.088253968253966,
+      "beats": [
+        {
+          "time": 90.33723356009071,
+          "is_downbeat": true
+        },
+        {
+          "time": 90.80163265306122,
+          "is_downbeat": false
+        },
+        {
+          "time": 91.23120181405896,
+          "is_downbeat": false
+        },
+        {
+          "time": 91.67238095238095,
+          "is_downbeat": false
+        },
+        {
+          "time": 92.11356009070295,
+          "is_downbeat": true
+        },
+        {
+          "time": 92.55473922902495,
+          "is_downbeat": false
+        },
+        {
+          "time": 92.98430839002268,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:min7",
+      "start_time": 93.39065759637188,
+      "end_time": 97.36126984126984,
+      "duration": 3.970612244897964,
+      "beats": [
+        {
+          "time": 93.42548752834468,
+          "is_downbeat": false
+        },
+        {
+          "time": 93.86666666666666,
+          "is_downbeat": true
+        },
+        {
+          "time": 94.30784580498866,
+          "is_downbeat": false
+        },
+        {
+          "time": 94.74902494331066,
+          "is_downbeat": false
+        },
+        {
+          "time": 95.20181405895691,
+          "is_downbeat": false
+        },
+        {
+          "time": 95.61977324263039,
+          "is_downbeat": true
+        },
+        {
+          "time": 96.07256235827664,
+          "is_downbeat": false
+        },
+        {
+          "time": 96.51374149659864,
+          "is_downbeat": false
+        },
+        {
+          "time": 96.9665306122449,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "B:7",
+      "start_time": 97.36126984126984,
+      "end_time": 100.89070294784581,
+      "duration": 3.529433106575965,
+      "beats": [
+        {
+          "time": 97.4077097505669,
+          "is_downbeat": true
+        },
+        {
+          "time": 97.86049886621315,
+          "is_downbeat": false
+        },
+        {
+          "time": 98.29006802721088,
+          "is_downbeat": false
+        },
+        {
+          "time": 98.71963718820862,
+          "is_downbeat": false
+        },
+        {
+          "time": 99.14920634920635,
+          "is_downbeat": true
+        },
+        {
+          "time": 99.6019954648526,
+          "is_downbeat": false
+        },
+        {
+          "time": 100.05478458049886,
+          "is_downbeat": false
+        },
+        {
+          "time": 100.50757369614513,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "E:min7",
+      "start_time": 100.89070294784581,
+      "end_time": 104.51301587301587,
+      "duration": 3.622312925170064,
+      "beats": [
+        {
+          "time": 100.93714285714286,
+          "is_downbeat": true
+        },
+        {
+          "time": 101.37832199546486,
+          "is_downbeat": false
+        },
+        {
+          "time": 101.80789115646259,
+          "is_downbeat": false
+        },
+        {
+          "time": 102.26068027210884,
+          "is_downbeat": false
+        },
+        {
+          "time": 102.69024943310657,
+          "is_downbeat": true
+        },
+        {
+          "time": 103.14303854875284,
+          "is_downbeat": false
+        },
+        {
+          "time": 103.58421768707483,
+          "is_downbeat": false
+        },
+        {
+          "time": 104.0370068027211,
+          "is_downbeat": false
+        },
+        {
+          "time": 104.46657596371882,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "G:min7",
+      "start_time": 104.51301587301587,
+      "end_time": 106.18485260770976,
+      "duration": 1.6718367346938834,
+      "beats": [
+        {
+          "time": 104.90775510204081,
+          "is_downbeat": false
+        },
+        {
+          "time": 105.33732426303855,
+          "is_downbeat": false
+        },
+        {
+          "time": 105.79011337868481,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "A:7",
+      "start_time": 106.18485260770976,
+      "end_time": 107.50839002267574,
+      "duration": 1.3235374149659833,
+      "beats": [
+        {
+          "time": 106.21968253968254,
+          "is_downbeat": true
+        },
+        {
+          "time": 106.68408163265306,
+          "is_downbeat": false
+        },
+        {
+          "time": 107.10204081632654,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 107.50839002267574,
+      "end_time": 111.4790022675737,
+      "duration": 3.970612244897964,
+      "beats": [
+        {
+          "time": 107.54321995464852,
+          "is_downbeat": false
+        },
+        {
+          "time": 107.99600907029479,
+          "is_downbeat": true
+        },
+        {
+          "time": 108.42557823129252,
+          "is_downbeat": false
+        },
+        {
+          "time": 108.86675736961452,
+          "is_downbeat": false
+        },
+        {
+          "time": 109.31954648526077,
+          "is_downbeat": false
+        },
+        {
+          "time": 109.76072562358277,
+          "is_downbeat": true
+        },
+        {
+          "time": 110.20190476190476,
+          "is_downbeat": false
+        },
+        {
+          "time": 110.64308390022676,
+          "is_downbeat": false
+        },
+        {
+          "time": 111.09587301587301,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "Bb:hdim7",
+      "start_time": 111.4790022675737,
+      "end_time": 113.22049886621315,
+      "duration": 1.7414965986394435,
+      "beats": [
+        {
+          "time": 111.52544217687075,
+          "is_downbeat": true
+        },
+        {
+          "time": 111.97823129251701,
+          "is_downbeat": false
+        },
+        {
+          "time": 112.39619047619047,
+          "is_downbeat": false
+        },
+        {
+          "time": 112.84897959183674,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:7",
+      "start_time": 113.22049886621315,
+      "end_time": 114.1492970521542,
+      "duration": 0.9287981859410479,
+      "beats": [
+        {
+          "time": 113.27854875283447,
+          "is_downbeat": true
+        },
+        {
+          "time": 113.71972789115647,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 2,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 114.1492970521542,
+      "end_time": 118.56108843537415,
+      "duration": 4.411791383219949,
+      "beats": [
+        {
+          "time": 114.16090702947845,
+          "is_downbeat": false
+        },
+        {
+          "time": 114.60208616780045,
+          "is_downbeat": false
+        },
+        {
+          "time": 115.03165532879818,
+          "is_downbeat": true
+        },
+        {
+          "time": 115.48444444444445,
+          "is_downbeat": false
+        },
+        {
+          "time": 115.92562358276643,
+          "is_downbeat": false
+        },
+        {
+          "time": 116.3784126984127,
+          "is_downbeat": false
+        },
+        {
+          "time": 116.80798185941043,
+          "is_downbeat": true
+        },
+        {
+          "time": 117.26077097505669,
+          "is_downbeat": false
+        },
+        {
+          "time": 117.69034013605442,
+          "is_downbeat": false
+        },
+        {
+          "time": 118.14312925170069,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 10,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "F#:min7",
+      "start_time": 118.56108843537415,
+      "end_time": 122.04408163265306,
+      "duration": 3.4829931972789154,
+      "beats": [
+        {
+          "time": 118.57269841269841,
+          "is_downbeat": true
+        },
+        {
+          "time": 119.02548752834467,
+          "is_downbeat": false
+        },
+        {
+          "time": 119.4550566893424,
+          "is_downbeat": false
+        },
+        {
+          "time": 119.8962358276644,
+          "is_downbeat": false
+        },
+        {
+          "time": 120.3374149659864,
+          "is_downbeat": true
+        },
+        {
+          "time": 120.7785941043084,
+          "is_downbeat": false
+        },
+        {
+          "time": 121.21977324263038,
+          "is_downbeat": false
+        },
+        {
+          "time": 121.67256235827665,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:min7",
+      "start_time": 122.04408163265306,
+      "end_time": 125.57351473922903,
+      "duration": 3.529433106575965,
+      "beats": [
+        {
+          "time": 122.11374149659864,
+          "is_downbeat": true
+        },
+        {
+          "time": 122.55492063492063,
+          "is_downbeat": false
+        },
+        {
+          "time": 122.98448979591836,
+          "is_downbeat": false
+        },
+        {
+          "time": 123.44888888888889,
+          "is_downbeat": false
+        },
+        {
+          "time": 123.87845804988662,
+          "is_downbeat": true
+        },
+        {
+          "time": 124.33124716553289,
+          "is_downbeat": false
+        },
+        {
+          "time": 124.76081632653062,
+          "is_downbeat": false
+        },
+        {
+          "time": 125.21360544217687,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "B:7",
+      "start_time": 125.57351473922903,
+      "end_time": 129.07972789115647,
+      "duration": 3.50621315192744,
+      "beats": [
+        {
+          "time": 125.6431746031746,
+          "is_downbeat": true
+        },
+        {
+          "time": 126.0843537414966,
+          "is_downbeat": false
+        },
+        {
+          "time": 126.50231292517007,
+          "is_downbeat": false
+        },
+        {
+          "time": 126.96671201814058,
+          "is_downbeat": false
+        },
+        {
+          "time": 127.39628117913833,
+          "is_downbeat": true
+        },
+        {
+          "time": 127.84907029478458,
+          "is_downbeat": false
+        },
+        {
+          "time": 128.29024943310657,
+          "is_downbeat": false
+        },
+        {
+          "time": 128.74303854875282,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "E:min7",
+      "start_time": 129.07972789115647,
+      "end_time": 132.72526077097507,
+      "duration": 3.645532879818603,
+      "beats": [
+        {
+          "time": 129.17260770975057,
+          "is_downbeat": true
+        },
+        {
+          "time": 129.61378684807255,
+          "is_downbeat": false
+        },
+        {
+          "time": 130.0433560090703,
+          "is_downbeat": false
+        },
+        {
+          "time": 130.49614512471655,
+          "is_downbeat": false
+        },
+        {
+          "time": 130.93732426303856,
+          "is_downbeat": true
+        },
+        {
+          "time": 131.37850340136055,
+          "is_downbeat": false
+        },
+        {
+          "time": 131.81968253968253,
+          "is_downbeat": false
+        },
+        {
+          "time": 132.26086167800455,
+          "is_downbeat": false
+        },
+        {
+          "time": 132.70204081632653,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "G:min7",
+      "start_time": 132.72526077097507,
+      "end_time": 134.42031746031745,
+      "duration": 1.6950566893423797,
+      "beats": [
+        {
+          "time": 133.14321995464852,
+          "is_downbeat": false
+        },
+        {
+          "time": 133.58439909297053,
+          "is_downbeat": false
+        },
+        {
+          "time": 134.03718820861678,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "A:maj",
+      "start_time": 134.42031746031745,
+      "end_time": 136.1385941043084,
+      "duration": 1.7182766439909472,
+      "beats": [
+        {
+          "time": 134.45514739229026,
+          "is_downbeat": true
+        },
+        {
+          "time": 134.89632653061224,
+          "is_downbeat": false
+        },
+        {
+          "time": 135.3491156462585,
+          "is_downbeat": false
+        },
+        {
+          "time": 135.7902947845805,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 136.1385941043084,
+      "end_time": 139.76090702947846,
+      "duration": 3.622312925170064,
+      "beats": [
+        {
+          "time": 136.2314739229025,
+          "is_downbeat": true
+        },
+        {
+          "time": 136.68426303854875,
+          "is_downbeat": false
+        },
+        {
+          "time": 137.1138321995465,
+          "is_downbeat": false
+        },
+        {
+          "time": 137.56662131519275,
+          "is_downbeat": false
+        },
+        {
+          "time": 137.98458049886622,
+          "is_downbeat": true
+        },
+        {
+          "time": 138.41414965986394,
+          "is_downbeat": false
+        },
+        {
+          "time": 138.85532879818595,
+          "is_downbeat": false
+        },
+        {
+          "time": 139.31972789115648,
+          "is_downbeat": false
+        },
+        {
+          "time": 139.73768707482992,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "Bb:maj7",
+      "start_time": 139.76090702947846,
+      "end_time": 141.43274376417233,
+      "duration": 1.6718367346938692,
+      "beats": [
+        {
+          "time": 140.1904761904762,
+          "is_downbeat": false
+        },
+        {
+          "time": 140.64326530612246,
+          "is_downbeat": false
+        },
+        {
+          "time": 141.07283446712017,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "A:7",
+      "start_time": 141.43274376417233,
+      "end_time": 143.36,
+      "duration": 1.9272562358276843,
+      "beats": [
+        {
+          "time": 141.5140136054422,
+          "is_downbeat": true
+        },
+        {
+          "time": 141.96680272108844,
+          "is_downbeat": false
+        },
+        {
+          "time": 142.40798185941043,
+          "is_downbeat": false
+        },
+        {
+          "time": 142.83755102040817,
+          "is_downbeat": false
+        },
+        {
+          "time": 143.2671201814059,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 5,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "B:sus4(b7)",
+      "start_time": 143.36,
+      "end_time": 145.7748752834467,
+      "duration": 2.4148752834466904,
+      "beats": [
+        {
+          "time": 143.7315192743764,
+          "is_downbeat": false
+        },
+        {
+          "time": 144.18430839002266,
+          "is_downbeat": false
+        },
+        {
+          "time": 144.62548752834468,
+          "is_downbeat": false
+        },
+        {
+          "time": 145.0550566893424,
+          "is_downbeat": true
+        },
+        {
+          "time": 145.4962358276644,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 5,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "B:min7",
+      "start_time": 145.7748752834467,
+      "end_time": 146.88943310657598,
+      "duration": 1.1145578231292745,
+      "beats": [
+        {
+          "time": 145.9374149659864,
+          "is_downbeat": false
+        },
+        {
+          "time": 146.40181405895692,
+          "is_downbeat": false
+        },
+        {
+          "time": 146.8197732426304,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "E:7",
+      "start_time": 146.88943310657598,
+      "end_time": 150.34920634920636,
+      "duration": 3.4597732426303764,
+      "beats": [
+        {
+          "time": 147.26095238095238,
+          "is_downbeat": false
+        },
+        {
+          "time": 147.7021315192744,
+          "is_downbeat": false
+        },
+        {
+          "time": 148.15492063492064,
+          "is_downbeat": false
+        },
+        {
+          "time": 148.58448979591836,
+          "is_downbeat": true
+        },
+        {
+          "time": 149.02566893424037,
+          "is_downbeat": false
+        },
+        {
+          "time": 149.4552380952381,
+          "is_downbeat": false
+        },
+        {
+          "time": 149.9196371882086,
+          "is_downbeat": false
+        },
+        {
+          "time": 150.32598639455782,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "G:min7",
+      "start_time": 150.34920634920636,
+      "end_time": 153.85541950113378,
+      "duration": 3.506213151927426,
+      "beats": [
+        {
+          "time": 150.79038548752834,
+          "is_downbeat": false
+        },
+        {
+          "time": 151.2431746031746,
+          "is_downbeat": false
+        },
+        {
+          "time": 151.67274376417234,
+          "is_downbeat": false
+        },
+        {
+          "time": 152.10231292517005,
+          "is_downbeat": true
+        },
+        {
+          "time": 152.54349206349207,
+          "is_downbeat": false
+        },
+        {
+          "time": 152.99628117913832,
+          "is_downbeat": false
+        },
+        {
+          "time": 153.4374603174603,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "F#:min7",
+      "start_time": 153.85541950113378,
+      "end_time": 155.5504761904762,
+      "duration": 1.6950566893424082,
+      "beats": [
+        {
+          "time": 153.87863945578232,
+          "is_downbeat": true
+        },
+        {
+          "time": 154.3198185941043,
+          "is_downbeat": false
+        },
+        {
+          "time": 154.7609977324263,
+          "is_downbeat": false
+        },
+        {
+          "time": 155.2021768707483,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj/3",
+      "start_time": 155.5504761904762,
+      "end_time": 157.4312925170068,
+      "duration": 1.8808163265306064,
+      "beats": [
+        {
+          "time": 155.6433560090703,
+          "is_downbeat": true
+        },
+        {
+          "time": 156.0845351473923,
+          "is_downbeat": false
+        },
+        {
+          "time": 156.51410430839002,
+          "is_downbeat": false
+        },
+        {
+          "time": 156.95528344671203,
+          "is_downbeat": false
+        },
+        {
+          "time": 157.38485260770975,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 5,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "F:maj",
+      "start_time": 157.4312925170068,
+      "end_time": 160.9839455782313,
+      "duration": 3.552653061224504,
+      "beats": [
+        {
+          "time": 157.84925170068027,
+          "is_downbeat": false
+        },
+        {
+          "time": 158.278820861678,
+          "is_downbeat": false
+        },
+        {
+          "time": 158.73160997732427,
+          "is_downbeat": false
+        },
+        {
+          "time": 159.16117913832198,
+          "is_downbeat": true
+        },
+        {
+          "time": 159.602358276644,
+          "is_downbeat": false
+        },
+        {
+          "time": 160.04353741496598,
+          "is_downbeat": false
+        },
+        {
+          "time": 160.49632653061224,
+          "is_downbeat": false
+        },
+        {
+          "time": 160.92589569160998,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "D:min/b3",
+      "start_time": 160.9839455782313,
+      "end_time": 163.37560090702948,
+      "duration": 2.39165532879818,
+      "beats": [
+        {
+          "time": 161.36707482993197,
+          "is_downbeat": false
+        },
+        {
+          "time": 161.81986394557822,
+          "is_downbeat": false
+        },
+        {
+          "time": 162.26104308390023,
+          "is_downbeat": false
+        },
+        {
+          "time": 162.6790022675737,
+          "is_downbeat": true
+        },
+        {
+          "time": 163.13179138321996,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 5,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:min",
+      "start_time": 163.37560090702948,
+      "end_time": 164.44371882086168,
+      "duration": 1.0681179138321966,
+      "beats": [
+        {
+          "time": 163.57297052154195,
+          "is_downbeat": false
+        },
+        {
+          "time": 164.01414965986393,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 2,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "E:7",
+      "start_time": 164.44371882086168,
+      "end_time": 167.94993197278913,
+      "duration": 3.5062131519274544,
+      "beats": [
+        {
+          "time": 164.45532879818595,
+          "is_downbeat": true
+        },
+        {
+          "time": 164.89650793650793,
+          "is_downbeat": false
+        },
+        {
+          "time": 165.34929705215418,
+          "is_downbeat": false
+        },
+        {
+          "time": 165.80208616780044,
+          "is_downbeat": false
+        },
+        {
+          "time": 166.23165532879818,
+          "is_downbeat": true
+        },
+        {
+          "time": 166.67283446712017,
+          "is_downbeat": false
+        },
+        {
+          "time": 167.11401360544218,
+          "is_downbeat": false
+        },
+        {
+          "time": 167.55519274376417,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:7",
+      "start_time": 167.94993197278913,
+      "end_time": 171.4793650793651,
+      "duration": 3.529433106575965,
+      "beats": [
+        {
+          "time": 167.9847619047619,
+          "is_downbeat": true
+        },
+        {
+          "time": 168.4259410430839,
+          "is_downbeat": false
+        },
+        {
+          "time": 168.87873015873015,
+          "is_downbeat": false
+        },
+        {
+          "time": 169.31990929705216,
+          "is_downbeat": false
+        },
+        {
+          "time": 169.76108843537415,
+          "is_downbeat": true
+        },
+        {
+          "time": 170.20226757369613,
+          "is_downbeat": false
+        },
+        {
+          "time": 170.64344671201815,
+          "is_downbeat": false
+        },
+        {
+          "time": 171.07301587301586,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "G:maj7",
+      "start_time": 171.4793650793651,
+      "end_time": 175.26421768707485,
+      "duration": 3.7848526077097517,
+      "beats": [
+        {
+          "time": 171.51419501133788,
+          "is_downbeat": true
+        },
+        {
+          "time": 171.9437641723356,
+          "is_downbeat": false
+        },
+        {
+          "time": 172.37333333333333,
+          "is_downbeat": false
+        },
+        {
+          "time": 172.80290249433108,
+          "is_downbeat": false
+        },
+        {
+          "time": 173.27891156462584,
+          "is_downbeat": true
+        },
+        {
+          "time": 173.72009070294786,
+          "is_downbeat": false
+        },
+        {
+          "time": 174.14965986394557,
+          "is_downbeat": false
+        },
+        {
+          "time": 174.56761904761905,
+          "is_downbeat": false
+        },
+        {
+          "time": 175.0204081632653,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "C:7",
+      "start_time": 175.26421768707485,
+      "end_time": 178.56145124716554,
+      "duration": 3.297233560090689,
+      "beats": [
+        {
+          "time": 175.46158730158731,
+          "is_downbeat": false
+        },
+        {
+          "time": 175.91437641723357,
+          "is_downbeat": false
+        },
+        {
+          "time": 176.34394557823128,
+          "is_downbeat": false
+        },
+        {
+          "time": 176.7851247165533,
+          "is_downbeat": true
+        },
+        {
+          "time": 177.214693877551,
+          "is_downbeat": false
+        },
+        {
+          "time": 177.64426303854876,
+          "is_downbeat": false
+        },
+        {
+          "time": 178.1899319727891,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 178.56145124716554,
+      "end_time": 181.67292517006803,
+      "duration": 3.1114739229024906,
+      "beats": [
+        {
+          "time": 178.63111111111112,
+          "is_downbeat": true
+        },
+        {
+          "time": 179.0722902494331,
+          "is_downbeat": false
+        },
+        {
+          "time": 179.50185941043082,
+          "is_downbeat": false
+        },
+        {
+          "time": 179.9198185941043,
+          "is_downbeat": false
+        },
+        {
+          "time": 180.3261678004535,
+          "is_downbeat": true
+        },
+        {
+          "time": 180.82539682539684,
+          "is_downbeat": false
+        },
+        {
+          "time": 181.28979591836736,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "D:7",
+      "start_time": 181.67292517006803,
+      "end_time": 185.68997732426305,
+      "duration": 4.017052154195028,
+      "beats": [
+        {
+          "time": 181.71936507936508,
+          "is_downbeat": false
+        },
+        {
+          "time": 182.16054421768706,
+          "is_downbeat": true
+        },
+        {
+          "time": 182.60172335600907,
+          "is_downbeat": false
+        },
+        {
+          "time": 183.0312925170068,
+          "is_downbeat": false
+        },
+        {
+          "time": 183.41442176870748,
+          "is_downbeat": false
+        },
+        {
+          "time": 183.79755102040815,
+          "is_downbeat": true
+        },
+        {
+          "time": 184.2271201814059,
+          "is_downbeat": false
+        },
+        {
+          "time": 184.65668934240364,
+          "is_downbeat": false
+        },
+        {
+          "time": 185.07464852607708,
+          "is_downbeat": false
+        },
+        {
+          "time": 185.52743764172337,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 10,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "G:maj7",
+      "start_time": 185.68997732426305,
+      "end_time": 189.35873015873017,
+      "duration": 3.6687528344671136,
+      "beats": [
+        {
+          "time": 185.98022675736962,
+          "is_downbeat": false
+        },
+        {
+          "time": 186.47945578231293,
+          "is_downbeat": false
+        },
+        {
+          "time": 186.93224489795918,
+          "is_downbeat": false
+        },
+        {
+          "time": 187.3966439909297,
+          "is_downbeat": true
+        },
+        {
+          "time": 187.84943310657596,
+          "is_downbeat": false
+        },
+        {
+          "time": 188.3022222222222,
+          "is_downbeat": false
+        },
+        {
+          "time": 188.778231292517,
+          "is_downbeat": false
+        },
+        {
+          "time": 189.20780045351475,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "C:7",
+      "start_time": 189.35873015873017,
+      "end_time": 194.44390022675736,
+      "duration": 5.085170068027196,
+      "beats": [
+        {
+          "time": 189.660589569161,
+          "is_downbeat": false
+        },
+        {
+          "time": 190.101768707483,
+          "is_downbeat": false
+        },
+        {
+          "time": 190.542947845805,
+          "is_downbeat": false
+        },
+        {
+          "time": 190.984126984127,
+          "is_downbeat": true
+        },
+        {
+          "time": 191.40208616780046,
+          "is_downbeat": false
+        },
+        {
+          "time": 191.82004535147394,
+          "is_downbeat": false
+        },
+        {
+          "time": 192.23800453514738,
+          "is_downbeat": false
+        },
+        {
+          "time": 192.6443537414966,
+          "is_downbeat": true
+        },
+        {
+          "time": 193.0855328798186,
+          "is_downbeat": false
+        },
+        {
+          "time": 193.52671201814059,
+          "is_downbeat": false
+        },
+        {
+          "time": 193.9911111111111,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 11,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:min7",
+      "start_time": 194.44390022675736,
+      "end_time": 195.11727891156463,
+      "duration": 0.6733786848072612,
+      "beats": [
+        {
+          "time": 194.4671201814059,
+          "is_downbeat": true
+        },
+        {
+          "time": 194.9082993197279,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 2,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:7",
+      "start_time": 195.11727891156463,
+      "end_time": 196.1621768707483,
+      "duration": 1.044897959183686,
+      "beats": [
+        {
+          "time": 195.33786848072563,
+          "is_downbeat": false
+        },
+        {
+          "time": 195.77904761904762,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 2,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 196.1621768707483,
+      "end_time": 199.7148299319728,
+      "duration": 3.5526530612244756,
+      "beats": [
+        {
+          "time": 196.2202267573696,
+          "is_downbeat": true
+        },
+        {
+          "time": 196.66140589569162,
+          "is_downbeat": false
+        },
+        {
+          "time": 197.09097505668933,
+          "is_downbeat": false
+        },
+        {
+          "time": 197.55537414965985,
+          "is_downbeat": false
+        },
+        {
+          "time": 197.97333333333333,
+          "is_downbeat": true
+        },
+        {
+          "time": 198.42612244897958,
+          "is_downbeat": false
+        },
+        {
+          "time": 198.8673015873016,
+          "is_downbeat": false
+        },
+        {
+          "time": 199.33170068027212,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "F#:min7",
+      "start_time": 199.7148299319728,
+      "end_time": 202.77986394557823,
+      "duration": 3.065034013605441,
+      "beats": [
+        {
+          "time": 199.76126984126984,
+          "is_downbeat": true
+        },
+        {
+          "time": 200.20244897959185,
+          "is_downbeat": false
+        },
+        {
+          "time": 200.63201814058957,
+          "is_downbeat": false
+        },
+        {
+          "time": 201.08480725623582,
+          "is_downbeat": false
+        },
+        {
+          "time": 201.52598639455783,
+          "is_downbeat": true
+        },
+        {
+          "time": 201.95555555555555,
+          "is_downbeat": false
+        },
+        {
+          "time": 202.39673469387756,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:min7",
+      "start_time": 202.77986394557823,
+      "end_time": 206.77369614512472,
+      "duration": 3.993832199546489,
+      "beats": [
+        {
+          "time": 202.83791383219955,
+          "is_downbeat": false
+        },
+        {
+          "time": 203.27909297052153,
+          "is_downbeat": true
+        },
+        {
+          "time": 203.72027210884355,
+          "is_downbeat": false
+        },
+        {
+          "time": 204.16145124716553,
+          "is_downbeat": false
+        },
+        {
+          "time": 204.61424036281178,
+          "is_downbeat": false
+        },
+        {
+          "time": 205.0554195011338,
+          "is_downbeat": true
+        },
+        {
+          "time": 205.49659863945578,
+          "is_downbeat": false
+        },
+        {
+          "time": 205.93777777777777,
+          "is_downbeat": false
+        },
+        {
+          "time": 206.37895691609978,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "B:7",
+      "start_time": 206.77369614512472,
+      "end_time": 208.2597732426304,
+      "duration": 1.486077097505671,
+      "beats": [
+        {
+          "time": 206.8085260770975,
+          "is_downbeat": true
+        },
+        {
+          "time": 207.26131519274375,
+          "is_downbeat": false
+        },
+        {
+          "time": 207.70249433106576,
+          "is_downbeat": false
+        },
+        {
+          "time": 208.13206349206348,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "B:min7",
+      "start_time": 208.2597732426304,
+      "end_time": 210.32634920634922,
+      "duration": 2.066575963718833,
+      "beats": [
+        {
+          "time": 208.56163265306122,
+          "is_downbeat": true
+        },
+        {
+          "time": 209.01442176870748,
+          "is_downbeat": false
+        },
+        {
+          "time": 209.46721088435373,
+          "is_downbeat": false
+        },
+        {
+          "time": 209.90839002267575,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "E:min7",
+      "start_time": 210.32634920634922,
+      "end_time": 213.92544217687075,
+      "duration": 3.599092970521525,
+      "beats": [
+        {
+          "time": 210.34956916099773,
+          "is_downbeat": true
+        },
+        {
+          "time": 210.79074829931972,
+          "is_downbeat": false
+        },
+        {
+          "time": 211.243537414966,
+          "is_downbeat": false
+        },
+        {
+          "time": 211.68471655328798,
+          "is_downbeat": false
+        },
+        {
+          "time": 212.10267573696146,
+          "is_downbeat": true
+        },
+        {
+          "time": 212.54385487528344,
+          "is_downbeat": false
+        },
+        {
+          "time": 212.98503401360543,
+          "is_downbeat": false
+        },
+        {
+          "time": 213.4378231292517,
+          "is_downbeat": false
+        },
+        {
+          "time": 213.86739229024943,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 3
+    },
+    {
+      "chord": "G:min7",
+      "start_time": 213.92544217687075,
+      "end_time": 215.5740589569161,
+      "duration": 1.6486167800453586,
+      "beats": [
+        {
+          "time": 214.32018140589568,
+          "is_downbeat": false
+        },
+        {
+          "time": 214.74975056689343,
+          "is_downbeat": false
+        },
+        {
+          "time": 215.1677097505669,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 0
+    },
+    {
+      "chord": "A:7",
+      "start_time": 215.5740589569161,
+      "end_time": 216.92081632653063,
+      "duration": 1.3467573696145223,
+      "beats": [
+        {
+          "time": 215.58566893424037,
+          "is_downbeat": true
+        },
+        {
+          "time": 216.0732879818594,
+          "is_downbeat": false
+        },
+        {
+          "time": 216.52607709750566,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 216.92081632653063,
+      "end_time": 220.93786848072563,
+      "duration": 4.0170521541949995,
+      "beats": [
+        {
+          "time": 216.96725623582768,
+          "is_downbeat": false
+        },
+        {
+          "time": 217.40843537414966,
+          "is_downbeat": true
+        },
+        {
+          "time": 217.84961451247165,
+          "is_downbeat": false
+        },
+        {
+          "time": 218.2791836734694,
+          "is_downbeat": false
+        },
+        {
+          "time": 218.73197278911564,
+          "is_downbeat": false
+        },
+        {
+          "time": 219.1615419501134,
+          "is_downbeat": true
+        },
+        {
+          "time": 219.61433106575964,
+          "is_downbeat": false
+        },
+        {
+          "time": 220.04390022675736,
+          "is_downbeat": false
+        },
+        {
+          "time": 220.49668934240364,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "Bb:hdim7",
+      "start_time": 220.93786848072563,
+      "end_time": 222.63292517006803,
+      "duration": 1.6950566893424082,
+      "beats": [
+        {
+          "time": 220.93786848072563,
+          "is_downbeat": true
+        },
+        {
+          "time": 221.3790476190476,
+          "is_downbeat": false
+        },
+        {
+          "time": 221.82022675736962,
+          "is_downbeat": false
+        },
+        {
+          "time": 222.2614058956916,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:7",
+      "start_time": 222.63292517006803,
+      "end_time": 223.5849433106576,
+      "duration": 0.9520181405895585,
+      "beats": [
+        {
+          "time": 222.7025850340136,
+          "is_downbeat": true
+        },
+        {
+          "time": 223.12054421768707,
+          "is_downbeat": false
+        },
+        {
+          "time": 223.56172335600908,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 223.5849433106576,
+      "end_time": 227.9502947845805,
+      "duration": 4.365351473922914,
+      "beats": [
+        {
+          "time": 224.00290249433107,
+          "is_downbeat": false
+        },
+        {
+          "time": 224.4324716553288,
+          "is_downbeat": true
+        },
+        {
+          "time": 224.88526077097507,
+          "is_downbeat": false
+        },
+        {
+          "time": 225.32643990929705,
+          "is_downbeat": false
+        },
+        {
+          "time": 225.79083900226757,
+          "is_downbeat": false
+        },
+        {
+          "time": 226.22040816326532,
+          "is_downbeat": true
+        },
+        {
+          "time": 226.67319727891157,
+          "is_downbeat": false
+        },
+        {
+          "time": 227.11437641723356,
+          "is_downbeat": false
+        },
+        {
+          "time": 227.55555555555554,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "F#:min7",
+      "start_time": 227.9502947845805,
+      "end_time": 230.9921088435374,
+      "duration": 3.041814058956902,
+      "beats": [
+        {
+          "time": 227.99673469387756,
+          "is_downbeat": true
+        },
+        {
+          "time": 228.43791383219954,
+          "is_downbeat": false
+        },
+        {
+          "time": 228.87909297052155,
+          "is_downbeat": false
+        },
+        {
+          "time": 229.32027210884354,
+          "is_downbeat": false
+        },
+        {
+          "time": 229.74984126984128,
+          "is_downbeat": true
+        },
+        {
+          "time": 230.19102040816327,
+          "is_downbeat": false
+        },
+        {
+          "time": 230.63219954648525,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 7,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "A:min7",
+      "start_time": 230.9921088435374,
+      "end_time": 234.9859410430839,
+      "duration": 3.993832199546489,
+      "beats": [
+        {
+          "time": 231.07337868480727,
+          "is_downbeat": false
+        },
+        {
+          "time": 231.51455782312925,
+          "is_downbeat": true
+        },
+        {
+          "time": 231.95573696145124,
+          "is_downbeat": false
+        },
+        {
+          "time": 232.40852607709752,
+          "is_downbeat": false
+        },
+        {
+          "time": 232.8497052154195,
+          "is_downbeat": false
+        },
+        {
+          "time": 233.27927437641722,
+          "is_downbeat": true
+        },
+        {
+          "time": 233.7320634920635,
+          "is_downbeat": false
+        },
+        {
+          "time": 234.1732426303855,
+          "is_downbeat": false
+        },
+        {
+          "time": 234.61442176870747,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "B:7",
+      "start_time": 234.9859410430839,
+      "end_time": 238.51537414965986,
+      "duration": 3.529433106575965,
+      "beats": [
+        {
+          "time": 235.0556009070295,
+          "is_downbeat": true
+        },
+        {
+          "time": 235.49678004535147,
+          "is_downbeat": false
+        },
+        {
+          "time": 235.93795918367346,
+          "is_downbeat": false
+        },
+        {
+          "time": 236.3675283446712,
+          "is_downbeat": false
+        },
+        {
+          "time": 236.79709750566894,
+          "is_downbeat": true
+        },
+        {
+          "time": 237.2498866213152,
+          "is_downbeat": false
+        },
+        {
+          "time": 237.70267573696145,
+          "is_downbeat": false
+        },
+        {
+          "time": 238.14385487528344,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "E:min7",
+      "start_time": 238.51537414965986,
+      "end_time": 242.09124716553288,
+      "duration": 3.5758730158730145,
+      "beats": [
+        {
+          "time": 238.58503401360545,
+          "is_downbeat": true
+        },
+        {
+          "time": 239.02621315192744,
+          "is_downbeat": false
+        },
+        {
+          "time": 239.46739229024942,
+          "is_downbeat": false
+        },
+        {
+          "time": 239.89696145124717,
+          "is_downbeat": false
+        },
+        {
+          "time": 240.3265306122449,
+          "is_downbeat": true
+        },
+        {
+          "time": 240.7677097505669,
+          "is_downbeat": false
+        },
+        {
+          "time": 241.23210884353742,
+          "is_downbeat": false
+        },
+        {
+          "time": 241.6732879818594,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "G:min7",
+      "start_time": 242.09124716553288,
+      "end_time": 243.83274376417233,
+      "duration": 1.7414965986394577,
+      "beats": [
+        {
+          "time": 242.10285714285715,
+          "is_downbeat": true
+        },
+        {
+          "time": 242.5556462585034,
+          "is_downbeat": false
+        },
+        {
+          "time": 242.98521541950115,
+          "is_downbeat": false
+        },
+        {
+          "time": 243.41478458049886,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:7",
+      "start_time": 243.83274376417233,
+      "end_time": 245.1330612244898,
+      "duration": 1.3003174603174728,
+      "beats": [
+        {
+          "time": 243.86757369614512,
+          "is_downbeat": true
+        },
+        {
+          "time": 244.32036281179137,
+          "is_downbeat": false
+        },
+        {
+          "time": 244.76154195011338,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 3,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "D:maj7",
+      "start_time": 245.1330612244898,
+      "end_time": 249.1501133786848,
+      "duration": 4.0170521541949995,
+      "beats": [
+        {
+          "time": 245.20272108843537,
+          "is_downbeat": false
+        },
+        {
+          "time": 245.6322902494331,
+          "is_downbeat": true
+        },
+        {
+          "time": 246.0734693877551,
+          "is_downbeat": false
+        },
+        {
+          "time": 246.5146485260771,
+          "is_downbeat": false
+        },
+        {
+          "time": 246.9558276643991,
+          "is_downbeat": false
+        },
+        {
+          "time": 247.39700680272108,
+          "is_downbeat": true
+        },
+        {
+          "time": 247.8381859410431,
+          "is_downbeat": false
+        },
+        {
+          "time": 248.27936507936508,
+          "is_downbeat": false
+        },
+        {
+          "time": 248.72054421768706,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 9,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "Bb:hdim7",
+      "start_time": 249.1501133786848,
+      "end_time": 250.86839002267575,
+      "duration": 1.7182766439909472,
+      "beats": [
+        {
+          "time": 249.17333333333335,
+          "is_downbeat": true
+        },
+        {
+          "time": 249.61451247165533,
+          "is_downbeat": false
+        },
+        {
+          "time": 250.05569160997732,
+          "is_downbeat": false
+        },
+        {
+          "time": 250.48526077097506,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "A:7",
+      "start_time": 250.86839002267575,
+      "end_time": 252.63310657596372,
+      "duration": 1.7647165532879683,
+      "beats": [
+        {
+          "time": 250.92643990929705,
+          "is_downbeat": true
+        },
+        {
+          "time": 251.3792290249433,
+          "is_downbeat": false
+        },
+        {
+          "time": 251.8204081632653,
+          "is_downbeat": false
+        },
+        {
+          "time": 252.24997732426303,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 4,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "G:maj7",
+      "start_time": 252.63310657596372,
+      "end_time": 256.20897959183674,
+      "duration": 3.5758730158730145,
+      "beats": [
+        {
+          "time": 252.67954648526077,
+          "is_downbeat": true
+        },
+        {
+          "time": 253.13233560090703,
+          "is_downbeat": false
+        },
+        {
+          "time": 253.573514739229,
+          "is_downbeat": false
+        },
+        {
+          "time": 254.0263038548753,
+          "is_downbeat": false
+        },
+        {
+          "time": 254.455873015873,
+          "is_downbeat": true
+        },
+        {
+          "time": 254.89705215419502,
+          "is_downbeat": false
+        },
+        {
+          "time": 255.338231292517,
+          "is_downbeat": false
+        },
+        {
+          "time": 255.779410430839,
+          "is_downbeat": false
+        }
+      ],
+      "num_beats": 8,
+      "num_downbeats": 2
+    },
+    {
+      "chord": "C:7",
+      "start_time": 256.20897959183674,
+      "end_time": 259.73841269841273,
+      "duration": 3.5294331065759934,
+      "beats": [
+        {
+          "time": 256.220589569161,
+          "is_downbeat": true
+        }
+      ],
+      "num_beats": 1,
+      "num_downbeats": 1
+    },
+    {
+      "chord": "N",
+      "start_time": 259.73841269841273,
+      "end_time": 263.40716553287984,
+      "duration": 3.6687528344671136,
+      "beats": [],
+      "num_beats": 0,
+      "num_downbeats": 0
+    }
+  ]
+}
