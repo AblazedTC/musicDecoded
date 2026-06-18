@@ -11,10 +11,10 @@ import numpy as np
 from pathlib import Path
 from typing import List, Tuple, Dict, Any
 
-# Add backend to path
-backend_dir = Path(__file__).parent.parent
-if str(backend_dir) not in sys.path:
-    sys.path.insert(0, str(backend_dir))
+# Add worker to path
+worker_dir = Path(__file__).parent.parent
+if str(worker_dir) not in sys.path:
+    sys.path.insert(0, str(worker_dir))
 
 from services.madmom_detector_service import MadmomDetectorService
 from services.librosa_detector_service import LibrosaDetectorService

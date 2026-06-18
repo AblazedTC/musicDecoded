@@ -40,8 +40,8 @@ class BeatTransformerDetector:
         """
         if checkpoint_path is None:
             # Default to the Beat-Transformer checkpoint directory
-            backend_dir = Path(__file__).parent.parent
-            checkpoint_path = backend_dir / "models" / "Beat-Transformer" / "checkpoint"
+            worker_dir = Path(__file__).parent.parent
+            checkpoint_path = worker_dir / "models" / "Beat-Transformer" / "checkpoint"
         
         self.checkpoint_path = Path(checkpoint_path)
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
