@@ -2,5 +2,6 @@
     "java.compile.nullAnalysis.mode": "automatic",
     "gradle.nestedProjects": ["apps/mobile"],
     "kotlin.languageServer.enabled": true,
-    "kotlin.compiler.jvm.target": "17"
+    "kotlin.compiler.jvm.target": "17",
+    "java.configuration.updateBuildConfiguration": "interactive"
 }
