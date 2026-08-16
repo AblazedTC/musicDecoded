@@ -1,0 +1,14 @@
+{
+  "properties": [
+    {
+      "name": "jwt.secret",
+      "type": "java.lang.String",
+      "description": "HMAC-SHA256 signing key for JWT tokens. Must be at least 32 characters."
+    },
+    {
+      "name": "jwt.expiration",
+      "type": "java.lang.Long",
+      "description": "JWT token validity in milliseconds (e.g. 86400000 = 24 h)."
+    }
+  ]
+}
