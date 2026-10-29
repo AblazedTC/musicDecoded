@@ -8,9 +8,11 @@ MIN_SECRET_BYTES = 32  # HS256 needs a key of at least 256 bits
 
 # Local development only (APP_ENV=dev). Anywhere else these must come from the environment.
 DEV_JWT_SECRET = "local-dev-secret-change-in-production-must-be-long"
-DEV_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/musicdecoded"
-DEV_REDIS_URL = "redis://localhost:6379"
-DEV_S3_ENDPOINT = "http://localhost:9000"
+# 127.0.0.1, not localhost: compose binds IPv4 only, and resolving localhost to ::1 first
+# made each new Postgres connection take ~2 minutes on Windows.
+DEV_DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/musicdecoded"
+DEV_REDIS_URL = "redis://127.0.0.1:6379"
+DEV_S3_ENDPOINT = "http://127.0.0.1:9000"
 DEV_S3_KEY = "minioadmin"  # MinIO root user and password in docker-compose.yml
 
 

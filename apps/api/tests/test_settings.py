@@ -30,7 +30,9 @@ def test_prod_without_database_url_fails():
 def test_dev_supplies_local_defaults():
     s = Settings(app_env="dev", jwt_secret="", database_url="")
     assert s.jwt_secret == DEV_JWT_SECRET
-    assert s.database_url.startswith("postgresql+psycopg://postgres:postgres@localhost")
+    assert s.database_url.startswith("postgresql+psycopg://postgres:postgres@127.0.0.1")
+    assert (s.redis_url, s.s3_endpoint, s.s3_access_key) == ("redis://127.0.0.1:6379", "http://127.0.0.1:9000",
+                                                             "minioadmin")
 
 
 def test_plain_postgres_url_gets_the_driver():
