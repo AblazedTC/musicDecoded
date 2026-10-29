@@ -5,6 +5,11 @@ import android.util.Log
 import com.musicdecoded.mobile.auth.AuthRepository
 import com.musicdecoded.mobile.auth.TokenStore
 import com.musicdecoded.mobile.library.AnalysisStore
+import com.musicdecoded.mobile.library.DataStoreSyncState
+import com.musicdecoded.mobile.library.SyncRepository
+import com.musicdecoded.mobile.library.SyncWorker
+import com.musicdecoded.mobile.network.SyncApiService
+import com.musicdecoded.mobile.settings.SettingsStore
 import com.musicdecoded.mobile.library.LibraryDatabase
 import com.musicdecoded.mobile.library.TranscriptionRepository
 import com.musicdecoded.mobile.library.TranscriptionWorker
@@ -43,8 +48,25 @@ class MusicDecodedApplication : Application() {
             analysisStore,
             filesDir,
             TranscriptionWorker.Scheduler(this),
+            onJobComplete = ::requestSync,
         )
     }
+
+    val settingsStore by lazy { SettingsStore(this) }
+    val syncRepository by lazy {
+        SyncRepository(
+            SyncApiService(httpClient, BuildConfig.API_BASE_URL),
+            TranscriptionApiService(httpClient, BuildConfig.API_BASE_URL),
+            authRepository,
+            libraryDatabase.libraryDao(),
+            analysisStore,
+            filesDir,
+            DataStoreSyncState(this),
+        )
+    }
+
+    /** Background library sync (accounts only; a no-op for guests). PLAN.md §5.2 triggers call this. */
+    fun requestSync() = SyncWorker.schedule(this)
 
     /** The track loaded in the player; outlives the player screen (mini player, T-211). */
     val nowPlaying by lazy { NowPlaying() }

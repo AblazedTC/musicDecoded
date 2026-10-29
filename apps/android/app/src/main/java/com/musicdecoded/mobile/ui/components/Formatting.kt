@@ -22,3 +22,13 @@ fun songMetaLine(durationSec: Double?, key: Analysis.Key?, bpm: Double?): String
         key?.let(::keyName),
         bpm?.let { "${it.roundToInt()} BPM" },
     ).joinToString(" · ")
+
+/** `0 KB`, `840 KB`, `12.4 MB`, `1.2 GB` (1024-based). */
+fun formatBytes(bytes: Long): String {
+    val kb = bytes / 1024.0
+    return when {
+        kb < 1024 -> "${kb.roundToInt()} KB"
+        kb < 1024 * 1024 -> "%.1f MB".format(java.util.Locale.ROOT, kb / 1024)
+        else -> "%.1f GB".format(java.util.Locale.ROOT, kb / 1024 / 1024)
+    }
+}

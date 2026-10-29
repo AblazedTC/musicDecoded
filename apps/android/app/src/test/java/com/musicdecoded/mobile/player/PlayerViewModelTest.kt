@@ -1,9 +1,11 @@
 package com.musicdecoded.mobile.player
 
+import com.musicdecoded.mobile.core.Accidentals
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.Contracts
 import com.musicdecoded.mobile.core.Source
 import com.musicdecoded.mobile.core.SyntheticAnalysis
+import com.musicdecoded.mobile.settings.PlayerPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -235,5 +237,18 @@ class PlayerViewModelTest {
         assertEquals("−3", formatTranspose(-3))
         assertEquals("0", formatTranspose(0))
         assertEquals("0.75×", formatSpeed(0.75f))
+    }
+
+    @Test fun settingsDefaultsApplyWhenATrackOpens() {
+        val vm = PlayerViewModel(
+            loadTrack = { PlayerTrack(SyntheticAnalysis.make(), "Song", null, favorite = false, audio = null) },
+            voicings = Contracts.voicings(),
+            createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) { now } },
+            preferences = { PlayerPreferences(chordsMode = ChordsMode.BASIC, accidentals = Accidentals.FLAT, visualizer = Visualizer.VIDEO) },
+        )
+        assertEquals(ChordsMode.BASIC, vm.state.value.chordsMode)
+        assertEquals(Accidentals.FLAT, vm.state.value.chords.accidentals)
+        // Video isn't available for a file source, so the piano stays.
+        assertEquals(Visualizer.PIANO, vm.state.value.visualizer)
     }
 }

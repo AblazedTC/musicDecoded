@@ -34,6 +34,8 @@ import com.musicdecoded.mobile.sources.navigateToRecorder
 import com.musicdecoded.mobile.sources.sourceRoutes
 import com.musicdecoded.mobile.sources.youtube.YouTubeRoutes
 import com.musicdecoded.mobile.sources.youtube.youTubeRoutes
+import com.musicdecoded.mobile.ui.auth.AccountRoutes
+import com.musicdecoded.mobile.ui.auth.accountRoutes
 import com.musicdecoded.mobile.ui.components.AppTab
 import com.musicdecoded.mobile.ui.components.MdBottomBar
 import com.musicdecoded.mobile.ui.home.HomeNavigation
@@ -96,7 +98,8 @@ fun MainScreen() {
                     onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },
                 )
             }
-            composable(AppTab.SETTINGS.route) { SettingsScreen() }
+            composable(AppTab.SETTINGS.route) { SettingsScreen(onAuth = { navController.navigate(AccountRoutes.auth(it)) }) }
+            accountRoutes(navController)
             playerDestinations(navController)
             // After the job starts, the import sheet / recorder is replaced by Processing.
             sourceRoutes(navController, onDecodeStarted = navController::navigateToProcessing)

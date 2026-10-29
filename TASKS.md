@@ -429,19 +429,20 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: app/sync.py + migration 0004 (library_items, PK user_id+track_id, extra server_updated_at). Pull orders by (server_updated_at, trackId), 500/page; clients repeat with the returned cursor until a page has < 500 items (no `since` = full pull; empty page echoes the cursor). PUT: client wins only if strictly newer (ties keep server); unknown trackId or an audioUploadId the caller doesn't own → 400 for the whole push (nothing written); max 500 items. T-105 rule is now "has a job OR a non-deleted library row" (analysis/audio); /uploads/{id} also allows an upload referenced by the caller's library. library_items not in _GUEST_OWNED (guests can't own rows). tests/test_sync.py.
 
 ### T-403a / T-403i Account UI
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-401
+- Lane: android / ios · Status: android done, ios todo · Owner: claude (android) · Deps: T-401
 - Acceptance:
   - [ ] Settings screen per DESIGN.md §3.9 (only the v1 rows listed there); profile card guest/account; sync card for guests
   - [ ] Signup/login; on a device with guest data, show the migration screen (DESIGN.md §3.10) with real counts (timelines, own audio + size, restricted streaming tracks disabled) → Confirm & sync
   - [ ] Logout falls back to a fresh guest session but keeps local data
-- Notes (android): reuse `ui/auth/AuthScreen.kt` and `auth/AuthViewModel.kt`.
+- Notes (android): done. ui/settings (v1 rows; prefs in settings/SettingsStore DataStore, read by PlayerViewModel: speed for new engines, chords, accidentals, visualizer), ui/auth (AuthScreen + MigrationScreen; counts = never-synced READY rows). Password checked 8 chars..72 UTF-8 bytes; API error text shown. Session now stores the account email locally. Privacy/Help are in-app dialogs until T-504 has a policy URL.
 
 ### T-404a / T-404i Sync client
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-402, T-403*
+- Lane: android / ios · Status: android done, ios todo · Owner: claude (android) · Deps: T-402, T-403*
 - Acceptance:
   - [ ] Pull/push on foreground, after a job completes and after login; stores the cursor
   - [ ] Downloads missing analysis files (`GET /tracks/{id}/analysis`) and owned audio (`GET /uploads/{audioUploadId}`) for pulled items
   - [ ] Test: two fake devices converge
+- Notes (android): done. library/SyncRepository + SyncWorker (unique "library-sync", REPLACE). Push rows with syncedAt null or updatedAt > syncedAt (READY or tombstone) in 500s, then pull to a short page; LWW, ties keep local. Cursor + userId in DataStore "sync"; a new account starts a full pull but rows another account synced aren't re-pushed. A 400 push is retried once without audioUploadIds. Missing analysis → row FAILED "Couldn't download…", retried next sync. Triggers: MainActivity.onStart, TranscriptionRepository job complete, login/migration confirm. Tests: SyncRepositoryTest (MockEngine).
 
 ---
 

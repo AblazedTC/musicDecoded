@@ -57,6 +57,8 @@ class TranscriptionRepository(
     private val filesDir: File,
     private val scheduler: PollScheduler,
     private val clock: () -> Instant = Instant::now,
+    /** Called when a job finished and its analysis is saved (triggers a sync, PLAN.md §5.2). */
+    private val onJobComplete: () -> Unit = {},
 ) {
     private val audioDir = File(filesDir, "audio")
     private val _jobs = MutableStateFlow<Map<String, Job>>(emptyMap())
@@ -200,6 +202,7 @@ class TranscriptionRepository(
         val item = dao.get(trackId) ?: return
         dao.upsert(item.withAnalysis(Analysis.decode(json), clock()))
         _jobs.update { it - trackId }
+        onJobComplete()
     }
 
     private suspend fun begin(item: LibraryItem, job: Job) {

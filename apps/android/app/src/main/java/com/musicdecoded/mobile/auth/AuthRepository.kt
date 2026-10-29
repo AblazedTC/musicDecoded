@@ -28,6 +28,13 @@ class AuthRepository(
     private val mutex = Mutex()
     private val _config = MutableStateFlow<ClientConfig?>(null)
     val config: StateFlow<ClientConfig?> = _config.asStateFlow()
+    private val _session = MutableStateFlow<Session?>(null)
+
+    /** The current identity as it changes (Settings profile card); `null` until the first read. */
+    val session: StateFlow<Session?> = _session.asStateFlow()
+
+    /** The stored session without creating one (sync must never sign in as a guest). */
+    suspend fun currentSession(): Session? = store.session().also { _session.value = it }
 
     /** Called once at launch: make sure there's a session, then refresh the config. */
     suspend fun start() {
@@ -37,7 +44,8 @@ class AuthRepository(
     }
 
     /** The stored session, or a new guest session. */
-    suspend fun ensureSession(): Session = mutex.withLock { store.session() ?: signInAsGuest() }
+    suspend fun ensureSession(): Session =
+        mutex.withLock { store.session() ?: signInAsGuest() }.also { _session.value = it }
 
     /** Runs [call] with the current token; on a 401 for a guest, re-auths once and retries once. */
     suspend fun <T> authorized(call: suspend (token: String) -> T): T {
@@ -72,13 +80,18 @@ class AuthRepository(
     /** Logs in; a guest token is sent so the server merges the guest's data into the account. */
     suspend fun login(email: String, password: String) {
         val response = authApi.login(email, password, guestToken())
-        store.saveSession(response.toSession())
+        save(response.toSession().copy(email = email))
     }
 
     /** Creates an account, linking the guest's data. */
     suspend fun signup(email: String, password: String) {
         val response = authApi.signup(email, password, guestToken())
-        store.saveSession(response.toSession())
+        save(response.toSession().copy(email = email))
+    }
+
+    private suspend fun save(session: Session) {
+        store.saveSession(session)
+        _session.value = session
     }
 
     /** Signs out of an account and falls back to this device's guest identity. */
@@ -92,7 +105,7 @@ class AuthRepository(
     /** Must be called with [mutex] held. */
     private suspend fun signInAsGuest(): Session {
         val session = authApi.anonymous(store.deviceId()).toSession()
-        store.saveSession(session)
+        save(session)
         return session
     }
 

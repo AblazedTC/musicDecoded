@@ -79,6 +79,31 @@ interface LibraryDao {
 
     @Query("UPDATE library_items SET favorite = :favorite, updatedAt = :now WHERE trackId = :trackId")
     suspend fun setFavorite(trackId: String, favorite: Boolean, now: Instant)
+
+    /**
+     * Sync push candidates (T-404a): changed since their last sync, oldest change first. Only
+     * finished rows and tombstones; a row still analyzing is pushed once its job completes.
+     */
+    @Query(
+        """
+        SELECT * FROM library_items
+        WHERE (syncedAt IS NULL OR updatedAt > syncedAt) AND (status = 'READY' OR deleted = 1)
+        ORDER BY updatedAt, trackId LIMIT :limit
+        """,
+    )
+    suspend fun pendingPush(limit: Int): List<LibraryItem>
+
+    /** Marks a pushed row synced, unless it changed again while the push was in flight. */
+    @Query("UPDATE library_items SET syncedAt = :updatedAt WHERE trackId = :trackId AND updatedAt = :updatedAt")
+    suspend fun markSynced(trackId: String, updatedAt: Instant)
+
+    /** Visible rows that went through sync (they may be missing their analysis or audio here). */
+    @Query("SELECT * FROM library_items WHERE syncedAt IS NOT NULL AND deleted = 0 AND status != 'ANALYZING'")
+    suspend fun syncedVisible(): List<LibraryItem>
+
+    /** Finished local rows never synced: the guest data the migration screen lists (DESIGN.md §3.10). */
+    @Query("SELECT * FROM library_items WHERE syncedAt IS NULL AND deleted = 0 AND status = 'READY'")
+    suspend fun unsynced(): List<LibraryItem>
 }
 
 data class LibraryCounts(val decoded: Int, val offline: Int)

@@ -17,11 +17,13 @@ data class ChordDisplay(
     val transpose: Int,
     val basic: Boolean,
     val voicings: ChordVoicings?,
+    /** Settings → Accidentals. */
+    val accidentals: Accidentals = Accidentals.AUTO,
 ) {
-    private val spelling = PitchSpelling(Accidentals.AUTO, key, transpose)
+    private val spelling = PitchSpelling(accidentals, key, transpose)
 
     /** `F#:min7` → `F♯m7` (Full) or `F♯m` (Basic); `""` for `N`/`X`. */
-    fun name(label: String): String = chordDisplayName(label, transpose, Accidentals.AUTO, key, simplify = basic)
+    fun name(label: String): String = chordDisplayName(label, transpose, accidentals, key, simplify = basic)
 
     /** MIDI notes from `chord-voicings.json`; Basic voices the triad family without the slash bass. */
     fun notes(label: String): List<Int> = voicings?.notes(voicedLabel(label), transpose).orEmpty()

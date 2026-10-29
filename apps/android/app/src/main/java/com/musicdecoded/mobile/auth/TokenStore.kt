@@ -22,8 +22,8 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** The signed-in identity: a guest (device) or an account JWT. */
-data class Session(val token: String, val userId: String, val kind: Kind, val plan: Plan)
+/** The signed-in identity: a guest (device) or an account JWT. [email] is kept locally for accounts (Settings). */
+data class Session(val token: String, val userId: String, val kind: Kind, val plan: Plan, val email: String? = null)
 
 /** Persistent session state. [TokenStore] in the app; an in-memory fake in tests. */
 interface SessionStore {
@@ -51,6 +51,7 @@ class TokenStore(private val context: Context) : SessionStore {
     private val userIdKey = stringPreferencesKey("user_id")
     private val kindKey = stringPreferencesKey("kind")
     private val planKey = stringPreferencesKey("plan")
+    private val emailKey = stringPreferencesKey("email")
     private val deviceIdKey = stringPreferencesKey("device_id_enc")
     private val configKey = stringPreferencesKey("client_config")
     private val legacyPlaintextTokenKey = stringPreferencesKey("jwt")
@@ -63,6 +64,7 @@ class TokenStore(private val context: Context) : SessionStore {
             userId = prefs[userIdKey] ?: return null,
             kind = prefs[kindKey]?.let { runCatching { Kind.valueOf(it) }.getOrNull() } ?: return null,
             plan = prefs[planKey]?.let { runCatching { Plan.valueOf(it) }.getOrNull() } ?: Plan.FREE,
+            email = prefs[emailKey],
         )
     }
 
@@ -73,6 +75,7 @@ class TokenStore(private val context: Context) : SessionStore {
             it[userIdKey] = session.userId
             it[kindKey] = session.kind.name
             it[planKey] = session.plan.name
+            if (session.email != null) it[emailKey] = session.email else it.remove(emailKey)
             it.remove(legacyPlaintextTokenKey)
         }
     }
@@ -83,6 +86,7 @@ class TokenStore(private val context: Context) : SessionStore {
             it.remove(userIdKey)
             it.remove(kindKey)
             it.remove(planKey)
+            it.remove(emailKey)
             it.remove(legacyPlaintextTokenKey)
         }
     }

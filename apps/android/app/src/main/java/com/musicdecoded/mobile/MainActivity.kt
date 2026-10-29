@@ -22,4 +22,10 @@ class MainActivity : ComponentActivity() {
             MusicDecodedTheme { MainScreen() }
         }
     }
+
+    override fun onStart() {
+        super.onStart()
+        // Sync trigger: app foreground (PLAN.md §5.2).
+        (application as MusicDecodedApplication).requestSync()
+    }
 }

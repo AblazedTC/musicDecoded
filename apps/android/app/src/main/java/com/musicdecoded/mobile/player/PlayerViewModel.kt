@@ -7,12 +7,14 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.musicdecoded.mobile.BuildConfig
 import com.musicdecoded.mobile.MusicDecodedApplication
+import com.musicdecoded.mobile.core.Accidentals
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.ChordVoicings
 import com.musicdecoded.mobile.core.Source
 import com.musicdecoded.mobile.core.barRange
 import com.musicdecoded.mobile.core.nextChordStart
 import com.musicdecoded.mobile.core.previousChordStart
+import com.musicdecoded.mobile.settings.PlayerPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -52,6 +54,8 @@ data class PlayerUiState(
     val showNoteNames: Boolean = true,
     val visualizer: Visualizer = Visualizer.PIANO,
     val voicings: ChordVoicings? = null,
+    /** Settings → Accidentals. */
+    val accidentals: Accidentals = Accidentals.AUTO,
 ) {
     val analysis: Analysis? get() = track?.analysis
 
@@ -61,7 +65,7 @@ data class PlayerUiState(
     /** No local audio: the video's `currentTime` is the clock (DESIGN.md §4), so it stays on screen. */
     val videoIsClock: Boolean get() = videoAvailable && track?.audio == null
 
-    val chords: ChordDisplay get() = ChordDisplay(analysis?.key, transpose, chordsMode == ChordsMode.BASIC, voicings)
+    val chords: ChordDisplay get() = ChordDisplay(analysis?.key, transpose, chordsMode == ChordsMode.BASIC, voicings, accidentals)
 }
 
 /**
@@ -76,6 +80,8 @@ class PlayerViewModel(
     private val saveFavorite: suspend (Boolean) -> Unit = {},
     /** `false` when the engine belongs to the app-level [NowPlaying] (playback outlives this screen). */
     private val ownsEngine: Boolean = true,
+    /** Settings defaults (chords, accidentals, visualizer); default speed is applied by [createEngine]. */
+    private val preferences: suspend () -> PlayerPreferences = { PlayerPreferences() },
 ) : ViewModel() {
     private val _state = MutableStateFlow(PlayerUiState(voicings = voicings))
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
@@ -92,10 +98,16 @@ class PlayerViewModel(
 
     init {
         viewModelScope.launch {
+            val prefs = runCatching { preferences() }.getOrDefault(PlayerPreferences())
             val track = runCatching { loadTrack() }.getOrNull()
             if (track != null) engine = createEngine(track)
             _state.update {
-                it.copy(loading = false, track = track, favorite = track?.favorite ?: false, speed = engine?.speed ?: it.speed)
+                val loaded = it.copy(loading = false, track = track, favorite = track?.favorite ?: false, speed = engine?.speed ?: it.speed)
+                loaded.copy(
+                    chordsMode = prefs.chordsMode,
+                    accidentals = prefs.accidentals,
+                    visualizer = if (prefs.visualizer == Visualizer.VIDEO && loaded.videoAvailable) Visualizer.VIDEO else Visualizer.PIANO,
+                )
             }
             tick() // picks up a track that's still playing from an earlier visit (NowPlaying)
         }
@@ -223,6 +235,7 @@ class PlayerViewModel(
         fun factory(app: MusicDecodedApplication, trackId: String): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val dao = app.libraryDatabase.libraryDao()
+                var defaultSpeed = 1f // read before createEngine runs (preferences load first)
                 PlayerViewModel(
                     loadTrack = {
                         withContext(Dispatchers.IO) {
@@ -249,13 +262,14 @@ class PlayerViewModel(
                                 it.audio != null -> ExoPlaybackEngine(app, it.audio, duration)
                                 it.videoId != null -> YouTubePlaybackEngine(duration)
                                 else -> SilentPlaybackEngine(duration)
-                            }
+                            }.apply { setSpeed(defaultSpeed) } // a new engine starts at Settings → Default speed
                         }
                     },
                     saveFavorite = { favorite ->
                         if (dao.get(trackId) != null) dao.setFavorite(trackId, favorite, Instant.now())
                     },
                     ownsEngine = false,
+                    preferences = { app.settingsStore.current().also { defaultSpeed = it.defaultSpeed } },
                 )
             }
         }
