@@ -382,23 +382,26 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: Image, CI and docs on Python 3.14 (3.13 also works). `yt-dlp[default,deno]==2026.10.26` installs yt-dlp-ejs plus deno as a wheel, so no apt step is needed. New dep `audioop-lts` (3.13+): pydub, imported by the chord model, needs the removed stdlib audioop. In the container, "Monkeys Spinning Monkeys" took 8.7 s to fetch and 17.7 s to analyze, and the output validates.
 
 ### T-303 `GET /tracks/{id}/audio`
-- Lane: api · Status: todo · Owner: — · Deps: T-302
+- Lane: api · Status: done · Owner: claude · Deps: T-302
 - Acceptance:
-  - [ ] 403 `feature_disabled` when the flag is off; otherwise a presigned GET URL
+  - [x] 403 `feature_disabled` when the flag is off; otherwise a presigned GET URL
+- Notes: Implemented with T-105; the worker sets tracks.audio_key when OFFLINE_STREAM_AUDIO=true (T-302).
 
 ### T-304a / T-304i YouTube sandbox search UI
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-301, T-204*
+- Lane: android / ios · Status: done · Owner: claude · Deps: T-301, T-204*
 - Acceptance:
-  - [ ] DESIGN.md §3.4: search field (debounced 400 ms), recent-query suggestion chips, results (thumbnail + duration badge, title, channel), infinite scroll via pageToken
-  - [ ] "Paste a video URL" card parses watch/youtu.be/shorts URLs into a videoId
-  - [ ] Video detail screen: hero (inline embed on play), availability card, "Decode this song" → `youtube` job → Processing, policy note copy verbatim
+  - [x] DESIGN.md §3.4: search field (debounced 400 ms), recent-query suggestion chips, results (thumbnail + duration badge, title, channel), infinite scroll via pageToken
+  - [x] "Paste a video URL" card parses watch/youtu.be/shorts URLs into a videoId
+  - [x] Video detail screen: hero (inline embed on play), availability card, "Decode this song" → `youtube` job → Processing, policy note copy verbatim
+- Notes: Both platforms (iOS: CI 128 app tests). Real search needs YOUTUBE_API_KEY.
 
 ### T-305a / T-305i Video panel synced to the timeline
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-304*, T-209*
+- Lane: android / ios · Status: done · Owner: claude · Deps: T-304*, T-209*
 - Acceptance:
-  - [ ] Official embedded player (iOS: YouTube IFrame Player API in WKWebView; Android: `android-youtube-player` or the IFrame API in a WebView)
-  - [ ] When there's no local audio, the video's `currentTime` is the clock; scrubbing the timeline seeks the video
-  - [ ] When local audio exists (flag on), the audio is the clock and the video is muted and kept within 150 ms
+  - [x] Official embedded player (iOS: YouTube IFrame Player API in WKWebView; Android: `android-youtube-player` or the IFrame API in a WebView)
+  - [x] When there's no local audio, the video's `currentTime` is the clock; scrubbing the timeline seeks the video
+  - [x] When local audio exists (flag on), the audio is the clock and the video is muted and kept within 150 ms
+- Notes: Both platforms; IFrame API in WebView/WKWebView, 150 ms drift sync. Embed error 152/153 risk unverified on device.
 
 ### T-306 Apply for a YouTube Data API quota increase
 - Lane: infra · Status: todo · Owner: product owner · Deps: T-301, T-504 (privacy policy)
