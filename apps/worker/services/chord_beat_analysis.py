@@ -1,39 +1,79 @@
 """
-Chord-Beat Analysis Script
-Combines chord recognition with beat detection to link each chord to specific beats.
-Uses LibrosaDetectorService (beats) and ChordCNNLSTMDetectorService (chords).
+Chord-Beat Analysis: audio file -> analysis v1 (contracts/analysis.schema.json).
+Uses LibrosaDetectorService (beats) and ChordCNNLSTMDetectorService (chords);
+key / BPM / time signature come from services/features.py.
 """
 
+import argparse
+import json
 import os
 import sys
-import json
-import numpy as np
+import time
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Tuple, Dict, Any
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+import numpy as np
 
 # Add worker to path
 worker_dir = Path(__file__).parent.parent
 if str(worker_dir) not in sys.path:
     sys.path.insert(0, str(worker_dir))
 
+from services import features
 from services.librosa_detector_service import LibrosaDetectorService
 from services.chord_cnn_lstm_service import ChordCNNLSTMDetectorService
+
+SCHEMA_VERSION = 1
+SAMPLE_RATE = 22050
+DEFAULT_ANALYZER_VERSION = os.environ.get("ANALYZER_VERSION", "0.1.0")
+DEFAULT_CHORD_MODEL_DIR = os.environ.get(
+    "CHORD_MODEL_DIR", str(worker_dir / "models" / "chord-recognition-model")
+)
+
+
+def build_analysis(
+    *,
+    track_id: str,
+    source: str,
+    source_ref: Optional[str],
+    analyzer_version: str,
+    duration: float,
+    beats: Sequence[float],
+    downbeats: Sequence[float],
+    chords: Sequence[Dict[str, Any]],
+    chroma: Optional[Sequence[float]] = None,
+    analyzed_at: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Assemble an analysis v1 document from raw model outputs (no I/O, no models)."""
+    return {
+        "schemaVersion": SCHEMA_VERSION,
+        "meta": {
+            "trackId": track_id,
+            "source": source,
+            "sourceRef": source_ref,
+            "durationSec": round(float(duration), 3),
+            "analyzedAt": analyzed_at or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "analyzerVersion": analyzer_version,
+        },
+        "key": features.estimate_key(chroma) if chroma is not None else None,
+        "bpm": features.estimate_bpm(beats),
+        "timeSignature": features.estimate_time_signature(beats, downbeats),
+        "beats": features.build_beats(beats, downbeats),
+        "chords": features.contiguous_chords(chords, float(duration)),
+    }
 
 
 class ChordBeatAnalyzer:
     """Analyzer that combines chord recognition with beat detection."""
-    
-    def __init__(self, chord_model_dir: str):
-        """
-        Initialize the analyzer.
 
-        Args:
-            chord_model_dir: Path to chord recognition model directory
-        """
+    def __init__(self, chord_model_dir: str = DEFAULT_CHORD_MODEL_DIR):
         self.chord_service = ChordCNNLSTMDetectorService(chord_model_dir)
         # librosa is the beat path. madmom is not allowed: its pretrained
         # models are CC BY-NC-SA (PLAN.md R-7, see MODELS.md).
         self.librosa_service = LibrosaDetectorService()
+        self.timings: Dict[str, float] = {}
 
         if not self.librosa_service.is_available():
             raise RuntimeError("No beat detection service available (librosa is not installed)")
@@ -41,200 +81,104 @@ class ChordBeatAnalyzer:
         if not self.chord_service.is_available():
             raise RuntimeError("Chord-CNN-LSTM is not available")
 
-        print("Chord-Beat Analyzer initialized (using Librosa)")
+    @contextmanager
+    def _stage(self, name: str):
+        start = time.perf_counter()
+        yield
+        self.timings[name] = round(time.perf_counter() - start, 3)
+        print(f"  [stage] {name}: {self.timings[name]:.2f}s")
 
     def extract_beats(self, audio_path: str) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Extract beats and downbeats from audio using librosa.
-
-        Args:
-            audio_path: Path to audio file
-
-        Returns:
-            Tuple of (beats array, downbeats array) in seconds
-        """
-        print(f"\nExtracting beats from {Path(audio_path).name}...")
-
         result = self.librosa_service.detect_beats(audio_path)
-
         if not result["success"]:
             raise RuntimeError(f"Beat detection failed: {result.get('error', 'Unknown error')}")
+        return np.array(result["beats"]), np.array(result["downbeats"])
 
-        beats = np.array(result["beats"])
-        downbeats = np.array(result["downbeats"])
-
-        print(f"  Model used: {result['model_name']}")
-        print(f"  Detected tempo: {result['bpm']:.1f} BPM")
-        print(f"  Time signature: {result['time_signature']}")
-        print(f"  Found {len(beats)} beats and {len(downbeats)} downbeats")
-        print(f"  Processing time: {result['processing_time']:.2f}s")
-
-        return beats, downbeats
-
-    def extract_chords(self, audio_path: str) -> List[Tuple[float, float, str]]:
-        """
-        Extract chord progressions from audio using the chord recognition service.
-        
-        Args:
-            audio_path: Path to audio file
-            
-        Returns:
-            List of tuples: (start_time, end_time, chord_label)
-        """
-        print(f"\nExtracting chords from {Path(audio_path).name}...")
-        
+    def extract_chords(self, audio_path: str) -> List[Dict[str, Any]]:
         result = self.chord_service.recognize_chords(audio_path)
-        
         if not result["success"]:
             raise RuntimeError(f"Chord recognition failed: {result.get('error', 'Unknown error')}")
-        
-        print(f"  Found {result['total_chords']} chord segments")
-        print(f"  Processing time: {result['processing_time']:.2f}s")
-        
         return result["chords"]
-    
-    def link_chords_to_beats(
-        self, 
-        chords: List[Dict[str, Any]], 
-        beats: np.ndarray, 
-        downbeats: np.ndarray
-    ) -> List[Dict[str, Any]]:
+
+    def analyze(
+        self,
+        audio_path: str,
+        output_path: Optional[str] = None,
+        *,
+        track_id: Optional[str] = None,
+        source: str = "file",
+        source_ref: Optional[str] = None,
+        analyzer_version: str = DEFAULT_ANALYZER_VERSION,
+    ) -> Dict[str, Any]:
+        """Run the pipeline and return (and optionally write) an analysis v1 document.
+
+        Per-stage wall times are left in self.timings (T-115).
         """
-        Link each chord segment to the beats that occur during it.
-        
-        Args:
-            chords: List of chord dictionaries with 'start', 'end', 'chord' keys
-            beats: Array of beat timestamps
-            downbeats: Array of downbeat timestamps
-        
-        Returns:
-            List of dictionaries with chord and beat information
-        """
-        print("\nLinking chords to beats...")
-        
-        linked_data = []
-        
-        for chord_info in chords:
-            chord_start = chord_info['start']
-            chord_end = chord_info['end']
-            chord_label = chord_info['chord']
-            
-            # Find beats within this chord segment
-            chord_beats = beats[(beats >= chord_start) & (beats < chord_end)]
-            chord_downbeats = downbeats[(downbeats >= chord_start) & (downbeats < chord_end)]
-            
-            # Mark which beats are downbeats
-            beat_info = []
-            for beat_time in chord_beats:
-                is_downbeat = any(np.isclose(beat_time, chord_downbeats, atol=0.05))
-                beat_info.append({
-                    'time': float(beat_time),
-                    'is_downbeat': bool(is_downbeat)
-                })
-            
-            linked_data.append({
-                'chord': chord_label,
-                'start_time': float(chord_start),
-                'end_time': float(chord_end),
-                'duration': float(chord_end - chord_start),
-                'beats': beat_info,
-                'num_beats': len(beat_info),
-                'num_downbeats': int(np.sum([b['is_downbeat'] for b in beat_info]))
-            })
-        
-        print(f"  Linked {len(linked_data)} chord segments to beats")
-        return linked_data
-    
-    def analyze(self, audio_path: str, output_path: str):
-        """
-        Perform complete chord-beat analysis.
-        
-        Args:
-            audio_path: Path to input audio file
-            output_path: Path to output JSON file
-        """
-        print(f"\n{'='*60}")
-        print(f"Chord-Beat Analysis")
-        print(f"{'='*60}")
-        
-        # Extract beats
-        beats, downbeats = self.extract_beats(audio_path)
-        
-        # Extract chords
-        chords = self.extract_chords(audio_path)
-        
-        # Link chords to beats
-        linked_data = self.link_chords_to_beats(chords, beats, downbeats)
-        
-        # Prepare output
-        output = {
-            'audio_file': str(Path(audio_path).name),
-            'total_duration': float(chords[-1]['end']) if chords else 0.0,
-            'total_beats': int(len(beats)),
-            'total_downbeats': int(len(downbeats)),
-            'total_chords': len(chords),
-            'analysis': linked_data
-        }
-        
-        # Save to JSON
-        output_path = Path(output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(output_path, 'w') as f:
-            json.dump(output, f, indent=2)
-        
-        print(f"\n{'='*60}")
-        print(f"Analysis complete!")
-        print(f"Output saved to: {output_path}")
-        print(f"{'='*60}\n")
-        
-        # Print summary
-        print("Summary:")
-        print(f"  Duration: {output['total_duration']:.2f} seconds")
-        print(f"  Beats: {output['total_beats']}")
-        print(f"  Downbeats: {output['total_downbeats']}")
-        print(f"  Chord segments: {output['total_chords']}")
-        print(f"\nFirst 5 chord segments:")
-        for i, segment in enumerate(linked_data[:5]):
-            print(f"  {i+1}. {segment['chord']:10s} [{segment['start_time']:6.2f}s - {segment['end_time']:6.2f}s] "
-                  f"({segment['num_beats']} beats, {segment['num_downbeats']} downbeats)")
+        import librosa
+
+        self.timings = {}
+        audio_path = str(audio_path)
+        with self._stage("load"):
+            y, sr = librosa.load(audio_path, sr=SAMPLE_RATE, mono=True)
+            duration = len(y) / sr
+        with self._stage("beats"):
+            beats, downbeats = self.extract_beats(audio_path)
+        with self._stage("chords"):
+            chords = self.extract_chords(audio_path)
+        with self._stage("key"):
+            chroma = features.mean_chroma(y, sr)
+
+        doc = build_analysis(
+            track_id=track_id or Path(audio_path).stem,
+            source=source,
+            source_ref=source_ref,
+            analyzer_version=analyzer_version,
+            duration=duration,
+            beats=beats,
+            downbeats=downbeats,
+            chords=chords,
+            chroma=chroma,
+        )
+
+        if output_path:
+            with self._stage("save"):
+                out = Path(output_path)
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(json.dumps(doc, separators=(",", ":")), encoding="utf-8")
+        return doc
 
 
-def main():
-    """Main entry point."""
-    if len(sys.argv) < 3:
-        print("Usage: python chord_beat_analysis.py <audio_file> <output_file>")
-        print("Example: python chord_beat_analysis.py data/song.mp3 outputs/analysis.json")
-        sys.exit(1)
-    
-    audio_path = sys.argv[1]
-    output_path = sys.argv[2]
-    
-    if not os.path.exists(audio_path):
-        print(f"Error: Audio file not found: {audio_path}")
-        sys.exit(1)
-    
-    # Set up paths
-    script_dir = Path(__file__).parent.parent
-    chord_model_dir = script_dir / "models" / "chord-recognition-model"
-    
-    if not chord_model_dir.exists():
-        print(f"Error: Chord recognition model directory not found: {chord_model_dir}")
-        sys.exit(1)
-    
-    # Create analyzer
-    try:
-        analyzer = ChordBeatAnalyzer(str(chord_model_dir))
-        
-        # Run analysis
-        analyzer.analyze(audio_path, output_path)
-        
-    except Exception as e:
-        print(f"\nError during analysis: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-        sys.exit(1)
+def main(argv: Optional[List[str]] = None):
+    parser = argparse.ArgumentParser(description="Analyze an audio file into analysis v1 JSON.")
+    parser.add_argument("audio_file")
+    parser.add_argument("output_file")
+    parser.add_argument("--track-id", help="meta.trackId (default: audio file name without extension)")
+    parser.add_argument("--source", default="file", choices=["file", "recording", "youtube", "soundcloud"])
+    parser.add_argument("--source-ref", default=None, help="YouTube videoId or SoundCloud URL")
+    parser.add_argument("--analyzer-version", default=DEFAULT_ANALYZER_VERSION)
+    parser.add_argument("--chord-model-dir", default=DEFAULT_CHORD_MODEL_DIR, help="or set CHORD_MODEL_DIR")
+    args = parser.parse_args(argv)
+
+    if not os.path.exists(args.audio_file):
+        sys.exit(f"Error: Audio file not found: {args.audio_file}")
+    if not Path(args.chord_model_dir).exists():
+        sys.exit(f"Error: Chord recognition model directory not found: {args.chord_model_dir}")
+
+    analyzer = ChordBeatAnalyzer(args.chord_model_dir)
+    start = time.perf_counter()
+    doc = analyzer.analyze(
+        args.audio_file,
+        args.output_file,
+        track_id=args.track_id,
+        source=args.source,
+        source_ref=args.source_ref,
+        analyzer_version=args.analyzer_version,
+    )
+    print(
+        f"Wrote {args.output_file}: {doc['meta']['durationSec']:.1f}s, key={doc['key']}, bpm={doc['bpm']}, "
+        f"timeSignature={doc['timeSignature']}, {len(doc['beats'])} beats, {len(doc['chords'])} chords, "
+        f"total {time.perf_counter() - start:.2f}s"
+    )
 
 
 if __name__ == "__main__":
