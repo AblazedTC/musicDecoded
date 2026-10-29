@@ -22,6 +22,9 @@ interface PlaybackEngine {
     fun pause()
     fun seekTo(seconds: Double)
 
+    /** The current speed (the player reads it back when it reopens a track that's still loaded). */
+    val speed: Float get() = 1f
+
     /** 0.5–1.25×, pitch kept. */
     fun setSpeed(speed: Float)
     fun release()
@@ -52,6 +55,8 @@ class ExoPlaybackEngine(context: Context, audio: File, private val durationSec: 
     override fun pause() = player.pause()
     override fun seekTo(seconds: Double) = player.seekTo((seconds * 1000).toLong())
 
+    override val speed: Float get() = player.playbackParameters.speed
+
     // Time-stretch without changing pitch (DESIGN.md §4).
     override fun setSpeed(speed: Float) {
         player.playbackParameters = PlaybackParameters(speed, 1f)
@@ -71,7 +76,8 @@ class SilentPlaybackEngine(
 ) : PlaybackEngine {
     private var anchorPosition = 0.0
     private var anchorNanos = 0L
-    private var speed = 1f
+    override var speed = 1f
+        private set
 
     override var isPlaying: Boolean = false
         private set

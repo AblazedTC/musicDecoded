@@ -24,6 +24,10 @@ interface LibraryDao {
     @Query("SELECT * FROM library_items WHERE trackId = :trackId")
     suspend fun get(trackId: String): LibraryItem?
 
+    /** One row as it changes (Processing screen). */
+    @Query("SELECT * FROM library_items WHERE trackId = :trackId")
+    fun observe(trackId: String): Flow<LibraryItem?>
+
     /** The visible history, newest first. */
     @Query("SELECT * FROM library_items WHERE deleted = 0 ORDER BY createdAt DESC, trackId")
     fun newestFirst(): Flow<List<LibraryItem>>

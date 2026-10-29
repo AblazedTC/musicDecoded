@@ -69,6 +69,8 @@ class PlayerViewModel(
     private val voicings: ChordVoicings?,
     private val createEngine: (PlayerTrack) -> PlaybackEngine,
     private val saveFavorite: suspend (Boolean) -> Unit = {},
+    /** `false` when the engine belongs to the app-level [NowPlaying] (playback outlives this screen). */
+    private val ownsEngine: Boolean = true,
 ) : ViewModel() {
     private val _state = MutableStateFlow(PlayerUiState(voicings = voicings))
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
@@ -84,7 +86,10 @@ class PlayerViewModel(
         viewModelScope.launch {
             val track = runCatching { loadTrack() }.getOrNull()
             if (track != null) engine = createEngine(track)
-            _state.update { it.copy(loading = false, track = track, favorite = track?.favorite ?: false) }
+            _state.update {
+                it.copy(loading = false, track = track, favorite = track?.favorite ?: false, speed = engine?.speed ?: it.speed)
+            }
+            tick() // picks up a track that's still playing from an earlier visit (NowPlaying)
         }
     }
 
@@ -188,7 +193,7 @@ class PlayerViewModel(
     }
 
     override fun onCleared() {
-        engine?.release()
+        if (ownsEngine) engine?.release()
         engine = null
     }
 
@@ -229,11 +234,15 @@ class PlayerViewModel(
                     },
                     voicings = runCatching { loadChordVoicings(app) }.getOrNull(),
                     createEngine = { track ->
-                        track.audio?.let { ExoPlaybackEngine(app, it, track.analysis.meta.durationSec) } ?: SilentPlaybackEngine(track.analysis.meta.durationSec)
+                        app.nowPlaying.engineFor(trackId, track) {
+                            it.audio?.let { audio -> ExoPlaybackEngine(app, audio, it.analysis.meta.durationSec) }
+                                ?: SilentPlaybackEngine(it.analysis.meta.durationSec)
+                        }
                     },
                     saveFavorite = { favorite ->
                         if (dao.get(trackId) != null) dao.setFavorite(trackId, favorite, Instant.now())
                     },
+                    ownsEngine = false,
                 )
             }
         }

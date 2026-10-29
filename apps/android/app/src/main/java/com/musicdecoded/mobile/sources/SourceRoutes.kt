@@ -9,7 +9,7 @@ import androidx.navigation.navArgument
 /**
  * Entry points for the local sources. Home calls [navigateToImport] from the Files / Media
  * Library cards and [navigateToRecorder] from the Record card. Each flow ends once the job has
- * started; [onDecodeStarted] gets the trackId (the Processing screen, T-211, will hook in there).
+ * started; [onDecodeStarted] gets the trackId (the app opens the Processing screen there, T-211).
  */
 object SourceRoutes {
     const val RECORD = "record"

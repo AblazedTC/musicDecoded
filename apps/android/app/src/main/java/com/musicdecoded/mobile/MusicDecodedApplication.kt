@@ -9,6 +9,7 @@ import com.musicdecoded.mobile.library.LibraryDatabase
 import com.musicdecoded.mobile.library.TranscriptionRepository
 import com.musicdecoded.mobile.library.TranscriptionWorker
 import com.musicdecoded.mobile.network.TranscriptionApiService
+import com.musicdecoded.mobile.player.NowPlaying
 import java.io.File
 import com.musicdecoded.mobile.network.AuthApiService
 import com.musicdecoded.mobile.network.ConfigApiService
@@ -44,6 +45,9 @@ class MusicDecodedApplication : Application() {
             TranscriptionWorker.Scheduler(this),
         )
     }
+
+    /** The track loaded in the player; outlives the player screen (mini player, T-211). */
+    val nowPlaying by lazy { NowPlaying() }
 
     override fun onCreate() {
         super.onCreate()
