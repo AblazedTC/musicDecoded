@@ -41,6 +41,11 @@ class AuthResponse(BaseModel):
     plan: Literal["free", "pro"]
 
 
+class AnonymousRequest(BaseModel):
+    deviceId: str = Field(min_length=1, max_length=128)
+    platform: Literal["ios", "android"]
+
+
 def create_token(user: User) -> str:
     s = get_settings()
     now = int(time.time())
@@ -51,6 +56,22 @@ def create_token(user: User) -> str:
 
 def _auth_response(user: User) -> AuthResponse:
     return AuthResponse(token=create_token(user), userId=str(user.id), kind=user.kind, plan=user.plan)
+
+
+@router.post("/anonymous")
+def anonymous(body: AnonymousRequest, db: Annotated[Session, Depends(get_db)]) -> AuthResponse:
+    """Idempotent per deviceId: the same device always gets the same guest user."""
+    find = select(User).where(User.device_id == body.deviceId)
+    user = db.scalar(find)
+    if user is None:
+        user = User(kind="guest", device_id=body.deviceId)
+        db.add(user)
+        try:
+            db.commit()
+        except IntegrityError:  # a concurrent call for the same device won the insert
+            db.rollback()
+            user = db.scalar(find)
+    return _auth_response(user)
 
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED)
@@ -71,9 +92,9 @@ def signup(body: Credentials, db: Annotated[Session, Depends(get_db)]) -> AuthRe
 @router.post("/login")
 def login(body: Credentials, db: Annotated[Session, Depends(get_db)]) -> AuthResponse:
     user = db.scalar(select(User).where(User.email == body.email.lower()))
-    stored = user.password_hash.encode() if user else _DUMMY_HASH
+    stored = user.password_hash.encode() if user and user.password_hash else _DUMMY_HASH
     # Same error for unknown email and wrong password, so callers can't probe which emails have accounts.
-    if not bcrypt.checkpw(body.password.encode(), stored) or user is None:
+    if not bcrypt.checkpw(body.password.encode(), stored) or user is None or user.password_hash is None:
         raise ApiError(401, "unauthorized", "Invalid email or password")
     return _auth_response(user)
 

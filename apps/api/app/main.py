@@ -3,14 +3,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app import auth, errors
-from app.db import Base, engine
+from app.db import migrate
 from app.settings import get_settings
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # ponytail: create_all only adds missing tables; switch to Alembic migrations before the first deploy.
-    Base.metadata.create_all(engine)
+    migrate()  # alembic upgrade head
     yield
 
 

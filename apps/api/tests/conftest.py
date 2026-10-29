@@ -12,6 +12,7 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from typing import Annotated  # noqa: E402
 from fastapi import Depends  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 from app.auth import current_user  # noqa: E402
 from app.db import Base, engine  # noqa: E402
@@ -24,8 +25,25 @@ def _me(user: Annotated[User, Depends(current_user)]) -> dict:
     return {"userId": str(user.id)}
 
 
+def _reset_db() -> None:
+    Base.metadata.drop_all(engine)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
+
+
 @pytest.fixture
 def client():
-    Base.metadata.drop_all(engine)
-    with TestClient(app) as c:  # runs lifespan → create_all
+    _reset_db()
+    with TestClient(app) as c:  # runs lifespan → alembic upgrade head
         yield c
+
+
+def bearer(token: str) -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture
+def guest(client):
+    """Auth headers + body for a fresh guest."""
+    body = client.post("/auth/anonymous", json={"deviceId": "device-1", "platform": "ios"}).json()
+    return bearer(body["token"]), body
