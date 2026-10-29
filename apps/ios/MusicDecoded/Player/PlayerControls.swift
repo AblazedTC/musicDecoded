@@ -54,9 +54,9 @@ struct PlayerSeekBar: View {
         let duration = model.duration
         VStack(spacing: Spacing.xxs) {
             Slider(value: $model.seekPosition, in: 0...max(duration, 1))
-            .tint(Palette.primary)
-            .accessibilityLabel("Position")
-            .accessibilityValue("\(PlayerFormat.time(model.position)) of \(PlayerFormat.time(duration))")
+                .tint(Palette.primary)
+                .accessibilityLabel("Position")
+                .accessibilityValue("\(PlayerFormat.time(model.position)) of \(PlayerFormat.time(duration))")
 
             HStack {
                 Text(PlayerFormat.time(model.position))

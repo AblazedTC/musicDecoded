@@ -67,11 +67,11 @@ final class PlayerModel {
     /// The next real chord and the beats until it. Changes only on beats and chord boundaries.
     private(set) var upcoming: UpNext?
 
-    @ObservationIgnored private let loadTrack: TrackLoader
-    @ObservationIgnored private let voicings: ChordVoicings?
-    @ObservationIgnored private let makeEngine: EngineFactory
-    @ObservationIgnored private let saveFavorite: FavoriteSaver
-    @ObservationIgnored private let tickInterval: Duration?
+    private let loadTrack: TrackLoader
+    private let voicings: ChordVoicings?
+    private let makeEngine: EngineFactory
+    private let saveFavorite: FavoriteSaver
+    private let tickInterval: Duration?
     @ObservationIgnored private var engine: (any PlaybackEngine)?
     @ObservationIgnored private var clockTask: Task<Void, Never>?
     @ObservationIgnored private var loadStarted = false

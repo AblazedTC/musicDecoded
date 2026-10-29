@@ -68,6 +68,7 @@ struct PlayerView: View {
     let model: PlayerModel
 
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showPiano = false
 
     var body: some View {
         content
@@ -90,6 +91,10 @@ struct PlayerView: View {
                     model.pause()
                 }
             }
+            .navigationDestination(isPresented: $showPiano) {
+                // Shares this model, so playback carries on in the learning view.
+                PianoView(model: model)
+            }
     }
 
     @ViewBuilder
@@ -109,7 +114,9 @@ struct PlayerView: View {
                             .disabled(true)
                         TransposeChip(model: model)
                     }
-                    VisualizerCard(model: model)
+                    VisualizerCard(model: model) {
+                        showPiano = true
+                    }
                 }
                 .padding(.horizontal, Spacing.md)
                 .padding(.vertical, Spacing.xs)
@@ -245,19 +252,26 @@ private struct NowPlaying: View {
 /// Piano | Video (DESIGN.md §3.7 item 6). Video is disabled unless the source is youtube.
 private struct VisualizerCard: View {
     @Bindable var model: PlayerModel
+    let onExpand: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            SegmentedToggle(
-                options: Visualizer.allCases,
-                selection: $model.visualizerChoice,
-                isEnabled: { option in option == .piano || model.videoAvailable },
-                label: { $0.title }
-            )
+            HStack(spacing: Spacing.xs) {
+                SegmentedToggle(
+                    options: Visualizer.allCases,
+                    selection: $model.visualizerChoice,
+                    isEnabled: { option in option == .piano || model.videoAvailable },
+                    label: { $0.title }
+                )
+                IconButton(title: "Open piano view", systemImage: "arrow.up.left.and.arrow.down.right", size: .small) {
+                    onExpand()
+                }
+            }
 
             switch model.visualizer {
             case .piano:
                 CurrentChordSummary(model: model)
+                CompactKeyboard(model: model)
             case .video:
                 // The synced YouTube embed arrives with T-305i.
                 Text("Video playback is coming soon.")
@@ -294,6 +308,22 @@ private struct CurrentChordSummary: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// The 2-octave keyboard in the visualizer card.
+private struct CompactKeyboard: View {
+    let model: PlayerModel
+
+    var body: some View {
+        let chords = model.chords
+        let label = model.currentLabel
+        PianoKeyboard(
+            notes: label.map(chords.notes) ?? [],
+            bassNote: label.flatMap(chords.bassNote),
+            notesDescription: label.map(chords.noteNames) ?? ""
+        )
+        .clipShape(.rect(cornerRadius: Radius.chip))
     }
 }
 

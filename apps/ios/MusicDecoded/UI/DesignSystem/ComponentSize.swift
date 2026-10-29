@@ -15,4 +15,9 @@ enum ComponentSize {
     /// Recorder: live waveform drawing height and input-meter segment height.
     static let recorderWaveformHeight: CGFloat = 112
     static let meterSegmentHeight: CGFloat = 20
+    /// Piano keyboard: 2 octaves in the player's visualizer card, edge to edge in the learning view.
+    static let pianoCompactHeight: CGFloat = 96
+    static let pianoLargeHeight: CGFloat = 190
+    /// The big play button in the Piano learning view.
+    static let learningPlayButton: CGFloat = 72
 }
