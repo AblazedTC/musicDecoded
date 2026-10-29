@@ -47,8 +47,15 @@ def build_analysis(
     analyzed_at: Optional[str] = None,
     spectrogram: Optional[Dict[str, Any]] = None,
     waveform_peaks: Optional[Dict[str, Any]] = None,
+    silent: bool = False,
 ) -> Dict[str, Any]:
-    """Assemble an analysis v1 document from raw model outputs (no I/O, no models)."""
+    """Assemble an analysis v1 document from raw model outputs (no I/O, no models).
+
+    silent (near-silent input, features.is_near_silent): the beat tracker and chroma only see noise
+    there, so key/bpm/timeSignature are null and there are no beats (T-119).
+    """
+    if silent:
+        chroma, beats, downbeats = None, [], []
     return {
         "schemaVersion": SCHEMA_VERSION,
         "meta": {
@@ -156,6 +163,7 @@ class ChordBeatAnalyzer:
             downbeats=downbeats,
             chords=chords,
             chroma=chroma,
+            silent=features.is_near_silent(y),
         )
 
         if output_path:

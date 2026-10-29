@@ -205,11 +205,12 @@ Template for new tasks:
 - Notes: `cache_networks()` in chord_cnn_lstm_service.py swaps the submodule's `NetworkInterface` for a per-process cache; `ChordBeatAnalyzer()` preloads the 5 nets (1.4 s). sunnydays.mp3, 3 runs each, first job chords stage median 6.9 s → 5.9 s; later jobs save only ~0.08 s (a warm reload of the 28 MB of checkpoints is cheap; the cost was the first, cold load).
 
 ### T-119 Leave key empty for near-silent or keyless audio
-- Lane: worker · Status: todo · Owner: — · Deps: T-110
+- Lane: worker · Status: done · Owner: claude · Deps: T-110
 - Goal: Emulator QA: a near-silent recording got key "F♯ minor" and 129 BPM.
 - Acceptance:
-  - [ ] `key` is null when the Krumhansl correlation (confidence) is below a threshold or the signal RMS is near silence; `bpm` null when there are too few beats
-  - [ ] Unit tests with silence and noise
+  - [x] `key` is null when the Krumhansl correlation (confidence) is below a threshold or the signal RMS is near silence; `bpm` null when there are too few beats
+  - [x] Unit tests with silence and noise
+- Notes: features.py: key null below 0.5 (noise/hum measured 0.35-0.42, songs 0.70-0.78); whole-track RMS < -50 dBFS → no key, beats, bpm or time signature; bpm null under 8 beats. tests/test_keyless_audio.py. Loud noise still gets a librosa bpm (noise has "beats").
 
 ---
 

@@ -23,12 +23,30 @@ SPEC_BINS = 64
 PEAKS_FPS = 20
 DB_FLOOR = -80.0
 
+# T-119 gates. Measured: real songs correlate 0.70-0.78 with their key profile; white/pink noise and hum
+# 0.35-0.42 (and still "win" some key), so below KEY_MIN_CONFIDENCE the key is noise.
+KEY_MIN_CONFIDENCE = 0.5
+SILENCE_DBFS = -50.0  # whole-track RMS below this = near silence: no key, no beats
+MIN_BEATS = 8  # fewer beats than ~2 bars can't support a tempo
+
+
+def rms_dbfs(y: Sequence[float]) -> float:
+    """Whole-signal RMS in dBFS (full scale = 1.0); -inf-safe (floor -200)."""
+    y = np.asarray(y, dtype=float)
+    rms = float(np.sqrt(np.mean(y ** 2))) if y.size else 0.0
+    return 20.0 * float(np.log10(max(rms, 1e-10)))
+
+
+def is_near_silent(y: Sequence[float]) -> bool:
+    return bool(rms_dbfs(y) < SILENCE_DBFS)
+
 
 def estimate_key(mean_chroma: Sequence[float]) -> Optional[Dict[str, Any]]:
     """Krumhansl-Schmuckler: correlate the mean chroma with all 24 rotated profiles.
 
-    Returns {"tonic", "mode", "confidence"} or None when the chroma has no variance
-    (silence / noise). Confidence is the winning Pearson correlation clipped to [0, 1].
+    Returns {"tonic", "mode", "confidence"}, or None when the chroma has no variance or the
+    best correlation is below KEY_MIN_CONFIDENCE (noise, keyless audio). Confidence is the
+    winning Pearson correlation clipped to [0, 1].
     """
     chroma = np.asarray(mean_chroma, dtype=float)
     if chroma.shape != (12,) or not np.all(np.isfinite(chroma)) or np.std(chroma) < 1e-9:
@@ -40,11 +58,15 @@ def estimate_key(mean_chroma: Sequence[float]) -> Optional[Dict[str, Any]]:
             if best is None or r > best[0]:
                 best = (r, tonic, mode)
     r, tonic, mode = best
+    if r < KEY_MIN_CONFIDENCE:
+        return None
     return {"tonic": PITCH_CLASSES[tonic], "mode": mode, "confidence": round(min(max(r, 0.0), 1.0), 3)}
 
 
 def estimate_bpm(beats: Sequence[float]) -> Optional[float]:
-    """60 / median inter-beat interval, or None with fewer than 2 beats."""
+    """60 / median inter-beat interval, or None with fewer than MIN_BEATS beats."""
+    if len(beats) < MIN_BEATS:
+        return None
     ibi = np.diff(np.sort(np.asarray(beats, dtype=float)))
     ibi = ibi[ibi > 0]
     if ibi.size == 0:
