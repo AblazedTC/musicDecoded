@@ -382,6 +382,13 @@ extension TranscriptionService {
     }
 }
 
+extension SessionStore {
+    /// For SwiftUI previews: no API, nothing stored.
+    static func preview() -> SessionStore {
+        SessionStore(api: nil, secureStore: PreviewSecureStore())
+    }
+}
+
 @MainActor
 private final class PreviewSecureStore: SecureStore {
     func string(for key: String) -> String? { nil }

@@ -98,6 +98,19 @@ extension LibraryItem {
         updatedAt = date
     }
 
+    /// Favorites sync too, so this bumps `updatedAt`.
+    func setFavorite(_ favorite: Bool, at date: Date = .now) {
+        self.favorite = favorite
+        updatedAt = date
+    }
+
+    /// The `limit` newest visible items (Home "Recently Decoded").
+    static func recent(limit: Int) -> FetchDescriptor<LibraryItem> {
+        var descriptor = newestFirst
+        descriptor.fetchLimit = limit
+        return descriptor
+    }
+
     /// Visible items, newest first. Use with `@Query(LibraryItem.newestFirst)` or `ModelContext.fetch`.
     static var newestFirst: FetchDescriptor<LibraryItem> {
         FetchDescriptor(

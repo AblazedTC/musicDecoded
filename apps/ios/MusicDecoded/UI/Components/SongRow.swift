@@ -1,7 +1,15 @@
 import SwiftUI
 
+/// Where a row's analysis stands. Ready rows show the meta line; the others replace it.
+enum SongRowStatus: Sendable, Equatable {
+    case ready
+    /// `progress` is 0–100 once the job has reported it.
+    case analyzing(progress: Int?)
+    case failed
+}
+
 /// One song in Home's "Recently Decoded" and in the Library: artwork, title, artist,
-/// the `duration · key · BPM` line, an offline badge and an optional ⋯ menu.
+/// the `duration · key · BPM` line (or the analysis status), an offline badge and an optional ⋯ menu.
 struct SongRow<Actions: View>: View {
     let title: String
     let artist: String?
@@ -9,6 +17,9 @@ struct SongRow<Actions: View>: View {
     let metadata: String
     let artworkURL: URL?
     let isOffline: Bool
+    let status: SongRowStatus
+    /// Shown as "Retry" on a failed row.
+    let onRetry: (() -> Void)?
     private let hasActions: Bool
     private let actions: Actions
 
@@ -19,6 +30,8 @@ struct SongRow<Actions: View>: View {
         metadata: String,
         artworkURL: URL? = nil,
         isOffline: Bool = false,
+        status: SongRowStatus = .ready,
+        onRetry: (() -> Void)? = nil,
         @ViewBuilder actions: () -> Actions
     ) {
         self.init(
@@ -27,6 +40,8 @@ struct SongRow<Actions: View>: View {
             metadata: metadata,
             artworkURL: artworkURL,
             isOffline: isOffline,
+            status: status,
+            onRetry: onRetry,
             hasActions: true,
             actions: actions()
         )
@@ -38,6 +53,8 @@ struct SongRow<Actions: View>: View {
         metadata: String,
         artworkURL: URL?,
         isOffline: Bool,
+        status: SongRowStatus,
+        onRetry: (() -> Void)?,
         hasActions: Bool,
         actions: Actions
     ) {
@@ -46,6 +63,8 @@ struct SongRow<Actions: View>: View {
         self.metadata = metadata
         self.artworkURL = artworkURL
         self.isOffline = isOffline
+        self.status = status
+        self.onRetry = onRetry
         self.hasActions = hasActions
         self.actions = actions
     }
@@ -67,19 +86,22 @@ struct SongRow<Actions: View>: View {
                         .lineLimit(1)
                 }
 
-                HStack(spacing: Spacing.xxs) {
-                    if isOffline {
-                        offlineBadge
-                    }
-                    Text(metadata)
-                        .font(.overline)
-                        .monospacedDigit()
-                        .foregroundStyle(Palette.textMuted)
-                        .lineLimit(1)
-                }
+                statusLine
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
+
+            if status == .failed, let onRetry {
+                Button(action: onRetry) {
+                    Text("Retry")
+                        .font(.detail.weight(.semibold))
+                        .foregroundStyle(Palette.primary)
+                        .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Retry analysis")
+            }
 
             if hasActions {
                 Menu {
@@ -96,6 +118,38 @@ struct SongRow<Actions: View>: View {
         }
         .padding(Spacing.xs)
         .background(Palette.surface, in: .rect(cornerRadius: Radius.row))
+    }
+
+    @ViewBuilder
+    private var statusLine: some View {
+        switch status {
+        case .ready:
+            HStack(spacing: Spacing.xxs) {
+                if isOffline {
+                    offlineBadge
+                }
+                Text(metadata)
+                    .font(.overline)
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.textMuted)
+                    .lineLimit(1)
+            }
+        case .analyzing(let progress):
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(progress.map { "Analyzing · \($0)%" } ?? "Analyzing…")
+                    .font(.overline.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.primary)
+                    .lineLimit(1)
+                ProgressView(value: Double(progress ?? 0), total: 100)
+                    .tint(Palette.primary)
+                    .accessibilityHidden(true)
+            }
+        case .failed:
+            Text("Failed")
+                .font(.overline.weight(.semibold))
+                .foregroundStyle(Palette.record)
+        }
     }
 
     private var artwork: some View {
@@ -126,13 +180,23 @@ struct SongRow<Actions: View>: View {
 
 extension SongRow where Actions == EmptyView {
     /// A row without a ⋯ menu.
-    init(title: String, artist: String?, metadata: String, artworkURL: URL? = nil, isOffline: Bool = false) {
+    init(
+        title: String,
+        artist: String?,
+        metadata: String,
+        artworkURL: URL? = nil,
+        isOffline: Bool = false,
+        status: SongRowStatus = .ready,
+        onRetry: (() -> Void)? = nil
+    ) {
         self.init(
             title: title,
             artist: artist,
             metadata: metadata,
             artworkURL: artworkURL,
             isOffline: isOffline,
+            status: status,
+            onRetry: onRetry,
             hasActions: false,
             actions: EmptyView()
         )
@@ -153,6 +217,8 @@ extension SongRow where Actions == EmptyView {
             Button("Delete", systemImage: "trash", role: .destructive) {}
         }
         SongRow(title: "Voice memo", artist: nil, metadata: SongMetadata.line(durationSec: 42, key: nil, bpm: nil))
+        SongRow(title: "Sample track", artist: "Unknown artist", metadata: "", status: .analyzing(progress: 42))
+        SongRow(title: "Voice memo", artist: nil, metadata: "", status: .failed, onRetry: {})
     }
     .padding(Spacing.md)
     .background(Palette.canvas)
