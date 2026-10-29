@@ -34,6 +34,9 @@ struct HomeView: View {
                 openProcessing(trackId)
             })
             .appDestinations(path: $path)
+            .youtubeDestinations(path: $path, onDecodeStarted: { trackId in
+                openProcessing(trackId)
+            })
         }
     }
 
@@ -76,8 +79,9 @@ struct HomeView: View {
                     }
                 }
                 GridRow {
-                    // YouTube arrives in M3: shown, but disabled.
-                    comingSoon(SourceCard(title: "YouTube", subtitle: "Coming soon", systemImage: "play.rectangle", tint: .youtube) {})
+                    SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle", tint: .youtube) {
+                        path.append(YouTubeRoute.search)
+                    }
                     if session.config?.soundcloudEnabled == true {
                         comingSoon(SourceCard(title: "SoundCloud", subtitle: "Coming soon", systemImage: "cloud", tint: .soundcloud) {})
                     } else {

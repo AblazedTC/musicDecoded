@@ -86,6 +86,23 @@ struct Job: Decodable, Sendable, Equatable {
     var error: String?
 }
 
+/// `VideoSummary`: one `GET /youtube/search` result.
+struct VideoSummary: Codable, Sendable, Hashable, Identifiable {
+    var videoId: String
+    var title: String
+    var channelTitle: String
+    var thumbnailUrl: URL
+    var durationSec: Int?
+
+    var id: String { videoId }
+}
+
+/// `200` body of `GET /youtube/search`.
+struct YouTubeSearchPage: Decodable, Sendable, Equatable {
+    var nextPageToken: String?
+    var items: [VideoSummary]
+}
+
 /// `200` body of `GET /tracks/{trackId}/analysis`.
 struct AnalysisLocation: Decodable, Sendable, Equatable {
     var url: URL

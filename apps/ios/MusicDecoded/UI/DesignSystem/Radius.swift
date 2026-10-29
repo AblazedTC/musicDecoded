@@ -14,6 +14,8 @@ enum Radius {
     static let pill: CGFloat = 20
     /// Top corners of the transport and import sheets.
     static let sheet: CGFloat = 22
+    /// Small badges over artwork (video duration).
+    static let badge: CGFloat = 4
     /// Song artwork.
     static let art: CGFloat = 10
 }

@@ -18,6 +18,11 @@ enum ComponentSize {
     /// Piano keyboard: 2 octaves in the player's visualizer card, edge to edge in the learning view.
     static let pianoCompactHeight: CGFloat = 96
     static let pianoLargeHeight: CGFloat = 190
+    /// YouTube result thumbnail (DESIGN.md §3.4).
+    static let videoThumbnailWidth: CGFloat = 132
+    static let videoThumbnailHeight: CGFloat = 78
+    /// YouTube video detail hero.
+    static let videoHeroHeight: CGFloat = 202
     /// The big play button in the Piano learning view.
     static let learningPlayButton: CGFloat = 72
 }

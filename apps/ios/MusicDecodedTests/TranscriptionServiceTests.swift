@@ -253,6 +253,67 @@ struct TranscriptionServiceTests {
         #expect(try item(trackId)?.status == .ready)
     }
 
+    @Test func youtubeJobSkipsTheUpload() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let service = makeService(happyPath(log: log, jobStatuses: ["queued"]))
+        let video = VideoSummary(
+            videoId: "dQw4w9WgXcQ",
+            title: "Never Gonna Give You Up",
+            channelTitle: "Rick Astley",
+            thumbnailUrl: URL(string: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg")!,
+            durationSec: 213
+        )
+
+        let started = try await service.startYouTube(video)
+        #expect(started == trackId)
+        #expect(try item(started)?.status == .analyzing)
+        await service.pollingTask(for: started)?.value
+
+        #expect(log.routes.contains("POST /uploads") == false)
+        #expect(log.routes.first == "POST /jobs")
+        let jobBody = try #require(log.all.first?.body)
+        let jobRequest = try JSONDecoder().decode([String: String].self, from: jobBody)
+        #expect(jobRequest == ["source": "youtube", "videoId": "dQw4w9WgXcQ"])
+
+        let saved = try #require(try item(trackId))
+        #expect(saved.status == .ready)
+        #expect(saved.source == .youtube)
+        #expect(saved.sourceRef == "dQw4w9WgXcQ")
+        #expect(saved.title == "Never Gonna Give You Up")
+        #expect(saved.artist == "Rick Astley")
+        #expect(saved.localAudioPath == nil)
+        #expect(saved.audioUploadId == nil)
+    }
+
+    @Test func youtubeRetryAsksAgainByVideoId() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let service = makeService(happyPath(log: log, jobStatuses: ["complete"]))
+        let failed = LibraryItem(trackId: trackId, title: "Song", source: .youtube, sourceRef: "dQw4w9WgXcQ", status: .failed)
+        container.mainContext.insert(failed)
+
+        try await service.retry(trackId: trackId)
+        await service.pollingTask(for: trackId)?.value
+
+        let jobBody = try #require(log.all.first?.body)
+        let jobRequest = try JSONDecoder().decode([String: String].self, from: jobBody)
+        #expect(jobRequest == ["source": "youtube", "videoId": "dQw4w9WgXcQ"])
+        #expect(log.routes.contains("POST /uploads") == false)
+        #expect(try item(trackId)?.status == .ready)
+    }
+
+    @Test func youtubeDailyLimitShowsThePlanMessage() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let service = makeService { _ in
+            (429, json(#"{"code": "rate_limited", "message": "Daily limit reached"}"#))
+        }
+        let video = VideoSummary(pastedVideoId: "dQw4w9WgXcQ")
+        await #expect(throws: TranscriptionError(message: Transcription.rateLimitedMessage)) {
+            try await service.startYouTube(video)
+        }
+    }
+
     @Test func contentTypes() {
         #expect(Transcription.contentType(forExtension: "M4A") == "audio/mp4")
         #expect(Transcription.contentType(forExtension: "mp3") == "audio/mpeg")

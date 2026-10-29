@@ -33,6 +33,8 @@ enum Transcription {
     static let unsupportedMessage = "This audio format isn't supported. Try MP3, M4A, AAC, WAV, FLAC or OGG."
     static let emptyMessage = "This file is empty."
     static let missingAudioMessage = "The audio for this song is no longer on this device."
+    /// Title for a pasted YouTube link, whose title isn't known on the device.
+    static let youtubeFallbackTitle = "YouTube video"
 
     /// The upload content type `POST /uploads` allows for a file extension, or `nil`.
     static func contentType(forExtension fileExtension: String) -> String? {

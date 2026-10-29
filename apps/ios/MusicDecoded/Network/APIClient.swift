@@ -62,6 +62,16 @@ struct APIClient: Sendable {
         try await send("GET", "tracks/\(trackId)/analysis", token: token)
     }
 
+    /// `GET /youtube/search`: one page of results. `403 feature_disabled` means search is
+    /// unavailable; `429` means the server's YouTube quota is spent (not a plan limit).
+    func youtubeSearch(query: String, pageToken: String?, token: String) async throws -> YouTubeSearchPage {
+        var items = [URLQueryItem(name: "q", value: query)]
+        if let pageToken {
+            items.append(URLQueryItem(name: "pageToken", value: pageToken))
+        }
+        return try await send("GET", "youtube/search", query: items, token: token)
+    }
+
     /// GETs a presigned URL (no bearer token) and returns the body.
     func download(_ url: URL) async throws -> Data {
         let (data, response) = try await session.data(from: url)
@@ -73,10 +83,15 @@ struct APIClient: Sendable {
     private func send<Response: Decodable>(
         _ method: String,
         _ path: String,
+        query: [URLQueryItem] = [],
         body: (any Encodable)? = nil,
         token: String? = nil
     ) async throws -> Response {
-        var request = URLRequest(url: baseURL.appending(path: path))
+        var url = baseURL.appending(path: path)
+        if query.isEmpty == false {
+            url.append(queryItems: query)
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let token {

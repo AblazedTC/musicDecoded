@@ -109,14 +109,63 @@ final class TranscriptionService {
         }
     }
 
+    /// Requests the analysis of a YouTube video (T-304i): no upload, the worker fetches the audio
+    /// by videoId. Then the same polling as `start`. Returns the trackId once the job exists.
+    /// The LibraryItem has no local audio (PLAN.md R-1); the player streams the official embed.
+    @discardableResult
+    func startYouTube(_ video: VideoSummary) async throws -> String {
+        try await userFacing { () async throws -> String in
+            let job = try await createYouTubeJob(videoId: video.videoId)
+            guard Transcription.isSafeTrackId(job.trackId) else {
+                throw TranscriptionError(message: Transcription.genericMessage)
+            }
+            let item: LibraryItem
+            if let existing = fetch(job.trackId) {
+                item = existing
+            } else {
+                let title = video.title.isEmpty ? Transcription.youtubeFallbackTitle : video.title
+                item = LibraryItem(trackId: job.trackId, title: title, source: .youtube)
+                context.insert(item)
+            }
+            if video.title.isEmpty == false {
+                item.title = video.title
+            }
+            if video.channelTitle.isEmpty == false {
+                item.artist = video.channelTitle
+            }
+            item.sourceRef = video.videoId
+            item.thumbnailUrl = video.thumbnailUrl.absoluteString
+            item.durationSec = video.durationSec.map(Double.init) ?? item.durationSec
+            item.tombstoned = false
+            begin(item, job)
+            return job.trackId
+        }
+    }
+
     /// Requests a new analysis for a failed (or re-analyzed) item. Reuses its upload, and uploads
-    /// the local copy again only if `POST /jobs` says the upload is gone (404).
+    /// the local copy again only if `POST /jobs` says the upload is gone (404). YouTube items
+    /// just ask again by videoId.
     func retry(trackId: String) async throws {
         let end = backgroundActivity?("Retry analysis")
         defer { end?() }
         try await userFacing { () async throws -> Void in
             guard let item = fetch(trackId) else {
                 throw TranscriptionError(message: Transcription.genericMessage)
+            }
+            if item.source == .youtube {
+                do {
+                    guard let videoId = item.sourceRef else {
+                        throw TranscriptionError(message: Transcription.genericMessage)
+                    }
+                    let job = try await createYouTubeJob(videoId: videoId)
+                    begin(item, job)
+                } catch let error as CancellationError {
+                    throw error
+                } catch {
+                    markFailed(trackId, message: Transcription.userMessage(for: error))
+                    throw error
+                }
+                return
             }
             do {
                 var uploadId: String
@@ -285,6 +334,13 @@ final class TranscriptionService {
 
     private func createJob(source: Analysis.Source, uploadId: String, title: String) async throws -> Job {
         let body = JobRequest(source: source, uploadId: uploadId, title: title)
+        return try await session.authorized { api, token in
+            try await api.createJob(body, token: token)
+        }
+    }
+
+    private func createYouTubeJob(videoId: String) async throws -> Job {
+        let body = JobRequest(source: .youtube, videoId: videoId)
         return try await session.authorized { api, token in
             try await api.createJob(body, token: token)
         }
