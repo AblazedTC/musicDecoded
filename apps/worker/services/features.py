@@ -3,6 +3,7 @@
 Everything here takes NumPy arrays / lists and returns plain Python values, so it
 can be unit-tested on synthetic inputs without librosa, torch or audio files.
 """
+import base64
 import re
 from typing import Any, Dict, List, Optional, Sequence
 
@@ -16,6 +17,11 @@ KS_MINOR = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69,
 
 # Same pattern as contracts/analysis.schema.json chords[].label
 CHORD_LABEL = re.compile(r"^(N|X|[A-G](#|b)?:[A-Za-z0-9()#b,/]+)$")
+
+SPEC_FPS = 20
+SPEC_BINS = 64
+PEAKS_FPS = 20
+DB_FLOOR = -80.0
 
 
 def estimate_key(mean_chroma: Sequence[float]) -> Optional[Dict[str, Any]]:
@@ -115,6 +121,71 @@ def contiguous_chords(chords: Sequence[Dict[str, Any]], duration: float) -> List
     for a, b in zip(out, out[1:]):
         b["start"] = a["end"]
     return out
+
+
+def frame_index(n_items: int, items_per_sec: float, fps: float) -> np.ndarray:
+    """Output-frame index (at fps) of each input item sampled at items_per_sec."""
+    return np.floor(np.arange(n_items) * (fps / items_per_sec)).astype(int)
+
+
+def pool(values: np.ndarray, idx: np.ndarray, n_out: int, how: str) -> np.ndarray:
+    """Reduce rows of values into n_out frames by idx (mean or max). Empty frames are 0."""
+    values = np.asarray(values, dtype=float)
+    out = np.zeros((n_out,) + values.shape[1:])
+    keep = idx < n_out
+    values, idx = values[keep], idx[keep]
+    if how == "max":
+        np.maximum.at(out, idx, values)
+    else:
+        counts = np.bincount(idx, minlength=n_out).astype(float)
+        np.add.at(out, idx, values)
+        out /= np.maximum(counts, 1).reshape((-1,) + (1,) * (values.ndim - 1))
+    return out
+
+
+def encode_spectrogram(db: np.ndarray, fps: float = SPEC_FPS) -> Dict[str, Any]:
+    """(frames, bins) dB matrix -> schema spectrogram object.
+
+    dB is clipped to [-80, 0] and scaled to 0..255, row-major frames x bins.
+    """
+    db = np.clip(np.asarray(db, dtype=float), DB_FLOOR, 0.0)
+    frames, bins = db.shape
+    u8 = np.round((db - DB_FLOOR) / -DB_FLOOR * 255).astype(np.uint8)
+    return {
+        "fps": fps,
+        "bins": int(bins),
+        "frames": int(frames),
+        "encoding": "uint8-base64",
+        "data": base64.b64encode(np.ascontiguousarray(u8).tobytes()).decode("ascii"),
+    }
+
+
+def mel_power_to_db(mel_power: np.ndarray) -> np.ndarray:
+    """Power -> dB relative to the track's max (so the loudest bin is 0 dB)."""
+    mel_power = np.maximum(np.asarray(mel_power, dtype=float), 1e-10)
+    return 10.0 * np.log10(mel_power / mel_power.max())
+
+
+def waveform_peaks(y: np.ndarray, sr: int, duration: float, fps: float = PEAKS_FPS) -> Dict[str, Any]:
+    """Max |sample| per 1/fps window, normalized so the loudest window is 1."""
+    n_out = max(1, int(np.ceil(duration * fps)))
+    peaks = pool(np.abs(np.asarray(y, dtype=float)), frame_index(len(y), sr, fps), n_out, "max")
+    top = peaks.max()
+    if top > 0:
+        peaks = peaks / top
+    return {"fps": fps, "peaks": [round(float(p), 3) for p in peaks]}
+
+
+def spectrogram(y: np.ndarray, sr: int, duration: float, fps: float = SPEC_FPS, bins: int = SPEC_BINS,
+                hop_length: int = 512) -> Dict[str, Any]:
+    """64-bin mel at 20 fps. Computes mel at a fine hop, then averages into 1/fps frames
+    (22.05 kHz / 20 fps is not an integer hop)."""
+    import librosa
+
+    mel = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=bins, hop_length=hop_length)  # (bins, frames)
+    n_out = max(1, int(np.ceil(duration * fps)))
+    pooled = pool(mel.T, frame_index(mel.shape[1], sr / hop_length, fps), n_out, "mean")
+    return encode_spectrogram(mel_power_to_db(pooled), fps)
 
 
 def mean_chroma(y: np.ndarray, sr: int) -> np.ndarray:

@@ -45,6 +45,8 @@ def build_analysis(
     chords: Sequence[Dict[str, Any]],
     chroma: Optional[Sequence[float]] = None,
     analyzed_at: Optional[str] = None,
+    spectrogram: Optional[Dict[str, Any]] = None,
+    waveform_peaks: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Assemble an analysis v1 document from raw model outputs (no I/O, no models)."""
     return {
@@ -62,6 +64,8 @@ def build_analysis(
         "timeSignature": features.estimate_time_signature(beats, downbeats),
         "beats": features.build_beats(beats, downbeats),
         "chords": features.contiguous_chords(chords, float(duration)),
+        "spectrogram": spectrogram,
+        "waveformPeaks": waveform_peaks,
     }
 
 
@@ -127,8 +131,13 @@ class ChordBeatAnalyzer:
             chords = self.extract_chords(audio_path)
         with self._stage("key"):
             chroma = features.mean_chroma(y, sr)
+        with self._stage("spectrogram"):
+            spec = features.spectrogram(y, sr, duration)
+            peaks = features.waveform_peaks(y, sr, duration)
 
         doc = build_analysis(
+            spectrogram=spec,
+            waveform_peaks=peaks,
             track_id=track_id or Path(audio_path).stem,
             source=source,
             source_ref=source_ref,
