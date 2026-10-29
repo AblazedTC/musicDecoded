@@ -91,3 +91,26 @@ class LibraryItem(Base):
     server_updated_at: Mapped[datetime] = mapped_column(default=_now)
 
     __table_args__ = (Index("ix_library_items_user_sync", "user_id", "server_updated_at", "track_id"),)
+
+
+class BillingEvent(Base):
+    """A RevenueCat webhook event already handled (applied or ignored); its id makes redeliveries no-ops."""
+    __tablename__ = "billing_events"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    type: Mapped[str] = mapped_column(String(40))
+    app_user_id: Mapped[str] = mapped_column(String(200))
+    processed_at: Mapped[datetime] = mapped_column(default=_now)
+
+
+def as_utc(value: datetime) -> datetime:
+    """SQLite drops the offset on read; stored values are always UTC."""
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def effective_plan(user: User, now: datetime | None = None) -> str:
+    """The plan in force now: Pro past plan_expires_at counts as free (None = no expiry).
+    Read the plan through this everywhere, never users.plan directly."""
+    if user.plan != "pro" or user.plan_expires_at is None:
+        return user.plan
+    return "pro" if as_utc(user.plan_expires_at) > (now or _now()) else "free"

@@ -162,3 +162,4 @@ Set by `docker-compose.yml` for the containers. Set them yourself when running t
 | `OFFLINE_STREAM_AUDIO`   | api, worker | `false` by default. When `true`, streaming-source audio is kept for offline play (PLAN.md R-1). |
 | `SOUNDCLOUD_ENABLED`     | api         | `false` by default. Enables the SoundCloud source. |
 | `YOUTUBE_API_KEY`        | api         | YouTube Data API key for search. Set it in your own environment; never commit it. |
+| `REVENUECAT_WEBHOOK_SECRET` | api      | Shared secret RevenueCat sends as `Authorization: Bearer <secret>` on `POST /billing/revenuecat`. Unset = the webhook returns 404 (billing off). Never commit it. |

@@ -483,14 +483,15 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 Read PLAN.md §9 first. **Rule: the API enforces Pro. The apps only reflect it.**
 
 ### T-601 Billing webhook + entitlements
-- Lane: api · Status: todo · Owner: — · Deps: T-401
+- Lane: api · Status: done · Owner: claude · Deps: T-401
 - Goal: RevenueCat → API sets `users.plan`.
 - Acceptance:
-  - [ ] Contracts task first: add `POST /billing/revenuecat` to openapi (shared-secret auth header, no JWT)
-  - [ ] Handles INITIAL_PURCHASE, RENEWAL, CANCELLATION (pro until expiry), EXPIRATION, BILLING_ISSUE; idempotent on event id
-  - [ ] `plan` and `planExpiresAt` updated; the next `/config` reflects it; new tokens carry the new `plan` claim
-  - [ ] Free users requesting a Pro-only model get 403 `pro_required`
-  - [ ] Tests with recorded sample webhook payloads
+  - [x] Contracts task first: add `POST /billing/revenuecat` to openapi (shared-secret auth header, no JWT)
+  - [x] Handles INITIAL_PURCHASE, RENEWAL, CANCELLATION (pro until expiry), EXPIRATION, BILLING_ISSUE; idempotent on event id
+  - [x] `plan` and `planExpiresAt` updated; the next `/config` reflects it; new tokens carry the new `plan` claim
+  - [x] Free users requesting a Pro-only model get 403 `pro_required`
+  - [x] Tests with recorded sample webhook payloads
+- Notes: `app/billing.py` (+ PRODUCT_CHANGE/UNCANCELLATION; ids in `billing_events`, migration 0005); `REVENUECAT_WEBHOOK_SECRET` unset → 404. The plan is read only via `models.effective_plan` (expired Pro = free). No `model` field in `JobRequest` yet, so Pro-only routes use the `billing.require_pro` dependency. Tests: `tests/test_billing.py` + `tests/fixtures/revenuecat/`.
 
 ### T-602a / T-602i Paywall + purchase flow
 - Lane: android / ios · Status: todo · Owner: — · Deps: T-601, T-403*

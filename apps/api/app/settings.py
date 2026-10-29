@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # YouTube Data API v3 key (PLAN.md D-4). No dev default: unset = search returns 403 feature_disabled.
     youtube_api_key: str = ""
 
+    # Shared secret RevenueCat sends as `Authorization: Bearer <secret>` (T-601).
+    # No dev default: unset = POST /billing/revenuecat returns 404 (billing not configured).
+    revenuecat_webhook_secret: str = ""
+
     # Daily job limits per plan (PLAN.md §9). Empty/unset = unlimited.
     limit_guest: int | None = 10
     limit_free: int | None = 50

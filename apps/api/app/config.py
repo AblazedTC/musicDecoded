@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from app.auth import current_user
 from app.kv import get_redis, rate_key
-from app.models import User
+from app.models import User, effective_plan
 from app.settings import get_settings
 
 router = APIRouter(tags=["config"])
@@ -28,9 +28,9 @@ class ClientConfig(BaseModel):
 
 
 def daily_limit(user: User) -> int | None:
-    """Jobs per UTC day; None = unlimited. Always from users.plan, never from a client claim."""
+    """Jobs per UTC day; None = unlimited. Always from the effective plan, never from a client claim."""
     s = get_settings()
-    if user.plan == "pro":
+    if effective_plan(user) == "pro":
         return s.limit_pro
     return s.limit_guest if user.kind == "guest" else s.limit_free
 
@@ -44,5 +44,5 @@ def config(user: Annotated[User, Depends(current_user)],
            r: Annotated[redis.Redis, Depends(get_redis)]) -> ClientConfig:
     s = get_settings()
     return ClientConfig(offlineStreamAudio=s.offline_stream_audio, soundcloudEnabled=s.soundcloud_enabled,
-                        maxUploadBytes=MAX_UPLOAD_BYTES, plan=user.plan,
+                        maxUploadBytes=MAX_UPLOAD_BYTES, plan=effective_plan(user),
                         limits=Limits(dailyJobs=daily_limit(user), jobsUsedToday=jobs_used_today(r, user)))

@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.errors import ApiError
-from app.models import Job, Upload, User
+from app.models import Job, Upload, User, effective_plan
 from app.settings import get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -49,13 +49,13 @@ class AnonymousRequest(BaseModel):
 def create_token(user: User) -> str:
     s = get_settings()
     now = int(time.time())
-    claims = {"sub": str(user.id), "kind": user.kind, "plan": user.plan,
+    claims = {"sub": str(user.id), "kind": user.kind, "plan": effective_plan(user),
               "iat": now, "exp": now + s.jwt_expiration_seconds}
     return jwt.encode(claims, s.jwt_secret, algorithm="HS256")
 
 
 def _auth_response(user: User) -> AuthResponse:
-    return AuthResponse(token=create_token(user), userId=str(user.id), kind=user.kind, plan=user.plan)
+    return AuthResponse(token=create_token(user), userId=str(user.id), kind=user.kind, plan=effective_plan(user))
 
 
 @router.post("/anonymous")
