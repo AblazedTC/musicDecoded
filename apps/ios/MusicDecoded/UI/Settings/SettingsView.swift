@@ -9,6 +9,8 @@ struct SettingsView: View {
                 systemImage: "gearshape",
                 description: Text("Options will appear here.")
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.canvas)
             .navigationTitle("Settings")
         }
     }

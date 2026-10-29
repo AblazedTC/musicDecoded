@@ -4,11 +4,18 @@ import SwiftUI
 struct HomeView: View {
     var body: some View {
         NavigationStack {
-            ContentUnavailableView(
-                "Nothing Decoded Yet",
-                systemImage: "waveform",
-                description: Text("Songs you transcribe will show up here.")
-            )
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    SectionHeader(title: "Recently Decoded")
+                    Text("Songs you decode will show up here.")
+                        .font(.detail)
+                        .foregroundStyle(Palette.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Spacing.md)
+                .padding(.vertical, Spacing.lg)
+            }
+            .background(Palette.canvas)
             .navigationTitle("Home")
         }
     }
@@ -16,4 +23,5 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
+        .preferredColorScheme(.dark)
 }
