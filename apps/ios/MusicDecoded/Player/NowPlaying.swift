@@ -55,6 +55,7 @@ final class NowPlaying {
     /// Reads the engine clock; stops at the end of the track (loops only run inside the Player).
     func tick() {
         guard let engine, let track else { return }
+        engine.synchronize()
         var t = engine.position
         if engine.isPlaying, t >= track.durationSec {
             engine.pause()

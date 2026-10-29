@@ -50,11 +50,7 @@ struct PlayerScreen: View {
                 // The app-level session owns the engine, so playback outlives this screen and
                 // reopening the same track picks it up again.
                 nowPlaying.engine(for: trackId, track: track) { track in
-                    let duration = track.analysis.meta.durationSec
-                    if let url = track.audioURL {
-                        return AVPlaybackEngine(url: url, durationSec: duration)
-                    }
-                    return SilentPlaybackEngine(durationSec: duration)
+                    Self.makeEngine(for: track)
                 }
             },
             saveFavorite: { favorite in
@@ -63,6 +59,25 @@ struct PlayerScreen: View {
                 try? context.save()
             }
         )
+    }
+
+    /// The clock (DESIGN.md §4): local audio when it's on this device, otherwise the YouTube
+    /// video for youtube tracks, otherwise a silent clock. A youtube track with local audio plays
+    /// the audio and keeps the muted video in step.
+    private static func makeEngine(for track: PlayerTrack) -> any PlaybackEngine {
+        let meta = track.analysis.meta
+        let audio = track.audioURL.map { AVPlaybackEngine(url: $0, durationSec: meta.durationSec) }
+        if meta.source == .youtube, let videoId = meta.sourceRef, YouTubeVideoID.isValid(videoId) {
+            let video = YouTubePlayerController(videoId: videoId)
+            if let audio {
+                return VideoFollowingEngine(audio: audio, video: video)
+            }
+            return YouTubePlaybackEngine(video: video, durationSec: meta.durationSec)
+        }
+        if let audio {
+            return audio
+        }
+        return SilentPlaybackEngine(durationSec: meta.durationSec)
     }
 }
 
@@ -273,13 +288,16 @@ private struct VisualizerCard: View {
                 }
             }
 
-            switch model.visualizer {
-            case .piano:
+            if model.visualizer == .piano {
                 CurrentChordSummary(model: model)
                 CompactKeyboard(model: model)
-            case .video:
-                // The synced YouTube embed arrives with T-305i.
-                Text("Video playback is coming soon.")
+            }
+            // Always in the hierarchy when there's a video (it may be the clock), shown only on
+            // the Video tab, so switching tabs never reloads the embed.
+            if let controller = model.videoPlayer as? YouTubePlayerController {
+                VideoPanel(controller: controller, isVisible: model.visualizer == .video)
+            } else if model.visualizer == .video {
+                Text("The video isn't available for this song.")
                     .font(.detail)
                     .foregroundStyle(Palette.textSecondary)
             }

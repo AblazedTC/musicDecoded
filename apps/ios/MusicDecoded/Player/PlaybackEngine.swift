@@ -17,6 +17,18 @@ protocol PlaybackEngine: AnyObject {
     func seek(to seconds: Double)
     /// 0.5–1.25×, pitch kept.
     func setSpeed(_ speed: Double)
+
+    /// Runs on every clock tick. Engines that keep a second player in step (the muted video
+    /// following local audio) correct it here.
+    func synchronize()
+    /// The embedded YouTube player for the Video panel, or `nil` when the engine has none.
+    var videoPlayer: (any VideoPlayerControl)? { get }
+}
+
+extension PlaybackEngine {
+    func synchronize() {}
+
+    var videoPlayer: (any VideoPlayerControl)? { nil }
 }
 
 /// Plays the local `audio/{trackId}` file with `AVPlayer`, time-stretched without changing pitch
@@ -98,8 +110,8 @@ final class AVPlaybackEngine: PlaybackEngine {
     private static let endTolerance = 0.05
 }
 
-/// A clock with no audio, for tracks whose audio isn't on this device (until the YouTube clock
-/// lands in T-305) and for the debug fixture. Advances in real time × speed; `now` (seconds,
+/// A clock with no audio, for file/recording tracks whose audio isn't on this device, the debug
+/// fixture, and the fallback when a YouTube video can't play. Advances in real time × speed; `now` (seconds,
 /// monotonic) is injectable so tests can drive it.
 @MainActor
 final class SilentPlaybackEngine: PlaybackEngine {

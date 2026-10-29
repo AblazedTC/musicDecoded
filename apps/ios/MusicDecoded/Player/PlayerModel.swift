@@ -101,6 +101,9 @@ final class PlayerModel {
     /// Video is only for youtube sources (DESIGN.md §3.7 item 6).
     var videoAvailable: Bool { analysis?.meta.source == .youtube }
 
+    /// The embedded YouTube player, when the engine has one (read after `load()`).
+    var videoPlayer: (any VideoPlayerControl)? { engine?.videoPlayer }
+
     /// Names and notes with the current Chords and Transpose settings.
     var chords: ChordDisplay {
         ChordDisplay(key: analysis?.key, transpose: transpose, basic: chordsMode == .basic, voicings: voicings)
@@ -158,16 +161,21 @@ final class PlayerModel {
         isLoading = false
         updateDerived()
         tick()
-        if isPlaying {
+        if isPlaying || followsVideo {
             startClock()
         }
     }
 
     // MARK: - Clock
 
+    /// The embedded video can start or stop on its own (its own controls), so with a video the
+    /// clock keeps ticking while paused to notice. Paused ticks publish nothing new.
+    private var followsVideo: Bool { engine?.videoPlayer != nil }
+
     /// Reads the engine clock: publishes the position, wraps the loop, stops at the end.
     func tick() {
         guard let engine else { return }
+        engine.synchronize()
         var t = engine.position
         if let loop, engine.isPlaying, t >= loop.upperBound || t < loop.lowerBound - Self.loopEntryTolerance {
             engine.seek(to: loop.lowerBound)
@@ -197,10 +205,10 @@ final class PlayerModel {
         clockTask = nil
     }
 
-    /// One clock tick; `false` once playback has stopped.
+    /// One clock tick; `false` once playback has stopped (never, with a video).
     private func clockTick() -> Bool {
         tick()
-        return isPlaying
+        return isPlaying || followsVideo
     }
 
     // MARK: - Transport
@@ -219,7 +227,7 @@ final class PlayerModel {
         tick()
         if isPlaying {
             startClock()
-        } else {
+        } else if followsVideo == false {
             stopClock()
         }
     }
@@ -306,6 +314,8 @@ final class PlayerModel {
     // MARK: - Private
 
     private func setPosition(_ t: Double) {
+        // Paused ticks (kept running for a video) mustn't invalidate views that show the position.
+        guard t != position else { return }
         position = t
         updateDerived()
     }
