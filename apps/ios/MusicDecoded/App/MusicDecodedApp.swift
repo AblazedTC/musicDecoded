@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 @main
@@ -12,5 +13,6 @@ struct MusicDecodedApp: App {
                     await session.start()
                 }
         }
+        .modelContainer(for: LibraryItem.self)
     }
 }
