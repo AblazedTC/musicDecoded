@@ -109,7 +109,7 @@ struct PlayerView: View {
                 VStack(spacing: Spacing.md) {
                     MetadataRow(analysis: analysis)
                     PlayerTimeline(model: model)
-                    NowPlaying(model: model)
+                    NowPlayingChord(model: model)
                     HStack(spacing: Spacing.xs) {
                         ControlChip(title: "Chords", value: model.chordsMode == .basic ? "Basic" : "Full") {
                             model.toggleChordsMode()
@@ -224,7 +224,7 @@ private struct PlayerTimeline: View {
 }
 
 /// NOW PLAYING: the big chord name, its notes and the voicing caption.
-private struct NowPlaying: View {
+private struct NowPlayingChord: View {
     let model: PlayerModel
 
     var body: some View {
