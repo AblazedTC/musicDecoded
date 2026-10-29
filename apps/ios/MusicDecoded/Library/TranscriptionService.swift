@@ -216,7 +216,8 @@ final class TranscriptionService {
         }
         let id = UUID()
         let task = Task { [weak self] in
-            await self?.runPolling(trackId, id: id)
+            guard let self else { return }
+            await self.runPolling(trackId, id: id)
         }
         polls[trackId] = Poll(id: id, task: task)
     }
@@ -345,7 +346,7 @@ final class TranscriptionService {
     }
 
     /// Rethrows any failure as a `TranscriptionError` with a user-facing message.
-    private func userFacing<T>(_ body: () async throws -> T) async throws -> T {
+    private func userFacing<T: Sendable>(_ body: () async throws -> T) async throws -> T {
         do {
             return try await body()
         } catch let error as CancellationError {
