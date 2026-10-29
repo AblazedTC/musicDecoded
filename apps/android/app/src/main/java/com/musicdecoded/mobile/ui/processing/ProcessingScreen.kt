@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -95,47 +96,51 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
             .fillMaxSize()
             .background(MusicDecodedColors.Canvas)
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
             .padding(horizontal = Spacing.gutter, vertical = Spacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        Box(Modifier.fillMaxWidth()) {
-            MdIconButton(Icons.Rounded.Close, contentDescription = "Continue in background", onClick = onBackground, modifier = Modifier.align(Alignment.CenterEnd))
-        }
-        OrbitArt(state.title)
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-            Text(
-                when (state.phase) {
-                    ProcessingPhase.COMPLETE -> "Your transcription is ready"
-                    ProcessingPhase.FAILED -> "We couldn't decode this song"
-                    else -> "Decoding your music"
-                },
-                style = MaterialTheme.typography.headlineMedium,
-                color = MusicDecodedColors.Text,
-                textAlign = TextAlign.Center,
-            )
-            val subtitle = listOfNotNull(state.title.takeIf { it.isNotBlank() }, state.artist).joinToString(" · ")
-            if (subtitle.isNotEmpty()) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // The steps scroll on short screens; the buttons stay pinned at the bottom, above the nav bar.
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            Box(Modifier.fillMaxWidth()) {
+                MdIconButton(Icons.Rounded.Close, contentDescription = "Continue in background", onClick = onBackground, modifier = Modifier.align(Alignment.CenterEnd))
+            }
+            OrbitArt(state.title)
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Text(
+                    when (state.phase) {
+                        ProcessingPhase.COMPLETE -> "Your transcription is ready"
+                        ProcessingPhase.FAILED -> "We couldn't decode this song"
+                        else -> "Decoding your music"
+                    },
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MusicDecodedColors.Text,
+                    textAlign = TextAlign.Center,
+                )
+                val subtitle = listOfNotNull(state.title.takeIf { it.isNotBlank() }, state.artist).joinToString(" · ")
+                if (subtitle.isNotEmpty()) {
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+
+            if (state.phase == ProcessingPhase.FAILED) {
+                Text(
+                    state.error ?: "Something went wrong. Try again.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MusicDecodedColors.Record,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                OverallProgress(state)
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    ProcessingStep.entries.forEach { StepRow(it, done = state.isDone(it), active = state.isActive(it)) }
+                }
             }
         }
-
-        if (state.phase == ProcessingPhase.FAILED) {
-            Text(
-                state.error ?: "Something went wrong. Try again.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MusicDecodedColors.Record,
-                textAlign = TextAlign.Center,
-            )
-        } else {
-            OverallProgress(state)
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                ProcessingStep.entries.forEach { StepRow(it, done = state.isDone(it), active = state.isActive(it)) }
-            }
-        }
-
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Column(Modifier.fillMaxWidth().padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             when (state.phase) {
                 ProcessingPhase.COMPLETE -> PrimaryButton("Open transcription", onClick = onOpen)
                 ProcessingPhase.FAILED -> {
