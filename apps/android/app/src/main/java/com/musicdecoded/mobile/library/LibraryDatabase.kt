@@ -28,6 +28,10 @@ interface LibraryDao {
     @Query("SELECT * FROM library_items WHERE deleted = 0 ORDER BY createdAt DESC, trackId")
     fun newestFirst(): Flow<List<LibraryItem>>
 
+    /** The [limit] newest visible rows (Home "Recently Decoded"). */
+    @Query("SELECT * FROM library_items WHERE deleted = 0 ORDER BY createdAt DESC, trackId LIMIT :limit")
+    fun recent(limit: Int): Flow<List<LibraryItem>>
+
     /** Tombstone delete: the row stays with `deleted = 1` so the delete can sync. */
     @Query("UPDATE library_items SET deleted = 1, updatedAt = :now WHERE trackId = :trackId")
     suspend fun markDeleted(trackId: String, now: Instant)

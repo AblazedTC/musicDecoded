@@ -17,9 +17,13 @@ import com.musicdecoded.mobile.BuildConfig
 import com.musicdecoded.mobile.player.DebugFixtures
 import com.musicdecoded.mobile.player.PlayerRoutes
 import com.musicdecoded.mobile.player.playerDestinations
+import com.musicdecoded.mobile.sources.ImportFrom
+import com.musicdecoded.mobile.sources.navigateToImport
+import com.musicdecoded.mobile.sources.navigateToRecorder
 import com.musicdecoded.mobile.sources.sourceRoutes
 import com.musicdecoded.mobile.ui.components.AppTab
 import com.musicdecoded.mobile.ui.components.MdBottomBar
+import com.musicdecoded.mobile.ui.home.HomeNavigation
 import com.musicdecoded.mobile.ui.home.HomeScreen
 import com.musicdecoded.mobile.ui.library.LibraryScreen
 import com.musicdecoded.mobile.ui.settings.SettingsScreen
@@ -45,7 +49,7 @@ fun MainScreen() {
                     detectTapGestures(onLongPress = { navController.navigate(PlayerRoutes.player(DebugFixtures.SUNNY_DAYS)) })
                 }
                 Box(if (BuildConfig.DEBUG) debugFixture else Modifier) {
-                    HomeScreen(onSeeAll = { navController.selectTab(AppTab.LIBRARY) })
+                    HomeScreen(homeNavigation(navController))
                 }
             }
             composable(AppTab.LIBRARY.route) { LibraryScreen() }
@@ -55,6 +59,18 @@ fun MainScreen() {
         }
     }
 }
+
+private fun homeNavigation(navController: NavHostController) = HomeNavigation(
+    onSeeAll = { navController.selectTab(AppTab.LIBRARY) },
+    // DESIGN.md §5: the header search opens Library search.
+    onSearch = { navController.selectTab(AppTab.LIBRARY) },
+    onProfile = { navController.selectTab(AppTab.SETTINGS) },
+    onFiles = { navController.navigateToImport(ImportFrom.FILES) },
+    onMediaLibrary = { navController.navigateToImport(ImportFrom.MEDIA_LIBRARY) },
+    onRecord = { navController.navigateToRecorder() },
+    onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) },
+    onOpenProcessing = {},
+)
 
 private fun NavHostController.selectTab(tab: AppTab) {
     navigate(tab.route) {
