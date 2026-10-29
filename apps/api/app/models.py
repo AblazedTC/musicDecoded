@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, ForeignKey, String
+from sqlalchemy import BigInteger, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -67,3 +67,27 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(default=_now)
     started_at: Mapped[datetime | None]
     completed_at: Mapped[datetime | None]
+
+
+class LibraryItem(Base):
+    """Server copy of an account's library row (contracts LibraryItem), used by sync (PLAN.md §5.2).
+    updated_at is the client's clock (last-write-wins); server_updated_at orders pulls."""
+    __tablename__ = "library_items"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    track_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tracks.id"), primary_key=True)
+    title: Mapped[str] = mapped_column(String(500))
+    artist: Mapped[str | None] = mapped_column(String(500))
+    source: Mapped[str] = mapped_column(String(20))
+    source_ref: Mapped[str | None] = mapped_column(String(600))
+    duration_sec: Mapped[float | None]
+    thumbnail_url: Mapped[str | None] = mapped_column(String(1000))
+    audio_upload_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("uploads.id"))
+    favorite: Mapped[bool] = mapped_column(default=False)
+    last_played_at: Mapped[datetime | None]
+    created_at: Mapped[datetime]
+    updated_at: Mapped[datetime]
+    deleted: Mapped[bool] = mapped_column(default=False)
+    server_updated_at: Mapped[datetime] = mapped_column(default=_now)
+
+    __table_args__ = (Index("ix_library_items_user_sync", "user_id", "server_updated_at", "track_id"),)

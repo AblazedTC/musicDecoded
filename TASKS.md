@@ -409,11 +409,12 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: auth._link_guest moves rows of every model in _GUEST_OWNED (T-402: add the library table there). The guest user row is kept (device can re-auth as an empty guest). Account/invalid bearers are ignored; no schema change. Guest's Redis daily counter is not carried over.
 
 ### T-402 Sync endpoints
-- Lane: api · Status: todo · Owner: — · Deps: T-401
+- Lane: api · Status: done · Owner: claude · Deps: T-401
 - Acceptance:
-  - [ ] `GET/PUT /sync/library` per openapi, last-write-wins on `updatedAt`, tombstones
-  - [ ] Guest tokens get 403 `account_required`
-  - [ ] `GET /uploads/{uploadId}` per openapi: presigned GET for the owning account only, 404 for anyone else
+  - [x] `GET/PUT /sync/library` per openapi, last-write-wins on `updatedAt`, tombstones
+  - [x] Guest tokens get 403 `account_required`
+  - [x] `GET /uploads/{uploadId}` per openapi: presigned GET for the owning account only, 404 for anyone else
+- Notes: app/sync.py + migration 0004 (library_items, PK user_id+track_id, extra server_updated_at). Pull orders by (server_updated_at, trackId), 500/page; clients repeat with the returned cursor until a page has < 500 items (no `since` = full pull; empty page echoes the cursor). PUT: client wins only if strictly newer (ties keep server); unknown trackId or an audioUploadId the caller doesn't own → 400 for the whole push (nothing written); max 500 items. T-105 rule is now "has a job OR a non-deleted library row" (analysis/audio); /uploads/{id} also allows an upload referenced by the caller's library. library_items not in _GUEST_OWNED (guests can't own rows). tests/test_sync.py.
 
 ### T-403a / T-403i Account UI
 - Lane: android / ios · Status: todo · Owner: — · Deps: T-401

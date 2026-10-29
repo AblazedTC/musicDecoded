@@ -2,13 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import exists, select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session
 
 from app.auth import current_user
 from app.db import get_db
 from app.errors import ApiError, not_found, parse_id
-from app.models import Job, Track, User
+from app.models import Job, LibraryItem, Track, User
 from app.settings import get_settings
 from app.storage import Storage, get_storage
 
@@ -29,10 +29,12 @@ class AudioLocation(BaseModel):
 
 
 def _linked_track(db: Session, user: User, track_id: str) -> Track:
-    """The track, if the caller has a job for it (library links arrive with sync, T-402); else 404."""
+    """The track, if the caller has a job for it or a (non-deleted) synced library row; else 404."""
     tid = parse_id(track_id, "Track")
-    linked = exists().where(Job.track_id == tid, Job.user_id == user.id)
-    track = db.scalar(select(Track).where(Track.id == tid, linked))
+    has_job = exists().where(Job.track_id == tid, Job.user_id == user.id)
+    in_library = exists().where(LibraryItem.track_id == tid, LibraryItem.user_id == user.id,
+                                LibraryItem.deleted.is_(False))
+    track = db.scalar(select(Track).where(Track.id == tid, or_(has_job, in_library)))
     if track is None:
         raise not_found("Track")
     return track

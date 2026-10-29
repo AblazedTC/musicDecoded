@@ -77,7 +77,8 @@ def anonymous(body: AnonymousRequest, db: Annotated[Session, Depends(get_db)]) -
 _bearer = HTTPBearer(auto_error=False)
 Bearer = Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)]
 
-# Rows a guest owns that move to the account on signup/login (add library rows here in T-402).
+# Rows a guest owns that move to the account on signup/login. library_items is deliberately absent:
+# guests can't sync (403 account_required), so they never own library rows.
 _GUEST_OWNED = (Job, Upload)
 
 
