@@ -247,9 +247,9 @@ class PlayerViewModel(
             }
         }
 
-        /** `LibraryItem.localAudioPath`, else `files/audio/{trackId}.*` (PLAN.md §5.1). */
+        /** `LibraryItem.localAudioPath` (relative to filesDir), else `files/audio/{trackId}.*` (PLAN.md §5.1). */
         private fun localAudio(app: MusicDecodedApplication, trackId: String, path: String?): File? =
-            path?.let(::File)?.takeIf { it.isFile }
+            path?.let { File(app.filesDir, it) }?.takeIf { it.isFile }
                 ?: File(app.filesDir, "audio").listFiles { file -> file.nameWithoutExtension == trackId && file.isFile }?.firstOrNull()
     }
 }
