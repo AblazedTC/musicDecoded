@@ -242,51 +242,54 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: Android + iOS: tokens, 4-pt Spacing, components with previews, 3-tab shell. iOS verified by CI.
 
 ### T-203a / T-203i Home screen
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-200*, T-202*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-200*, T-202*
 - Acceptance:
   - [ ] Matches DESIGN.md §3.1: brand header, Recently Decoded (3 newest + See all), 2×2 source grid, Record card, tip card
   - [ ] Rows show status (analyzing with progress / ready / failed with retry), offline badge, `duration · key · BPM`; the ⋯ menu has Delete (confirm), Favorite, Re-analyze
   - [ ] SoundCloud card hidden unless `soundcloudEnabled`; empty-history state
 - Notes (android): replaces the current `ui/library`, `ui/add`, `ui/dictionary` placeholder screens and `ui/main/MainScreen.kt` nav.
+- Notes: Android done (YouTube/SoundCloud cards "Coming soon" until M3/M5). iOS todo.
 
 ### T-210a / T-210i Library screen
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-200*, T-202*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-200*, T-202*
 - Acceptance:
   - [ ] DESIGN.md §3.2: search (title/artist/key), filters All/Favorites/Offline/Recordings, decoded/offline counts, list sorted by createdAt desc
   - [ ] `favorite` persisted on LibraryItem (bumps `updatedAt`)
+- Notes: Android done (Room search/filter queries). iOS todo.
 
 ### T-211a / T-211i Mini player + Processing screen
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-204*, T-208*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-204*, T-208*
 - Acceptance:
   - [ ] Mini player above the tab bar on Home/Library while a track is loaded (DESIGN.md §2); tapping it opens the Player; playback continues across tabs
   - [ ] Processing screen per DESIGN.md §3.5 with the exact stage → step mapping table; "Continue in background" and × both leave the job running
+- Notes: Android done (app-level NowPlaying keeps playback across tabs). iOS todo.
 
 ### T-204a / T-204i Job runner (upload → job → poll → save)
-- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-103..T-105, T-202*
+- Lane: android / ios · Status: review · Owner: claude · Deps: T-103..T-105, T-202*
 - Goal: One `TranscriptionRepository.start(source)` that every source uses.
 - Acceptance:
-  - [ ] Computes SHA-256, `POST /uploads`, PUT bytes, `POST /jobs`, and polls per the openapi backoff rule
-  - [ ] Saves the analysis file and updates the item to `ready`; failures set `failed` with a retry action
-  - [ ] Survives app backgrounding (Android WorkManager / iOS background URLSession + resume polling on foreground)
-  - [ ] Tests against a fake API
-- Notes: Android done (WorkManager polling, retry reuses upload, 429 message). iOS in progress.
+  - [x] Computes SHA-256, `POST /uploads`, PUT bytes, `POST /jobs`, and polls per the openapi backoff rule
+  - [x] Saves the analysis file and updates the item to `ready`; failures set `failed` with a retry action
+  - [x] Survives app backgrounding (Android WorkManager / iOS background URLSession + resume polling on foreground)
+  - [x] Tests against a fake API
+- Notes: Android + iOS done (iOS: CI builds, 37 app tests). Device/emulator QA pending.
 
 ### T-205a / T-205i Files + Media Library sources
-- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-204*
+- Lane: android / ios · Status: review · Owner: claude · Deps: T-204*
 - Acceptance:
-  - [ ] Files: system picker limited to audio. Media Library: iOS `MPMediaPickerController` (only non-DRM items with an `assetURL`), Android `MediaStore.Audio` picker
-  - [ ] Import sheet per DESIGN.md §3.3 (use the corrected copy) → "Import & decode"
-  - [ ] File copied to `audio/{trackId}.{ext}`; title from metadata, falling back to the filename
-- Notes: Android done (OpenDocument + MediaStore ACTION_PICK, no storage permission). iOS in progress.
+  - [x] Files: system picker limited to audio. Media Library: iOS `MPMediaPickerController` (only non-DRM items with an `assetURL`), Android `MediaStore.Audio` picker
+  - [x] Import sheet per DESIGN.md §3.3 (use the corrected copy) → "Import & decode"
+  - [x] File copied to `audio/{trackId}.{ext}`; title from metadata, falling back to the filename
+- Notes: Android + iOS done (iOS: CI builds, 37 app tests). Device/emulator QA pending.
 
 ### T-206a / T-206i Record source
-- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-204*
+- Lane: android / ios · Status: review · Owner: claude · Deps: T-204*
 - Acceptance:
-  - [ ] Mic permission flow with a denied state
-  - [ ] UI per DESIGN.md §3.6: state dot, timer, live waveform, 16-segment input meter with dB, Discard / Record-Pause / Finish
-  - [ ] AAC 44.1 kHz mono; max 10 minutes; Finish asks for a title
-  - [ ] Saved to `audio/`, then the job starts
-- Notes: Android done (AAC 44.1k mono, 16-segment meter, 10-min cap). iOS in progress.
+  - [x] Mic permission flow with a denied state
+  - [x] UI per DESIGN.md §3.6: state dot, timer, live waveform, 16-segment input meter with dB, Discard / Record-Pause / Finish
+  - [x] AAC 44.1 kHz mono; max 10 minutes; Finish asks for a title
+  - [x] Saved to `audio/`, then the job starts
+- Notes: Android + iOS done (iOS: CI builds, 37 app tests). Device/emulator QA pending.
 
 ### T-212a / T-212i Music theory helpers (pure, no UI)
 - Lane: android / ios · Status: done · Owner: claude · Deps: T-202*
@@ -300,28 +303,31 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: Both platforms done; Android ports every Swift test case (36).
 
 ### T-207a / T-207i Player: timeline
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-200*, T-212*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-200*, T-212*
 - Goal: DESIGN.md §3.7 item 3, built against the fixture first.
 - Acceptance:
   - [ ] Chord track blocks (current = chord fill) over waveform bars from `waveformPeaks` (played = primary); falls back to beat ticks when peaks are null; downbeat gridlines
   - [ ] Content scrolls under a fixed center playhead; drag scrubs; pinch zooms 60–400 pt/s; tapping a chord block seeks to its start
   - [ ] 60 fps on a mid-range device (draws only the visible window)
+- Notes: Android done; iOS in progress.
 
 ### T-208a / T-208i Player: screen, playback, transport
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-207*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-207*
 - Acceptance:
   - [ ] Layout per DESIGN.md §3.7: header (favorite toggles), metadata chips (key/time sig/BPM), timeline, Now Playing chord + notes, control chips, visualizer card, transport sheet
   - [ ] Plays `audio/{trackId}` with Media3 ExoPlayer / AVPlayer; the player position drives everything
   - [ ] Transport: speed (time-stretch, pitch kept; 0.5–1.25×), prev/next chord, play/pause, loop (current bar by default, drag on the chord track for a custom range, loop pill with Clear)
   - [ ] Chips: Chords Basic/Full and Transpose −6…+6 (display only) update the timeline, Now Playing and piano
   - [ ] Works in airplane mode (manual test noted with a screenshot)
+- Notes: Android done (ExoPlayer, speed/loop/transpose); iOS in progress.
 
 ### T-209a / T-209i Piano panel + Piano learning view
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-208*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-208*
 - Acceptance:
   - [ ] Canvas keyboard component: 2 octaves (96 tall) in the player card; large (190 tall) with optional note names in the learning view; active colors per DESIGN.md §1; scrolls to keep active keys visible
   - [ ] Visualizer Piano | Video toggle; Video is disabled unless the source is youtube; expand → learning view
   - [ ] Learning view per DESIGN.md §3.8: current/up-next card, position bar, progression strip (auto-scrolls), Speed/Loop/Note names/Transpose controls, big transport; a wider keyboard in landscape
+- Notes: Android done; iOS in progress.
 
 ---
 
