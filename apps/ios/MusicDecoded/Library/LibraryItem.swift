@@ -38,6 +38,8 @@ final class LibraryItem {
     /// Relative, because the container path changes between installs.
     var localAudioPath: String?
     var syncedAt: Date?
+    /// The last failure, shown with Retry while `status` is `.failed`.
+    var error: String?
 
     init(
         trackId: String,
@@ -70,6 +72,7 @@ final class LibraryItem {
         self.jobId = jobId
         self.localAudioPath = nil
         self.syncedAt = nil
+        self.error = nil
     }
 }
 
@@ -114,5 +117,26 @@ extension LibraryItem {
         )
         descriptor.fetchLimit = 1
         return descriptor
+    }
+
+    /// Visible items whose analysis is still running (polling resumes for these on launch).
+    static var analyzingItems: FetchDescriptor<LibraryItem> {
+        let analyzing = Status.analyzing.rawValue
+        return FetchDescriptor(
+            predicate: #Predicate<LibraryItem> { item in
+                item.statusRawValue == analyzing && !item.tombstoned
+            }
+        )
+    }
+
+    /// Copies the display fields from a finished analysis and marks the item ready.
+    func apply(_ analysis: Analysis, at date: Date = .now) {
+        durationSec = analysis.meta.durationSec
+        key = analysis.key.map { "\($0.tonic) \($0.mode.rawValue)" }
+        bpm = analysis.bpm
+        status = .ready
+        jobId = nil
+        error = nil
+        updatedAt = date
     }
 }

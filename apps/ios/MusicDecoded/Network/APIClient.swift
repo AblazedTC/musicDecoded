@@ -33,6 +33,42 @@ struct APIClient: Sendable {
         try await send("GET", "config", token: token)
     }
 
+    /// `POST /uploads`: a presigned URL for the caller's own audio.
+    func createUpload(_ body: UploadRequest, token: String) async throws -> UploadTarget {
+        try await send("POST", "uploads", body: body, token: token)
+    }
+
+    /// PUTs `fileURL`'s bytes to a presigned `putUrl`. No bearer token: the URL carries its own auth.
+    func uploadFile(_ fileURL: URL, to putUrl: URL, contentType: String) async throws {
+        var request = URLRequest(url: putUrl)
+        request.httpMethod = "PUT"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        let (data, response) = try await session.upload(for: request, fromFile: fileURL)
+        try Self.check(response, data)
+    }
+
+    /// `POST /jobs`: `202` queued, or `200` when the content was already analyzed.
+    func createJob(_ body: JobRequest, token: String) async throws -> Job {
+        try await send("POST", "jobs", body: body, token: token)
+    }
+
+    /// `GET /jobs/{jobId}`.
+    func job(id jobId: String, token: String) async throws -> Job {
+        try await send("GET", "jobs/\(jobId)", token: token)
+    }
+
+    /// `GET /tracks/{trackId}/analysis`: where to download the analysis file.
+    func analysisLocation(trackId: String, token: String) async throws -> AnalysisLocation {
+        try await send("GET", "tracks/\(trackId)/analysis", token: token)
+    }
+
+    /// GETs a presigned URL (no bearer token) and returns the body.
+    func download(_ url: URL) async throws -> Data {
+        let (data, response) = try await session.data(from: url)
+        try Self.check(response, data)
+        return data
+    }
+
     /// Sends a JSON request and decodes a JSON response. Throws `APIError` for non-2xx responses.
     private func send<Response: Decodable>(
         _ method: String,
@@ -52,12 +88,17 @@ struct APIClient: Sendable {
         }
 
         let (data, response) = try await session.data(for: request)
+        try Self.check(response, data)
+        return try JSONDecoder().decode(Response.self, from: data)
+    }
+
+    /// Throws `APIError` for a non-2xx response.
+    private static func check(_ response: URLResponse, _ data: Data) throws {
         guard let http = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
         guard (200..<300).contains(http.statusCode) else {
             throw APIError(status: http.statusCode, body: data)
         }
-        return try JSONDecoder().decode(Response.self, from: data)
     }
 }

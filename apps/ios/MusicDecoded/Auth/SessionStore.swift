@@ -20,7 +20,8 @@ final class SessionStore {
     /// Why the last `start()` failed, for display; `nil` after a success.
     private(set) var errorMessage: String? = nil
 
-    private let api: APIClient?
+    /// `nil` when `API_BASE_URL` isn't set. Also used directly for presigned URLs, which take no token.
+    let api: APIClient?
     private let secureStore: any SecureStore
     private let defaults: UserDefaults
 
