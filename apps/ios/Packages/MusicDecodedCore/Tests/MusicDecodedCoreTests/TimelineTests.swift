@@ -135,6 +135,12 @@ struct TimelineTests {
         #expect(barRange(at: 9, in: synthetic) == 8.0..<10.0)
     }
 
+    @Test func barRangeIsNilOutsideThePlayableRange() {
+        #expect(barRange(at: 263.407, in: fixture) == nil) // exactly at durationSec (exclusive end)
+        #expect(barRange(at: 300, in: fixture) == nil)
+        #expect(barRange(at: -1, in: fixture) == nil)
+    }
+
     @Test func barRangeIsNilWithoutDownbeats() {
         var analysis = synthetic
         analysis.beats = analysis.beats.map { Analysis.Beat(t: $0.t, downbeat: false) }

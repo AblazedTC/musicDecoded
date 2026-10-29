@@ -55,8 +55,9 @@ public func nextChordStart(at t: Double, in analysis: Analysis) -> Double? {
 
 /// The bar containing `t` (downbeat to next downbeat), for "loop current bar".
 /// Before the first downbeat it is the pickup `0..<firstDownbeat`; after the last one it ends
-/// at `meta.durationSec`. `nil` if the analysis has no downbeats.
+/// at `meta.durationSec`. `nil` if the analysis has no downbeats or `t` is outside `0..<durationSec`.
 public func barRange(at t: Double, in analysis: Analysis) -> Range<Double>? {
+    guard t >= 0, t < analysis.meta.durationSec else { return nil }
     let downbeats = analysis.beats.filter(\.downbeat).map(\.t)
     guard downbeats.isEmpty == false else { return nil }
     let after = upperBound(downbeats, t, \.self)

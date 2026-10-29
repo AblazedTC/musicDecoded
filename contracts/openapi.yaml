@@ -328,7 +328,7 @@ components:
       required: [email, password]
       properties:
         email: { type: string, format: email }
-        password: { type: string, minLength: 8 }
+        password: { type: string, minLength: 8, maxLength: 72, description: "8 characters to 72 UTF-8 bytes (bcrypt limit). Multi-byte characters count more than once; the server returns 400 past 72 bytes." }
 
     AuthResponse:
       type: object

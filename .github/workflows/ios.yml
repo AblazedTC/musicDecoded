@@ -55,8 +55,9 @@ jobs:
         # (-showdestinations only lists placeholders before simulators load), so pick the newest iPhone
         # whose iOS version is <= the Xcode simulator SDK.
         run: |
+          set -o pipefail
           sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
-          udid=$(xcrun simctl list devices available --json | python3 -c '
+          if ! udid=$(xcrun simctl list devices available --json | python3 -c '
           import json, re, sys
           sdk = tuple(int(x) for x in sys.argv[1].split(".")[:2])
           best = None
@@ -68,7 +69,10 @@ jobs:
                   if d["name"].startswith("iPhone") and (best is None or v > best[0]):
                       best = (v, d["udid"])
           print(best[1] if best else "")
-          ' "$sdk")
+          ' "$sdk"); then
+            echo "::error::Failed to list or parse simulators (simctl or JSON error above)"
+            exit 1
+          fi
           if [ -z "$udid" ]; then
             echo "::error::No iPhone simulator with iOS <= $sdk (the Xcode simulator SDK)"
             xcrun simctl list devices available
