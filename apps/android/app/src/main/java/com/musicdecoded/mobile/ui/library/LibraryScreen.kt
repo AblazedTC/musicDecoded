@@ -1,39 +1,29 @@
 package com.musicdecoded.mobile.ui.library
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.musicdecoded.mobile.ui.components.PageHeader
+import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Spacing
 
+/** Placeholder until T-210a builds DESIGN.md §3.2. */
 @Composable
 fun LibraryScreen() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                Icons.Default.LibraryMusic,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text("Your library is empty", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Add a track to get started",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    Column(
+        Modifier.fillMaxSize().padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+    ) {
+        PageHeader("Library", overline = "Your collection")
+        Text(
+            "Your library is empty. Decode a song from Home to get started.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MusicDecodedColors.TextSecondary,
+        )
     }
 }

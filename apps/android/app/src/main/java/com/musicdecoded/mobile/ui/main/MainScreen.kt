@@ -1,98 +1,48 @@
 package com.musicdecoded.mobile.ui.main
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.musicdecoded.mobile.auth.AuthViewModel
-import com.musicdecoded.mobile.ui.add.AddScreen
-import com.musicdecoded.mobile.ui.dictionary.DictionaryScreen
+import com.musicdecoded.mobile.ui.components.AppTab
+import com.musicdecoded.mobile.ui.components.MdBottomBar
+import com.musicdecoded.mobile.ui.home.HomeScreen
 import com.musicdecoded.mobile.ui.library.LibraryScreen
 import com.musicdecoded.mobile.ui.settings.SettingsScreen
+import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 
-private enum class TabDestination(val route: String, val label: String, val icon: ImageVector) {
-    LIBRARY("library", "Library", Icons.Default.LibraryMusic),
-    ADD("add", "Add", Icons.Default.Add),
-    DICTIONARY("dictionary", "Dictionary", Icons.AutoMirrored.Filled.MenuBook),
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
+/** App shell: Home · Library · Settings tabs (DESIGN.md §2). Pushed screens will hide the bar. */
 @Composable
 fun MainScreen(authViewModel: AuthViewModel) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route ?: TabDestination.LIBRARY.route
-    val onTabs = currentRoute in TabDestination.entries.map { it.route }
+    val currentTab = AppTab.entries.firstOrNull { it.route == backStackEntry?.destination?.route }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("MusicDecoded") },
-                navigationIcon = {
-                    if (!onTabs) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                },
-                actions = {
-                    if (onTabs) {
-                        IconButton(onClick = { navController.navigate("settings") }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
-                    }
-                }
-            )
-        },
+        containerColor = MusicDecodedColors.Canvas,
         bottomBar = {
-            if (onTabs) {
-                NavigationBar {
-                    TabDestination.entries.forEach { dest ->
-                        NavigationBarItem(
-                            selected = currentRoute == dest.route,
-                            onClick = {
-                                navController.navigate(dest.route) {
-                                    popUpTo(TabDestination.LIBRARY.route) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(dest.icon, contentDescription = null) },
-                            label = { Text(dest.label) }
-                        )
-                    }
-                }
-            }
-        }
+            if (currentTab != null) MdBottomBar(selected = currentTab, onSelect = { navController.selectTab(it) })
+        },
     ) { innerPadding ->
-        NavHost(
-            navController,
-            startDestination = TabDestination.LIBRARY.route,
-            Modifier.padding(innerPadding)
-        ) {
-            composable(TabDestination.LIBRARY.route) { LibraryScreen() }
-            composable(TabDestination.ADD.route) { AddScreen() }
-            composable(TabDestination.DICTIONARY.route) { DictionaryScreen() }
-            composable("settings") { SettingsScreen(authViewModel) }
+        NavHost(navController, startDestination = AppTab.HOME.route, Modifier.padding(innerPadding)) {
+            composable(AppTab.HOME.route) { HomeScreen(onSeeAll = { navController.selectTab(AppTab.LIBRARY) }) }
+            composable(AppTab.LIBRARY.route) { LibraryScreen() }
+            composable(AppTab.SETTINGS.route) { SettingsScreen(authViewModel) }
         }
+    }
+}
+
+private fun NavHostController.selectTab(tab: AppTab) {
+    navigate(tab.route) {
+        popUpTo(AppTab.HOME.route) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }
