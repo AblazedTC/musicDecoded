@@ -402,10 +402,11 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 ## M4 — Accounts & sync
 
 ### T-401 Signup/login with guest link
-- Lane: api · Status: todo · Owner: — · Deps: T-101
+- Lane: api · Status: done · Owner: claude · Deps: T-101
 - Acceptance:
-  - [ ] Signup/login with a guest bearer token reassigns that guest's jobs/uploads to the account
-  - [ ] Tests for new signup, login-merge and the duplicate email 409
+  - [x] Signup/login with a guest bearer token reassigns that guest's jobs/uploads to the account
+  - [x] Tests for new signup, login-merge and the duplicate email 409
+- Notes: auth._link_guest moves rows of every model in _GUEST_OWNED (T-402: add the library table there). The guest user row is kept (device can re-auth as an empty guest). Account/invalid bearers are ignored; no schema change. Guest's Redis daily counter is not carried over.
 
 ### T-402 Sync endpoints
 - Lane: api · Status: todo · Owner: — · Deps: T-401

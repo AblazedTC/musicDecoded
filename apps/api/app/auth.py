@@ -7,13 +7,13 @@ import jwt
 from fastapi import APIRouter, Depends, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.errors import ApiError
-from app.models import User
+from app.models import Job, Upload, User
 from app.settings import get_settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -74,14 +74,43 @@ def anonymous(body: AnonymousRequest, db: Annotated[Session, Depends(get_db)]) -
     return _auth_response(user)
 
 
+_bearer = HTTPBearer(auto_error=False)
+Bearer = Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)]
+
+# Rows a guest owns that move to the account on signup/login (add library rows here in T-402).
+_GUEST_OWNED = (Job, Upload)
+
+
+def _user_from_token(creds: HTTPAuthorizationCredentials | None, db: Session) -> User | None:
+    if creds is None:
+        return None
+    try:
+        claims = jwt.decode(creds.credentials, get_settings().jwt_secret, algorithms=["HS256"])
+        return db.get(User, uuid.UUID(claims["sub"]))
+    except (jwt.PyJWTError, KeyError, ValueError):
+        return None
+
+
+def _link_guest(creds: HTTPAuthorizationCredentials | None, db: Session, account: User) -> None:
+    """Move a guest's data to the account. The guest row stays, so the device can still re-auth
+    as a (now empty) guest after logout. Any other or invalid bearer is ignored."""
+    guest = _user_from_token(creds, db)
+    if guest is None or guest.kind != "guest":
+        return
+    for model in _GUEST_OWNED:
+        db.execute(update(model).where(model.user_id == guest.id).values(user_id=account.id))
+
+
 @router.post("/signup", status_code=status.HTTP_201_CREATED)
-def signup(body: Credentials, db: Annotated[Session, Depends(get_db)]) -> AuthResponse:
+def signup(body: Credentials, creds: Bearer, db: Annotated[Session, Depends(get_db)]) -> AuthResponse:
     email = body.email.lower()
     if db.scalar(select(User).where(User.email == email)):
         raise ApiError(409, "conflict", "Email already in use")
     user = User(email=email, password_hash=bcrypt.hashpw(body.password.encode(), bcrypt.gensalt()).decode())
     db.add(user)
     try:
+        db.flush()  # get user.id, and hit the unique email constraint before moving any rows
+        _link_guest(creds, db, user)
         db.commit()
     except IntegrityError:  # lost a race with a concurrent signup for the same email
         db.rollback()
@@ -90,28 +119,22 @@ def signup(body: Credentials, db: Annotated[Session, Depends(get_db)]) -> AuthRe
 
 
 @router.post("/login")
-def login(body: Credentials, db: Annotated[Session, Depends(get_db)]) -> AuthResponse:
+def login(body: Credentials, creds: Bearer, db: Annotated[Session, Depends(get_db)]) -> AuthResponse:
     user = db.scalar(select(User).where(User.email == body.email.lower()))
     stored = user.password_hash.encode() if user and user.password_hash else _DUMMY_HASH
     # Same error for unknown email and wrong password, so callers can't probe which emails have accounts.
     if not bcrypt.checkpw(body.password.encode(), stored) or user is None or user.password_hash is None:
         raise ApiError(401, "unauthorized", "Invalid email or password")
+    _link_guest(creds, db, user)
+    db.commit()
     return _auth_response(user)
 
 
-_bearer = HTTPBearer(auto_error=False)
-
-
-def current_user(creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
-                 db: Annotated[Session, Depends(get_db)]) -> User:
+def current_user(creds: Bearer, db: Annotated[Session, Depends(get_db)]) -> User:
     """Dependency for every authenticated route (all routes except /auth/* and /health)."""
     if creds is None:
         raise ApiError(401, "unauthorized", "Missing bearer token")
-    try:
-        claims = jwt.decode(creds.credentials, get_settings().jwt_secret, algorithms=["HS256"])
-        user = db.get(User, uuid.UUID(claims["sub"]))
-    except (jwt.PyJWTError, KeyError, ValueError):
-        user = None
+    user = _user_from_token(creds, db)
     if user is None:
         raise ApiError(401, "unauthorized", "Invalid or expired token")
     return user
