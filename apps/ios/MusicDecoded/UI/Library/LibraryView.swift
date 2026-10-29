@@ -39,10 +39,9 @@ struct LibraryView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Palette.canvas)
+            .miniPlayerInset { path.append(PlayerRoute(trackId: $0)) }
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(for: PlayerRoute.self) { route in
-                PlayerScreen(trackId: route.trackId)
-            }
+            .appDestinations(path: $path)
         }
     }
 
@@ -60,8 +59,7 @@ struct LibraryView: View {
     }
 
     private func openProcessing(_ trackId: String) {
-        // The Processing screen arrives with T-211i.
-        _ = trackId
+        path.append(ProcessingRoute(trackId: trackId))
     }
 }
 
@@ -164,6 +162,7 @@ private struct LibrarySummaryCard: View {
 #Preview {
     LibraryView()
         .environment(TranscriptionService.preview())
+        .environment(NowPlaying())
         .modelContainer(for: LibraryItem.self, inMemory: true)
         .preferredColorScheme(.dark)
 }

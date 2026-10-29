@@ -142,20 +142,25 @@ final class PlayerModel {
 
     // MARK: - Loading
 
-    /// Loads the track once and creates its engine.
+    /// Loads the track once and gets its engine. The engine may already be running (the app-level
+    /// `NowPlaying` keeps it across visits): its speed, position and play state carry over.
     func load() async {
         guard loadStarted == false else { return }
         loadStarted = true
         let loaded = await loadTrack()
         if let loaded {
             let engine = makeEngine(loaded)
-            engine.setSpeed(speed)
+            speed = engine.speed
             self.engine = engine
         }
         track = loaded
         favorite = loaded?.favorite ?? false
         isLoading = false
         updateDerived()
+        tick()
+        if isPlaying {
+            startClock()
+        }
     }
 
     // MARK: - Clock

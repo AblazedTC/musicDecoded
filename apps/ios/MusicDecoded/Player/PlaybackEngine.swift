@@ -9,6 +9,8 @@ protocol PlaybackEngine: AnyObject {
     /// `true` while playing (or about to, e.g. buffering). The engine may stop on its own, e.g.
     /// when another app interrupts the audio session.
     var isPlaying: Bool { get }
+    /// The last `setSpeed` value (1 until set), so a reopened player picks it up.
+    var speed: Double { get }
 
     func play()
     func pause()
@@ -27,6 +29,8 @@ final class AVPlaybackEngine: PlaybackEngine {
     /// The target of a seek still in flight: `currentTime()` can lag behind until it completes.
     private var pendingSeek: Double?
     private var seekGeneration = 0
+
+    private(set) var speed = 1.0
 
     init(url: URL, durationSec: Double) {
         let item = AVPlayerItem(url: url)
@@ -76,6 +80,7 @@ final class AVPlaybackEngine: PlaybackEngine {
     }
 
     func setSpeed(_ speed: Double) {
+        self.speed = speed
         // `defaultRate` is the rate `play()` uses; a playing player switches right away.
         player.defaultRate = Float(speed)
         if player.rate != 0 {
@@ -102,8 +107,7 @@ final class SilentPlaybackEngine: PlaybackEngine {
     private let now: () -> Double
     private var anchorPosition = 0.0
     private var anchorTime = 0.0
-    private var speed = 1.0
-
+    private(set) var speed = 1.0
     private(set) var isPlaying = false
 
     init(durationSec: Double, now: @escaping () -> Double = { ProcessInfo.processInfo.systemUptime }) {

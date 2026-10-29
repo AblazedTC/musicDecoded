@@ -10,6 +10,7 @@ struct PlayerScreen: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(TranscriptionService.self) private var transcription
+    @Environment(NowPlaying.self) private var nowPlaying
     @State private var model: PlayerModel?
 
     var body: some View {
@@ -39,22 +40,26 @@ struct PlayerScreen: View {
         )
         let trackId = trackId
         let context = modelContext
+        let nowPlaying = nowPlaying
         return PlayerModel(
             loadTrack: {
                 await PlayerTrackLoader.load(trackId: trackId, info: info)
             },
             voicings: BundledContracts.voicings,
             makeEngine: { track in
-                let duration = track.analysis.meta.durationSec
-                if let url = track.audioURL {
-                    return AVPlaybackEngine(url: url, durationSec: duration)
+                // The app-level session owns the engine, so playback outlives this screen and
+                // reopening the same track picks it up again.
+                nowPlaying.engine(for: trackId, track: track) { track in
+                    let duration = track.analysis.meta.durationSec
+                    if let url = track.audioURL {
+                        return AVPlaybackEngine(url: url, durationSec: duration)
+                    }
+                    return SilentPlaybackEngine(durationSec: duration)
                 }
-                return SilentPlaybackEngine(durationSec: duration)
             },
             saveFavorite: { favorite in
                 guard let item else { return }
-                item.favorite = favorite
-                item.updatedAt = .now
+                item.setFavorite(favorite)
                 try? context.save()
             }
         )

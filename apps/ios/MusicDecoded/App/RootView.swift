@@ -36,6 +36,7 @@ struct RootView: View {
     RootView()
         .environment(TranscriptionService.preview())
         .environment(SessionStore.preview())
+        .environment(NowPlaying())
         .modelContainer(for: LibraryItem.self, inMemory: true)
 }
 #endif

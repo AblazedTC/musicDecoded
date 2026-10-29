@@ -6,6 +6,8 @@ struct MusicDecodedApp: App {
     @Environment(\.scenePhase) private var scenePhase
     @State private var session: SessionStore
     @State private var transcription: TranscriptionService
+    /// Owns the playing track's engine so playback continues across tabs (mini player).
+    @State private var nowPlaying = NowPlaying()
     private let container: ModelContainer
 
     init() {
@@ -38,6 +40,7 @@ struct MusicDecodedApp: App {
             RootView()
                 .environment(session)
                 .environment(transcription)
+                .environment(nowPlaying)
                 .task {
                     transcription.resumePending()
                     await session.start()
@@ -48,6 +51,9 @@ struct MusicDecodedApp: App {
             // Polling is suspended with the app; pick up running jobs again on return.
             if phase == .active {
                 transcription.resumePending()
+            } else if phase == .background {
+                // No background audio in v1: playback stops with the app.
+                nowPlaying.pause()
             }
         }
     }

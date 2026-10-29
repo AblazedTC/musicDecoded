@@ -27,13 +27,13 @@ struct HomeView: View {
                 .padding(.vertical, Spacing.lg)
             }
             .background(Palette.canvas)
+            .miniPlayerInset { path.append(PlayerRoute(trackId: $0)) }
             .toolbar(.hidden, for: .navigationBar)
+            // The import sheet / recorder closes and Processing takes over once the job exists.
             .sourceRoutes($sourceRoute, onDecodeStarted: { trackId in
                 openProcessing(trackId)
             })
-            .navigationDestination(for: PlayerRoute.self) { route in
-                PlayerScreen(trackId: route.trackId)
-            }
+            .appDestinations(path: $path)
         }
     }
 
@@ -99,8 +99,7 @@ struct HomeView: View {
     }
 
     private func openProcessing(_ trackId: String) {
-        // The Processing screen arrives with T-211i.
-        _ = trackId
+        path.append(ProcessingRoute(trackId: trackId))
     }
 }
 
@@ -108,6 +107,7 @@ struct HomeView: View {
 #Preview {
     HomeView(onShowLibrary: {}, onShowSettings: {})
         .environment(TranscriptionService.preview())
+        .environment(NowPlaying())
         .environment(SessionStore.preview())
         .modelContainer(for: LibraryItem.self, inMemory: true)
         .preferredColorScheme(.dark)

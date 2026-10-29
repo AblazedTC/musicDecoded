@@ -11,6 +11,7 @@ struct LibrarySongRow: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(TranscriptionService.self) private var transcription
+    @Environment(NowPlaying.self) private var nowPlaying
     @State private var confirmDelete = false
     @State private var errorMessage: String?
     @State private var showError = false
@@ -77,8 +78,10 @@ struct LibrarySongRow: View {
         try? modelContext.save()
     }
 
-    /// Delete is a tombstone (it syncs); the row disappears from every list.
+    /// Delete is a tombstone (it syncs); the row disappears from every list, and the track stops
+    /// if it's the one playing.
     private func delete() {
+        nowPlaying.stop(trackId: item.trackId)
         item.markDeleted()
         try? modelContext.save()
     }

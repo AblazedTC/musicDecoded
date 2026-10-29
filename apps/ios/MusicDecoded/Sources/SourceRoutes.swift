@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Entry points for the local sources. Home sets a route from its source cards; `sourceRoutes`
 /// opens the right picker or screen. Each flow ends once the job has started, and
-/// `onDecodeStarted` gets the trackId (the Processing screen, T-211, will hook in there).
+/// `onDecodeStarted` gets the trackId (Home pushes the Processing screen there).
 enum SourceRoute: Hashable, Sendable {
     case files
     case mediaLibrary
