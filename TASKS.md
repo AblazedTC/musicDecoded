@@ -190,11 +190,12 @@ Template for new tasks:
 - Notes: librosa is the only beat path; tests/test_model_licenses.py fails if madmom returns. Beat-count check needs real models (not run). See MODELS.md follow-up on upstream Beat Transformer decoding.
 
 ### T-117 Reclaim jobs stranded by a worker crash
-- Lane: worker · Status: todo · Owner: — · Deps: T-113
+- Lane: worker · Status: done · Owner: claude · Deps: T-113
 - Goal: A job left `processing` when the consumer dies never finishes today.
 - Acceptance:
-  - [ ] Consumer heartbeats its current job (Redis key with TTL); a periodic sweep (or consumer startup) requeues `processing` jobs whose heartbeat expired, max 2 attempts, then `failed`
-  - [ ] Test with a fake clock
+  - [x] Consumer heartbeats its current job (Redis key with TTL); a periodic sweep (or consumer startup) requeues `processing` jobs whose heartbeat expired, max 2 attempts, then `failed`
+  - [x] Test with a fake clock
+- Notes: Redis `jobs:processing` hash (jobId → message) + `heartbeat:{jobId}` (TTL 60 s, refreshed every 15 s by a thread); sweep at startup and every 60 s, HDEL decides which consumer reclaims; requeued messages carry `attempt`. Tests in tests/test_consumer.py. New Redis keys are worker-internal (docs/data-model.md §4 not updated: contracts lane).
 
 ### T-118 Load the chord model once per process
 - Lane: worker · Status: done · Owner: claude · Deps: T-113

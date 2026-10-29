@@ -18,7 +18,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -34,6 +36,15 @@ CONTRACTS_DIR = Path(os.environ.get("CONTRACTS_DIR", WORKER_DIR.parent.parent / 
 
 QUEUE = "jobs:analysis"
 JOB_TTL = 86400
+# T-117: crash recovery. A job being processed is in the PROCESSING hash (jobId -> queue message) and has a
+# heartbeat key refreshed every HEARTBEAT_EVERY s. If the worker dies, the heartbeat expires and a sweep
+# (at startup and every SWEEP_EVERY s, by any consumer) requeues the job, at most MAX_ATTEMPTS in total.
+PROCESSING = "jobs:processing"
+HEARTBEAT_TTL = 60
+HEARTBEAT_EVERY = 15
+SWEEP_EVERY = 60
+MAX_ATTEMPTS = 2
+STRANDED_ERROR = "The analysis was interrupted twice. Please try again later."
 SAMPLE_RATE = 22050
 STREAMING = ("youtube", "soundcloud")
 
@@ -101,6 +112,9 @@ class PgJobs:
         self._exec("UPDATE tracks SET analysis_key=%s, analyzer_version=%s, duration_sec=%s WHERE id=%s",
                    (analysis_key, analyzer_version, duration_sec, track_id))
 
+    def requeue(self, job_id: str) -> None:
+        self._exec("UPDATE jobs SET status='queued', stage=NULL, progress=0, error=NULL WHERE id=%s", (job_id,))
+
     def complete(self, job_id: str) -> None:
         self._exec("UPDATE jobs SET status='complete', stage=NULL, progress=100, error=NULL, completed_at=%s "
                    "WHERE id=%s", (_now(), job_id))
@@ -161,7 +175,9 @@ class Consumer:
                  normalize: Callable[[Path, Path], str] = normalize_audio,
                  fetch_stream: Callable[[str, Path], Any] = fetch.fetch_stream,
                  to_m4a: Callable[[Path, Path], None] = fetch.to_m4a,
-                 store_stream_audio: bool = False):
+                 store_stream_audio: bool = False,
+                 clock: Callable[[], float] = time.monotonic,
+                 heartbeat_every: float = HEARTBEAT_EVERY):
         self.analyzer = analyzer
         self.redis = redis
         self.s3 = s3
@@ -172,6 +188,8 @@ class Consumer:
         self.fetch_stream = fetch_stream
         self.to_m4a = to_m4a
         self.store_stream_audio = store_stream_audio  # OFFLINE_STREAM_AUDIO (PLAN.md R-1)
+        self.clock = clock
+        self.heartbeat_every = heartbeat_every
 
     def _live(self, job_id: str, **fields: Any) -> None:
         key = f"job:{job_id}"
@@ -184,7 +202,8 @@ class Consumer:
         self._live(job_id, stage=stage, progress=progress)
 
     def handle(self, raw: str) -> None:
-        """Process one queue message. Never raises: failures are written to the job."""
+        """Process one queue message. Failures are written to the job; only a BaseException (shutdown)
+        escapes, and then the job stays registered for the stranded-job sweep."""
         try:
             msg = json.loads(raw)
             job_id, track_id, source = msg["jobId"], msg["trackId"], msg["source"]
@@ -192,6 +211,67 @@ class Consumer:
             log.error("dropping malformed queue message: %.200r", raw)
             return
 
+        # Heartbeat before registering, so a sweep never sees this job without one. A crash (or a
+        # BaseException such as KeyboardInterrupt) skips the release below and leaves the job to the sweep.
+        self._beat(job_id)
+        self.redis.hset(PROCESSING, job_id, raw)
+        with self._heartbeat(job_id):
+            self._run(msg, job_id, track_id, source)
+        self.redis.hdel(PROCESSING, job_id)
+        self.redis.delete(f"heartbeat:{job_id}")
+
+    def _beat(self, job_id: str) -> None:
+        self.redis.set(f"heartbeat:{job_id}", "1", ex=HEARTBEAT_TTL)
+
+    @contextmanager
+    def _heartbeat(self, job_id: str):
+        stop = threading.Event()
+
+        def loop() -> None:
+            while not stop.wait(self.heartbeat_every):
+                try:
+                    self._beat(job_id)
+                except Exception:
+                    log.warning("job %s: heartbeat failed", job_id, exc_info=True)
+
+        thread = threading.Thread(target=loop, name=f"heartbeat-{job_id}", daemon=True)
+        thread.start()
+        try:
+            yield
+        finally:
+            stop.set()
+            thread.join()
+
+    def sweep(self) -> int:
+        """Requeue (or fail, after MAX_ATTEMPTS) jobs whose worker stopped heartbeating. Returns jobs reclaimed."""
+        reclaimed = 0
+        for job_id, raw in self.redis.hgetall(PROCESSING).items():
+            if self.redis.exists(f"heartbeat:{job_id}"):
+                continue
+            if not self.redis.hdel(PROCESSING, job_id):
+                continue  # another consumer's sweep got it first
+            reclaimed += 1
+            try:
+                msg = json.loads(raw)
+                attempt = int(msg.get("attempt", 1))
+            except (ValueError, TypeError, AttributeError):
+                log.error("job %s: dropping malformed stranded message: %.200r", job_id, raw)
+                continue
+            if attempt >= MAX_ATTEMPTS:
+                log.warning("job %s: stranded on attempt %d, failing it", job_id, attempt)
+                self._fail(job_id, STRANDED_ERROR)
+                continue
+            log.warning("job %s: stranded on attempt %d, requeueing", job_id, attempt)
+            msg["attempt"] = attempt + 1
+            try:
+                self.jobs.requeue(job_id)
+                self._live(job_id, status="queued", stage=None, progress=0, error=None)
+            except Exception:
+                log.exception("job %s: could not record the requeue", job_id)
+            self.redis.rpush(QUEUE, json.dumps(msg))
+        return reclaimed
+
+    def _run(self, msg: Dict[str, Any], job_id: str, track_id: str, source: str) -> None:
         started = time.perf_counter()
         timings: Dict[str, float] = {}
         stage: Optional[str] = None
@@ -293,7 +373,14 @@ class Consumer:
 
     def run_forever(self, timeout: int = 5) -> None:
         log.info("waiting for jobs on %s", QUEUE)
+        next_sweep = self.clock()
         while True:
+            if self.clock() >= next_sweep:
+                try:
+                    self.sweep()
+                except Exception:
+                    log.exception("sweep for stranded jobs failed")
+                next_sweep = self.clock() + SWEEP_EVERY
             item = self.redis.blpop([QUEUE], timeout=timeout)
             if item:
                 self.handle(item[1])

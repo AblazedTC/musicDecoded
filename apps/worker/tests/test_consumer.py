@@ -12,16 +12,48 @@ OPENAPI_STAGES = ["fetching_media", "normalizing_audio", "detecting_beats", "det
                   "rendering_spectrogram", "saving_results"]
 
 
-class FakeRedis:
+class FakeClock:
     def __init__(self):
-        self.hashes, self.history = {}, []
+        self.now = 0.0
 
-    def hset(self, key, mapping):
+    def __call__(self):
+        return self.now
+
+
+class FakeRedis:
+    """The Redis calls the consumer makes; key TTLs follow a fake clock."""
+
+    def __init__(self, clock=None):
+        self.clock = clock or FakeClock()
+        self.hashes, self.history, self.lists, self.keys = {}, [], {}, {}  # keys: name -> expiry time
+
+    def hset(self, key, field=None, value=None, mapping=None):
+        if mapping is None:
+            self.hashes.setdefault(key, {})[field] = value
+            return
         self.hashes.setdefault(key, {}).update({k: str(v) for k, v in mapping.items()})
         self.history.append(dict(self.hashes[key]))
 
+    def hgetall(self, key):
+        return dict(self.hashes.get(key, {}))
+
+    def hdel(self, key, field):
+        return 1 if self.hashes.get(key, {}).pop(field, None) is not None else 0
+
     def expire(self, key, ttl):
         assert ttl == c.JOB_TTL
+
+    def set(self, key, value, ex):
+        self.keys[key] = self.clock() + ex
+
+    def exists(self, key):
+        return int(key in self.keys and self.keys[key] > self.clock())
+
+    def delete(self, key):
+        self.keys.pop(key, None)
+
+    def rpush(self, key, value):
+        self.lists.setdefault(key, []).append(value)
 
 
 class FakeS3:
@@ -57,6 +89,9 @@ class FakeJobs:
 
     def save_track(self, track_id, analysis_key, analyzer_version, duration_sec):
         self.track.update(analysis_key=analysis_key, analyzer_version=analyzer_version, duration_sec=duration_sec)
+
+    def requeue(self, job_id):
+        self.job.update(status="queued", stage=None, progress=0, error=None)
 
     def complete(self, job_id):
         self.job.update(status="complete", stage=None, progress=100)
@@ -236,3 +271,96 @@ def test_malformed_message_is_dropped(validate):
 def test_stage_maps_cover_openapi_enum():
     assert list(c.PROGRESS) == OPENAPI_STAGES
     assert set(c.ANALYZER_STAGES.values()) <= set(OPENAPI_STAGES)
+
+
+# ---------- T-117: stranded jobs (fake clock) ----------
+
+class Crash(BaseException):
+    """Stands in for the process dying mid-job: nothing after it runs in handle()."""
+
+
+class CrashingAnalyzer(FakeAnalyzer):
+    def analyze(self, audio_path, **kwargs):
+        raise Crash()
+
+
+def make_clocked(validate, analyzer):
+    clock = FakeClock()
+    redis, jobs = FakeRedis(clock), FakeJobs()
+    worker = c.Consumer(analyzer=analyzer, redis=redis, s3=FakeS3({"uploads/u1": b"mp3-bytes"}), bucket="b",
+                        jobs=jobs, validate=validate, normalize=fake_normalize, clock=clock, heartbeat_every=3600)
+    return worker, redis, jobs, clock
+
+
+def crash(worker, raw):
+    with pytest.raises(Crash):
+        worker.handle(raw)
+
+
+def test_finished_jobs_leave_nothing_to_reclaim(validate):
+    worker, redis, jobs, clock = make_clocked(validate, FakeAnalyzer())
+    worker.handle(message())
+    clock.now = 1000
+    assert jobs.job["status"] == "complete"
+    assert redis.hgetall(c.PROCESSING) == {} and worker.sweep() == 0
+
+
+def test_stranded_job_is_requeued_once_then_failed(validate):
+    worker, redis, jobs, clock = make_clocked(validate, CrashingAnalyzer())
+    crash(worker, message())
+    assert jobs.job["status"] == "processing" and "j1" in redis.hgetall(c.PROCESSING)
+
+    clock.now = c.HEARTBEAT_TTL - 1  # heartbeat still alive: the worker may just be slow
+    assert worker.sweep() == 0 and c.QUEUE not in redis.lists
+
+    clock.now = c.HEARTBEAT_TTL + 1  # heartbeat expired: requeue as attempt 2
+    assert worker.sweep() == 1
+    requeued = redis.lists[c.QUEUE].pop()
+    assert json.loads(requeued)["attempt"] == 2 and json.loads(requeued)["jobId"] == "j1"
+    assert jobs.job["status"] == "queued" and redis.hashes["job:j1"]["status"] == "queued"
+    assert worker.sweep() == 0  # not reclaimed twice
+
+    crash(worker, requeued)  # attempt 2 dies too
+    clock.now += c.HEARTBEAT_TTL + 1
+    assert worker.sweep() == 1
+    assert c.QUEUE not in redis.lists or redis.lists[c.QUEUE] == []
+    assert jobs.job["status"] == "failed" and jobs.job["error"] == c.STRANDED_ERROR
+    assert redis.hashes["job:j1"]["status"] == "failed" and redis.hgetall(c.PROCESSING) == {}
+
+
+def test_heartbeat_keeps_a_long_job_alive(validate):
+    import time as real_time
+
+    clock = FakeClock()
+    sweeps = []
+
+    class SlowAnalyzer(FakeAnalyzer):
+        def analyze(self, audio_path, **kwargs):
+            for _ in range(5):  # 5 x 50 fake seconds: well past HEARTBEAT_TTL in total
+                clock.now += 50
+                real_time.sleep(0.05)  # lets the heartbeat thread (every 10 ms) refresh the key
+                sweeps.append(worker.sweep())
+            return super().analyze(audio_path, **kwargs)
+
+    redis, jobs = FakeRedis(clock), FakeJobs()
+    worker = c.Consumer(analyzer=SlowAnalyzer(), redis=redis, s3=FakeS3({"uploads/u1": b"mp3-bytes"}), bucket="b",
+                        jobs=jobs, validate=validate, normalize=fake_normalize, clock=clock, heartbeat_every=0.01)
+    worker.handle(message())
+    assert sweeps == [0] * 5 and jobs.job["status"] == "complete"
+
+
+def test_run_forever_sweeps_at_startup_and_periodically(validate, monkeypatch):
+    worker, redis, jobs, clock = make_clocked(validate, FakeAnalyzer())
+    calls = []
+    monkeypatch.setattr(worker, "sweep", lambda: calls.append(clock.now) or 0)
+
+    def blpop(keys, timeout):
+        clock.now += 25
+        if clock.now > 130:
+            raise KeyboardInterrupt
+        return None
+
+    redis.blpop = blpop
+    with pytest.raises(KeyboardInterrupt):
+        worker.run_forever()
+    assert calls == [0, 75]  # startup, then the first loop at or after SWEEP_EVERY
