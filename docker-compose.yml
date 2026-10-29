@@ -78,6 +78,7 @@ services:
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       OFFLINE_STREAM_AUDIO: "false"
       SOUNDCLOUD_ENABLED: "false"
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-} # empty = search returns 403 feature_disabled
     depends_on:
       db:
         condition: service_healthy
