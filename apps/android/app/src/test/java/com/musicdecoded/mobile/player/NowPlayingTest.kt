@@ -87,6 +87,16 @@ class NowPlayingTest {
         assertEquals("b", nowPlaying.state.value?.trackId)
     }
 
+    @Test fun dismissByTrackIdOnlyUnloadsThatTrack() {
+        nowPlaying.engineFor("a", track, ::engine)
+        nowPlaying.dismiss("b")
+        assertEquals("a", nowPlaying.state.value?.trackId)
+        assertTrue(released.isEmpty())
+        nowPlaying.dismiss("a")
+        assertNull(nowPlaying.state.value)
+        assertEquals(1, released.size)
+    }
+
     @Test fun miniPlayerControlsAndEnd() {
         nowPlaying.engineFor("a", track, ::engine)
         nowPlaying.togglePlay()

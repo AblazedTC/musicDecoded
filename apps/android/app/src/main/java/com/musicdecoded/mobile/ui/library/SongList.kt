@@ -95,7 +95,10 @@ class SongActions(
         fun from(app: MusicDecodedApplication): SongActions {
             val dao = app.libraryDatabase.libraryDao()
             return SongActions(
-                delete = { dao.markDeleted(it, Instant.now()) },
+                delete = {
+                    dao.markDeleted(it, Instant.now())
+                    app.nowPlaying.dismiss(it) // a deleted track can't stay in the mini player
+                },
                 setFavorite = { id, favorite -> dao.setFavorite(id, favorite, Instant.now()) },
                 reanalyze = { app.transcriptionRepository.retry(it) },
             )

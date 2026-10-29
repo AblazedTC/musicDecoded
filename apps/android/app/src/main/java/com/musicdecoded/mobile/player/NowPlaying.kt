@@ -73,6 +73,11 @@ class NowPlaying {
         if (engine?.isPlaying == true) togglePlay()
     }
 
+    /** Stops and unloads [trackId] if it's the loaded track (e.g. it was just deleted). */
+    fun dismiss(trackId: String) {
+        if (_state.value?.trackId == trackId) dismiss()
+    }
+
     /** The mini player's ×: stops and unloads the track. */
     fun dismiss() {
         engine?.release()
