@@ -47,7 +47,7 @@ private func suffix(for quality: String) -> String {
 }
 
 /// Chords: Basic. maj/7/maj7/9… → maj, min/min7/min9… → min; keeps dim, aug, sus and 5.
-private func triadFamily(of quality: String) -> String {
+func triadFamily(of quality: String) -> String {
     if quality.hasPrefix("dim") || quality.hasPrefix("hdim") { return "dim" }
     if quality.hasPrefix("min") { return "min" }
     if quality.hasPrefix("aug") { return "aug" }

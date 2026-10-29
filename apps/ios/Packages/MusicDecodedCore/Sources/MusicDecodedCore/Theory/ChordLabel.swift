@@ -20,7 +20,7 @@ struct ChordLabel: Sendable, Equatable {
 }
 
 /// `N` and `X` are "no chord": no name, no notes, and skipped by up-next and prev/next.
-func isNoChord(_ label: String) -> Bool {
+public func isNoChord(_ label: String) -> Bool {
     label == "N" || label == "X"
 }
 

@@ -28,6 +28,17 @@ targets:
     platform: iOS
     sources:
       - path: MusicDecoded
+      # Contracts are referenced from the repo, not copied. The voicing table ships in every build;
+      # the analysis fixtures are for Debug runs and previews only (Release excludes them below).
+      - path: ../../contracts/chord-voicings.json
+        buildPhase: resources
+        group: Contracts
+      - path: ../../contracts/fixtures/sunnydays.analysis.json
+        buildPhase: resources
+        group: Contracts
+      - path: ../../contracts/fixtures/sample.analysis.json
+        buildPhase: resources
+        group: Contracts
     dependencies:
       - package: MusicDecodedCore
     info:
@@ -52,6 +63,10 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         # The ATS script below edits the built Info.plist, which the script sandbox forbids.
         ENABLE_USER_SCRIPT_SANDBOXING: NO
+      configs:
+        Release:
+          # Debug-only fixtures (DebugFixtures); keeps them out of shipped builds.
+          EXCLUDED_SOURCE_FILE_NAMES: "*.analysis.json"
     postBuildScripts:
       # The Info.plist is generated once for all configurations, so the Debug-only
       # ATS exception (plain HTTP to http://localhost:8080) is added to the built copy here.
@@ -77,6 +92,9 @@ targets:
       - path: MusicDecodedTests
       # Contracts are referenced from the repo, not copied (T-003).
       - path: ../../contracts/fixtures/sample.analysis.json
+        buildPhase: resources
+        group: Contracts
+      - path: ../../contracts/fixtures/sunnydays.analysis.json
         buildPhase: resources
         group: Contracts
       - path: ../../contracts/chord-voicings.json

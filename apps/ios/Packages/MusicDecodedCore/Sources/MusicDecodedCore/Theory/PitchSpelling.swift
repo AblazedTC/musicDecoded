@@ -1,5 +1,5 @@
 /// Turns pitch classes into note names with real ♯/♭ glyphs.
-struct PitchSpelling: Sendable {
+struct PitchSpelling: Sendable, Equatable {
     private static let sharpNames = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"]
     private static let flatNames = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"]
     private static let commonNames = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"]
