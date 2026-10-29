@@ -1,6 +1,9 @@
 """Queue consumer (T-113): BLPOP jobs:analysis -> fetch -> normalize -> analyze -> validate -> save.
 
-Run: python services/consumer.py   (env: REDIS_URL, DATABASE_URL, S3_*, CHORD_MODEL_DIR)
+Run: python services/consumer.py   (env: REDIS_URL, DATABASE_URL, S3_*, CHORD_MODEL_DIR, OFFLINE_STREAM_AUDIO)
+
+Uploads (file/recording) come from object storage; youtube/soundcloud are fetched with yt-dlp
+(services/fetch.py, T-302).
 
 Status is written to Postgres (`jobs`, `tracks`) and mirrored into the Redis hash `job:{id}`
 (docs/data-model.md §4; empty string = null, the API reads it that way). Stages are the openapi
@@ -23,6 +26,8 @@ from typing import Any, Callable, Dict, List, Optional
 WORKER_DIR = Path(__file__).resolve().parent.parent
 if str(WORKER_DIR) not in sys.path:
     sys.path.insert(0, str(WORKER_DIR))
+
+from services import fetch  # noqa: E402
 
 # Repo checkout: <repo>/contracts. Docker image: /contracts (see Dockerfile).
 CONTRACTS_DIR = Path(os.environ.get("CONTRACTS_DIR", WORKER_DIR.parent.parent / "contracts"))
@@ -82,6 +87,15 @@ class PgJobs:
 
     def stage(self, job_id: str, stage: str, progress: int) -> None:
         self._exec("UPDATE jobs SET stage=%s, progress=%s WHERE id=%s", (stage, progress, job_id))
+
+    def save_source(self, track_id: str, title: Optional[str], duration_sec: Optional[float],
+                    thumbnail_url: Optional[str]) -> None:
+        self._exec("UPDATE tracks SET title=COALESCE(%s, title), duration_sec=COALESCE(%s, duration_sec), "
+                   "thumbnail_url=COALESCE(%s, thumbnail_url) WHERE id=%s",
+                   (title, duration_sec, thumbnail_url, track_id))
+
+    def save_audio_key(self, track_id: str, audio_key: str) -> None:
+        self._exec("UPDATE tracks SET audio_key=%s WHERE id=%s", (audio_key, track_id))
 
     def save_track(self, track_id: str, analysis_key: str, analyzer_version: str, duration_sec: float) -> None:
         self._exec("UPDATE tracks SET analysis_key=%s, analyzer_version=%s, duration_sec=%s WHERE id=%s",
@@ -144,7 +158,10 @@ def normalize_audio(src: Path, dst: Path) -> str:
 class Consumer:
     def __init__(self, *, analyzer, redis, s3, bucket: str, jobs,
                  validate: Callable[[dict], List[str]],
-                 normalize: Callable[[Path, Path], str] = normalize_audio):
+                 normalize: Callable[[Path, Path], str] = normalize_audio,
+                 fetch_stream: Callable[[str, Path], Any] = fetch.fetch_stream,
+                 to_m4a: Callable[[Path, Path], None] = fetch.to_m4a,
+                 store_stream_audio: bool = False):
         self.analyzer = analyzer
         self.redis = redis
         self.s3 = s3
@@ -152,6 +169,9 @@ class Consumer:
         self.jobs = jobs
         self.validate = validate
         self.normalize = normalize
+        self.fetch_stream = fetch_stream
+        self.to_m4a = to_m4a
+        self.store_stream_audio = store_stream_audio  # OFFLINE_STREAM_AUDIO (PLAN.md R-1)
 
     def _live(self, job_id: str, **fields: Any) -> None:
         key = f"job:{job_id}"
@@ -180,8 +200,10 @@ class Consumer:
             self.jobs.start(job_id)
             self._live(job_id, status="processing", stage=None, progress=0, error=None)
             if source in STREAMING:
-                raise JobError("Streaming sources arrive with T-302")
-            if source not in ("file", "recording") or not msg.get("uploadKey"):
+                url, source_ref = fetch.source_url(msg)
+            elif source in ("file", "recording") and msg.get("uploadKey"):
+                url, source_ref = None, None
+            else:
                 raise JobError("Unsupported job source")
 
             with tempfile.TemporaryDirectory(prefix="md-job-") as tmp:
@@ -191,7 +213,11 @@ class Consumer:
                 stage = "fetching_media"
                 self._stage(job_id, stage)
                 t = time.perf_counter()
-                self._download(msg["uploadKey"], src)
+                if url:
+                    src, info = self.fetch_stream(url, tmp_dir)
+                    self.jobs.save_source(track_id, info.get("title"), info.get("duration"), info.get("thumbnail"))
+                else:
+                    self._download(msg["uploadKey"], src)
                 timings["fetch"] = time.perf_counter() - t
 
                 stage = "normalizing_audio"
@@ -208,25 +234,28 @@ class Consumer:
                         self._stage(job_id, stage)
 
                 doc = self.analyzer.analyze(str(wav), track_id=track_id, source=source,
-                                            source_ref=None, on_stage=on_stage)
+                                            source_ref=source_ref, on_stage=on_stage)
                 timings.update(getattr(self.analyzer, "timings", {}) or {})
 
-            stage = "saving_results"
-            self._stage(job_id, stage)
-            t = time.perf_counter()
-            errors = self.validate(doc)
-            if errors:
-                log.error("job %s: analysis failed validation: %s", job_id, errors[:5])
-                raise JobError("The analysis did not pass validation")
-            key = f"analysis/{track_id}.json"
-            self.s3.put_object(Bucket=self.bucket, Key=key, ContentType="application/json",
-                               Body=json.dumps(doc, separators=(",", ":")).encode())
-            self.jobs.save_track(track_id, key, doc["meta"]["analyzerVersion"], doc["meta"]["durationSec"])
+                stage = "saving_results"
+                self._stage(job_id, stage)
+                t = time.perf_counter()
+                errors = self.validate(doc)
+                if errors:
+                    log.error("job %s: analysis failed validation: %s", job_id, errors[:5])
+                    raise JobError("The analysis did not pass validation")
+                key = f"analysis/{track_id}.json"
+                self.s3.put_object(Bucket=self.bucket, Key=key, ContentType="application/json",
+                                   Body=json.dumps(doc, separators=(",", ":")).encode())
+                self.jobs.save_track(track_id, key, doc["meta"]["analyzerVersion"], doc["meta"]["durationSec"])
+                if url and self.store_stream_audio:
+                    self._store_audio(track_id, src, tmp_dir / "extracted.m4a")
+            # Leaving the with-block deletes the fetched audio unless it was stored above.
             self.jobs.complete(job_id)
             self._live(job_id, status="complete", stage=None, progress=100, error=None)
             timings["save"] = time.perf_counter() - t
         except Exception as e:
-            if isinstance(e, JobError):
+            if isinstance(e, (JobError, fetch.FetchError)):
                 error = str(e)
                 log.warning("job %s: failed at %s: %s", job_id, stage, error)
             else:
@@ -245,6 +274,13 @@ class Consumer:
         except Exception as e:
             log.warning("download of %s failed: %s", key, e)
             raise JobError("Could not download the uploaded audio") from e
+
+    def _store_audio(self, track_id: str, src: Path, m4a: Path) -> None:
+        """extracted-audio/{trackId}.m4a, only when OFFLINE_STREAM_AUDIO=true (docs/data-model.md §3)."""
+        self.to_m4a(src, m4a)
+        key = f"extracted-audio/{track_id}.m4a"
+        self.s3.put_object(Bucket=self.bucket, Key=key, ContentType="audio/mp4", Body=m4a.read_bytes())
+        self.jobs.save_audio_key(track_id, key)
 
     def _fail(self, job_id: str, error: str) -> None:
         # Each write on its own: a dead Postgres must not stop the Redis mirror, and vice versa.
@@ -284,6 +320,7 @@ def main() -> None:
         bucket=os.environ.get("S3_BUCKET", "musicdecoded"),
         jobs=PgJobs(os.environ["DATABASE_URL"]),
         validate=load_validator(),
+        store_stream_audio=os.environ.get("OFFLINE_STREAM_AUDIO", "").lower() == "true",
     ).run_forever()
 
 

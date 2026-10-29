@@ -43,6 +43,12 @@ class FakeJobs:
         self.job = {"status": "queued", "stage": None, "progress": 0, "error": None}
         self.track = {}
 
+    def save_source(self, track_id, title, duration_sec, thumbnail_url):
+        self.track.update(title=title, source_duration=duration_sec, thumbnail_url=thumbnail_url)
+
+    def save_audio_key(self, track_id, audio_key):
+        self.track.update(audio_key=audio_key)
+
     def start(self, job_id):
         self.job.update(status="processing", started=True)
 
@@ -79,7 +85,7 @@ class FakeAnalyzer:
 
 
 def fake_normalize(src, dst):
-    assert src.read_bytes() == b"mp3-bytes"
+    assert src.read_bytes() in (b"mp3-bytes", b"stream-bytes")
     dst.write_bytes(b"wav")
     return "fake"
 
@@ -90,17 +96,37 @@ def validate():
     return c.load_validator()
 
 
-def make(validate, analyzer=None, objects=None):
+class FakeFetch:
+    """Stands in for fetch.fetch_stream: writes stream.<ext> into the job's temp dir."""
+
+    def __init__(self, ext="m4a", error=None):
+        self.ext, self.error, self.calls = ext, error, []
+
+    def __call__(self, url, dest_dir):
+        self.calls.append((url, Path(dest_dir)))
+        if self.error:
+            raise c.fetch.FetchError(self.error)
+        path = Path(dest_dir) / f"stream.{self.ext}"
+        path.write_bytes(b"stream-bytes")
+        return path, {"title": "Song", "duration": 200.0, "thumbnail": "https://i.ytimg.com/x.jpg"}
+
+
+def fake_to_m4a(src, dst):
+    dst.write_bytes(b"m4a:" + src.read_bytes())
+
+
+def make(validate, analyzer=None, objects=None, fetch=None, store_stream_audio=False):
     redis, s3, jobs = FakeRedis(), FakeS3({"uploads/u1": b"mp3-bytes"} if objects is None else objects), FakeJobs()
     analyzer = analyzer or FakeAnalyzer()
     worker = c.Consumer(analyzer=analyzer, redis=redis, s3=s3, bucket="b", jobs=jobs, validate=validate,
-                        normalize=fake_normalize)
+                        normalize=fake_normalize, fetch_stream=fetch or FakeFetch(), to_m4a=fake_to_m4a,
+                        store_stream_audio=store_stream_audio)
     return worker, redis, s3, jobs, analyzer
 
 
-def message(source="file", upload_key="uploads/u1"):
+def message(source="file", upload_key="uploads/u1", video_id=None, soundcloud_url=None):
     return json.dumps({"jobId": "j1", "trackId": "t1", "source": source, "uploadKey": upload_key,
-                       "videoId": None, "soundcloudUrl": None, "storeExtractedAudio": False})
+                       "videoId": video_id, "soundcloudUrl": soundcloud_url, "storeExtractedAudio": False})
 
 
 def test_success(validate):
@@ -148,14 +174,56 @@ def test_missing_upload(validate):
     assert redis.hashes["job:j1"]["stage"] == "fetching_media"
 
 
-@pytest.mark.parametrize("source", ["youtube", "soundcloud"])
-def test_streaming_sources_fail_for_now(validate, source):
-    worker, redis, s3, jobs, analyzer = make(validate)
-    worker.handle(message(source=source, upload_key=None))
+STREAMS = [("youtube", dict(video_id="dQw4w9WgXcQ"), "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "dQw4w9WgXcQ"),
+           ("soundcloud", dict(soundcloud_url="https://soundcloud.com/a/b"), "https://soundcloud.com/a/b",
+            "https://soundcloud.com/a/b")]
 
-    assert jobs.job["status"] == "failed" and jobs.job["error"] == "Streaming sources arrive with T-302"
-    assert redis.hashes["job:j1"]["error"] == "Streaming sources arrive with T-302"
-    assert analyzer.seen_paths == []
+
+@pytest.mark.parametrize("source,ids,url,ref", STREAMS)
+def test_streaming_source(validate, source, ids, url, ref):
+    fetch = FakeFetch()
+    worker, redis, s3, jobs, analyzer = make(validate, fetch=fetch)
+    worker.handle(message(source=source, upload_key=None, **ids))
+
+    assert jobs.job["status"] == "complete"
+    assert fetch.calls[0][0] == url
+    assert jobs.track["title"] == "Song" and jobs.track["thumbnail_url"].startswith("https://")
+    saved = json.loads(s3.objects["analysis/t1.json"])
+    assert saved["meta"]["source"] == source and saved["meta"]["sourceRef"] == ref and validate(saved) == []
+    assert "audio_key" not in jobs.track and not any(k.startswith("extracted-audio/") for k in s3.objects)
+    assert not fetch.calls[0][1].exists()  # fetched audio deleted with the temp dir
+
+
+@pytest.mark.parametrize("ext", ["m4a", "webm"])
+def test_offline_stream_audio_is_stored(validate, ext):
+    worker, _, s3, jobs, _ = make(validate, fetch=FakeFetch(ext=ext), store_stream_audio=True)
+    worker.handle(message(source="youtube", upload_key=None, video_id="dQw4w9WgXcQ"))
+
+    assert jobs.job["status"] == "complete"
+    assert jobs.track["audio_key"] == "extracted-audio/t1.m4a"
+    assert s3.objects["extracted-audio/t1.m4a"] == b"m4a:stream-bytes"
+    assert s3.content_types["extracted-audio/t1.m4a"] == "audio/mp4"
+
+
+def test_fetch_error_is_readable(validate):
+    worker, redis, _, jobs, analyzer = make(validate, fetch=FakeFetch(error="This track is longer than 10 minutes"))
+    worker.handle(message(source="youtube", upload_key=None, video_id="dQw4w9WgXcQ"))
+
+    assert jobs.job["status"] == "failed" and jobs.job["error"] == "This track is longer than 10 minutes"
+    assert redis.hashes["job:j1"]["stage"] == "fetching_media" and analyzer.seen_paths == []
+
+
+@pytest.mark.parametrize("ids", [dict(video_id="../etc"), dict(video_id=None)])
+def test_bad_video_id(validate, ids):
+    worker, _, _, jobs, _ = make(validate)
+    worker.handle(message(source="youtube", upload_key=None, **ids))
+    assert jobs.job["error"] == "Invalid YouTube video id"
+
+
+def test_bad_soundcloud_url(validate):
+    worker, _, _, jobs, _ = make(validate)
+    worker.handle(message(source="soundcloud", upload_key=None, soundcloud_url="https://evil.example/soundcloud.com"))
+    assert jobs.job["error"] == "Invalid SoundCloud URL"
 
 
 def test_malformed_message_is_dropped(validate):

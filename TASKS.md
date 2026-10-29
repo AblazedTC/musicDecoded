@@ -360,14 +360,23 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: stdlib urllib (no new dep). Cache yt:search:{sha1(q|pageToken)}, q lowercased/whitespace-collapsed. No key → 403 feature_disabled; Google quota → 429 rate_limited (not a plan limit: apps must not show the upsell); other upstream errors → 500 internal. Live/upcoming broadcasts skipped. openapi: added 400/403/429 responses to /youtube/search.
 
 ### T-302 Worker: fetch streaming sources
-- Lane: worker · Status: todo · Owner: — · Deps: T-113
+- Lane: worker · Status: done · Owner: claude · Deps: T-113
 - Acceptance:
-  - [ ] Uses **yt-dlp as a Python library** (PLAN.md D-8), not a separate downloader service: `format=bestaudio/best`, no video download, `noplaylist`, a 10-minute max duration check *before* downloading (`extract_info(download=False)`)
-  - [ ] The `youtube` job fetches by videoId and `soundcloud` by URL, into `TemporaryDirectory`; title/duration/thumbnail are written back to the track
-  - [ ] `yt-dlp` is pinned in `requirements.txt`; a comment next to the pin says to bump it whenever extraction breaks
-  - [ ] Extraction failures (incl. bot checks, PLAN.md R-8) → job `failed` with a readable error; one retry with backoff
-  - [ ] If the server flag `offlineStreamAudio` is on, the extracted audio is stored at `extracted-audio/{trackId}.m4a`; otherwise it is deleted
-- Notes: Read PLAN.md R-1 and R-8 first.
+  - [x] Uses **yt-dlp as a Python library** (PLAN.md D-8), not a separate downloader service: `format=bestaudio/best`, no video download, `noplaylist`, a 10-minute max duration check *before* downloading (`extract_info(download=False)`)
+  - [x] The `youtube` job fetches by videoId and `soundcloud` by URL, into `TemporaryDirectory`; title/duration/thumbnail are written back to the track
+  - [x] `yt-dlp` is pinned in `requirements.txt`; a comment next to the pin says to bump it whenever extraction breaks
+  - [x] Extraction failures (incl. bot checks, PLAN.md R-8) → job `failed` with a readable error; one retry with backoff
+  - [x] If the server flag `offlineStreamAudio` is on, the extracted audio is stored at `extracted-audio/{trackId}.m4a`; otherwise it is deleted
+- Notes: services/fetch.py + tests/test_fetch.py (fake yt-dlp); flag read from env `OFFLINE_STREAM_AUDIO`. The pin (2025.10.14) is the newest yt-dlp for Python 3.9 and already fails on YouTube ("The page needs to be reloaded"); the same fetch.py works with yt-dlp 2026.10.26 on 3.12 (2 MB in 2.4 s). See T-307.
+
+### T-307 Worker image on Python 3.10+ so yt-dlp can stay current
+- Lane: worker · Status: todo · Owner: — · Deps: T-302
+- Goal: PLAN.md R-8. yt-dlp needs Python 3.10+ since late 2025, so the 3.9 image is stuck on a release YouTube already rejects.
+- Acceptance:
+  - [ ] Dockerfile on python:3.11-slim (or newer); the chord model, librosa path and `python -m pytest` still pass; `data/sunnydays.mp3` output still validates
+  - [ ] `yt-dlp` pinned to a current release; a JS runtime (deno) in the image for YouTube (yt-dlp EJS)
+  - [ ] A real YouTube fetch succeeds from the container
+- Notes: Found in T-302. CI (`.github/workflows/worker.yml`, infra lane) also pins 3.9.
 
 ### T-303 `GET /tracks/{id}/audio`
 - Lane: api · Status: todo · Owner: — · Deps: T-302
