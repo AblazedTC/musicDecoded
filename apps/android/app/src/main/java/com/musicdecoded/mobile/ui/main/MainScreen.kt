@@ -10,7 +10,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.musicdecoded.mobile.auth.AuthViewModel
 import com.musicdecoded.mobile.ui.components.AppTab
 import com.musicdecoded.mobile.ui.components.MdBottomBar
 import com.musicdecoded.mobile.ui.home.HomeScreen
@@ -20,7 +19,7 @@ import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 
 /** App shell: Home · Library · Settings tabs (DESIGN.md §2). Pushed screens will hide the bar. */
 @Composable
-fun MainScreen(authViewModel: AuthViewModel) {
+fun MainScreen() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentTab = AppTab.entries.firstOrNull { it.route == backStackEntry?.destination?.route }
@@ -34,7 +33,7 @@ fun MainScreen(authViewModel: AuthViewModel) {
         NavHost(navController, startDestination = AppTab.HOME.route, Modifier.padding(innerPadding)) {
             composable(AppTab.HOME.route) { HomeScreen(onSeeAll = { navController.selectTab(AppTab.LIBRARY) }) }
             composable(AppTab.LIBRARY.route) { LibraryScreen() }
-            composable(AppTab.SETTINGS.route) { SettingsScreen(authViewModel) }
+            composable(AppTab.SETTINGS.route) { SettingsScreen() }
         }
     }
 }

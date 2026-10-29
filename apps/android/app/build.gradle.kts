@@ -20,9 +20,17 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Release base URL: override with -PapiBaseUrl=... until the production host is decided.
+        val releaseApiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "https://api.musicdecoded.app"
+        buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
     }
 
     buildTypes {
+        debug {
+            // The host machine as seen from the Android emulator; cleartext is allowed only for it.
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
+        }
         release {
             optimization {
                 enable = false
@@ -35,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     sourceSets {
         // Unit tests read the shared contracts (fixture, voicings) straight from the repo, never a copy.
@@ -61,6 +70,8 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.lifecycle.viewmodel.compose)
     testImplementation(libs.junit)
+    testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
