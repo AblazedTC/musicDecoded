@@ -154,19 +154,21 @@ Template for new tasks:
 - Notes: Added contracts/fixtures/sunnydays.analysis.json (real output, 476 KB); sample.analysis.json kept because iOS tests pin its values.
 
 ### T-113 Worker queue consumer
-- Lane: worker · Status: todo · Owner: — · Deps: T-104, T-110
+- Lane: worker · Status: done · Owner: claude · Deps: T-104, T-110
 - Goal: A long-running process that BLPOPs `jobs:analysis`, downloads the upload from storage, runs the analysis, writes `analysis/{trackId}.json`, and updates the job's status/stage/progress in Postgres and Redis.
 - Acceptance:
-  - [ ] Stages match the openapi `Job.stage` enum
-  - [ ] On exception: status `failed` with an error message, and temp files deleted
-  - [ ] Temp media is deleted on success too
-  - [ ] The Dockerfile `CMD` runs the consumer
+  - [x] Stages match the openapi `Job.stage` enum
+  - [x] On exception: status `failed` with an error message, and temp files deleted
+  - [x] Temp media is deleted on success too
+  - [x] The Dockerfile `CMD` runs the consumer
+- Notes: Consumer in services/consumer.py; analysis validated before save; streaming sources fail until T-302. e2e: 26 s/song on CPU. Follow-ups T-117 (stranded jobs), T-118 (model reload per job).
 
 ### T-114 End-to-end pipeline script
-- Lane: infra · Status: todo · Owner: — · Deps: T-105, T-113
+- Lane: infra · Status: done · Owner: claude · Deps: T-105, T-113
 - Goal: `scripts/e2e.sh`: guest auth → upload an mp3 → job → poll → download → validate.
 - Acceptance:
-  - [ ] Passes against `docker compose up` from a clean checkout
+  - [x] Passes against `docker compose up` from a clean checkout
+- Notes: scripts/e2e.sh passes on the full containerized stack (35 s; worker 30 s/song on CPU incl. 8 s model load). On Windows run it with PYTHON=python.
 
 ### T-115 Benchmark analysis cost
 - Lane: worker · Status: todo · Owner: — · Deps: T-111
@@ -187,6 +189,20 @@ Template for new tasks:
   - [ ] The output for `data/sunnydays.mp3` still validates, and beat count is within ±5% of before (not run: needs real models + T-110)
 - Notes: librosa is the only beat path; tests/test_model_licenses.py fails if madmom returns. Beat-count check needs real models (not run). See MODELS.md follow-up on upstream Beat Transformer decoding.
 
+### T-117 Reclaim jobs stranded by a worker crash
+- Lane: worker · Status: todo · Owner: — · Deps: T-113
+- Goal: A job left `processing` when the consumer dies never finishes today.
+- Acceptance:
+  - [ ] Consumer heartbeats its current job (Redis key with TTL); a periodic sweep (or consumer startup) requeues `processing` jobs whose heartbeat expired, max 2 attempts, then `failed`
+  - [ ] Test with a fake clock
+
+### T-118 Load the chord model once per process
+- Lane: worker · Status: todo · Owner: — · Deps: T-113
+- Goal: `chord_recognition()` in the submodule reloads weights on every job (~seconds each).
+- Acceptance:
+  - [ ] Wrap the model so weights load at consumer startup (without editing the submodule); per-job chords stage time drops measurably
+  - [ ] T-115 benchmark numbers updated
+
 ---
 
 ## M2 — Apps core (Android ‖ iOS)
@@ -194,33 +210,36 @@ Template for new tasks:
 Each `a`/`i` pair has identical acceptance criteria unless noted.
 
 ### T-201a / T-201i API client + guest session
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-101, T-102 (and T-003 for iOS)
+- Lane: android / ios · Status: done · Owner: claude · Deps: T-101, T-102 (and T-003 for iOS)
 - Acceptance:
-  - [ ] Generates a `deviceId` on first launch and stores it in Keystore/Keychain
-  - [ ] Calls `/auth/anonymous` if no token, stores the token securely, and fetches `/config` at launch
-  - [ ] A 401 triggers one re-auth then retries
-  - [ ] Request/response models match openapi names exactly; unit tests decode sample JSON
+  - [x] Generates a `deviceId` on first launch and stores it in Keystore/Keychain
+  - [x] Calls `/auth/anonymous` if no token, stores the token securely, and fetches `/config` at launch
+  - [x] A 401 triggers one re-auth then retries
+  - [x] Request/response models match openapi names exactly; unit tests decode sample JSON
 - Notes (android): extend the existing `network/KtorClient.kt`, `auth/TokenStore.kt`, `auth/AuthRepository.kt`. Drop `LogLevel.BODY` in release builds.
+- Notes: Android: Keystore-encrypted DataStore; iOS: Keychain. Both cache /config and re-auth guests once on 401.
 
 ### T-202a / T-202i Local library store
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-201*
+- Lane: android / ios · Status: done · Owner: claude · Deps: T-201*
 - Goal: Room / SwiftData `LibraryItem` mirroring the contracts schema, plus the file layout in PLAN.md §5.1.
 - Acceptance:
-  - [ ] CRUD + "newest first" query; deletes are tombstones (`deleted=true`)
-  - [ ] `AnalysisStore.load(trackId)` decodes `analysis/{trackId}.json`; a test decodes the fixture
-  - [ ] Unit tests
+  - [x] CRUD + "newest first" query; deletes are tombstones (`deleted=true`)
+  - [x] `AnalysisStore.load(trackId)` decodes `analysis/{trackId}.json`; a test decodes the fixture
+  - [x] Unit tests
+- Notes: Android Room (v2, local error column); iOS SwiftData (tombstone stored as `tombstoned`, map to `deleted` in sync).
 
 ### T-200a / T-200i Design tokens + shared components
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-003 (iOS)
+- Lane: android / ios · Status: done · Owner: claude · Deps: T-003 (iOS)
 - Goal: Implement DESIGN.md §1 as a theme, plus the reusable pieces every screen uses. **Do this before any screen task.**
 - Acceptance:
-  - [ ] Color/shape/type tokens exactly per DESIGN.md §1 (Compose `MaterialTheme` + `MusicDecodedColors` / SwiftUI `Color` + `Font` extensions), dark only
-  - [ ] Spacing tokens `xxs`…`xxxl` (4-pt scale) as `Spacing` constants; **no raw dp/pt literals for padding, margins or gaps anywhere in UI code** (grep check in the PR notes)
-  - [ ] Touch targets ≥ 44pt / 48dp
-  - [ ] Components: SongRow, SourceCard, SectionHeader, IconButton (default/active), PrimaryButton, SecondaryButton, PolicyNote, FilterChip, InfoChip (metadata), ControlChip, SegmentedToggle, a 3-tab bottom nav (Home/Library/Settings)
-  - [ ] Each component has a preview (Compose `@Preview` / SwiftUI `#Preview`) using fixture data
-  - [ ] Text ≥ 11pt/sp and supports Dynamic Type / font scaling
+  - [x] Color/shape/type tokens exactly per DESIGN.md §1 (Compose `MaterialTheme` + `MusicDecodedColors` / SwiftUI `Color` + `Font` extensions), dark only
+  - [x] Spacing tokens `xxs`…`xxxl` (4-pt scale) as `Spacing` constants; **no raw dp/pt literals for padding, margins or gaps anywhere in UI code** (grep check in the PR notes)
+  - [x] Touch targets ≥ 44pt / 48dp
+  - [x] Components: SongRow, SourceCard, SectionHeader, IconButton (default/active), PrimaryButton, SecondaryButton, PolicyNote, FilterChip, InfoChip (metadata), ControlChip, SegmentedToggle, a 3-tab bottom nav (Home/Library/Settings)
+  - [x] Each component has a preview (Compose `@Preview` / SwiftUI `#Preview`) using fixture data
+  - [x] Text ≥ 11pt/sp and supports Dynamic Type / font scaling
 - Notes (android): replaces `ui/theme/Color.kt`, `Theme.kt` and `Type.kt` contents.
+- Notes: Android + iOS: tokens, 4-pt Spacing, components with previews, 3-tab shell. iOS verified by CI.
 
 ### T-203a / T-203i Home screen
 - Lane: android / ios · Status: todo · Owner: — · Deps: T-200*, T-202*
@@ -243,39 +262,42 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
   - [ ] Processing screen per DESIGN.md §3.5 with the exact stage → step mapping table; "Continue in background" and × both leave the job running
 
 ### T-204a / T-204i Job runner (upload → job → poll → save)
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-103..T-105, T-202*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-103..T-105, T-202*
 - Goal: One `TranscriptionRepository.start(source)` that every source uses.
 - Acceptance:
   - [ ] Computes SHA-256, `POST /uploads`, PUT bytes, `POST /jobs`, and polls per the openapi backoff rule
   - [ ] Saves the analysis file and updates the item to `ready`; failures set `failed` with a retry action
   - [ ] Survives app backgrounding (Android WorkManager / iOS background URLSession + resume polling on foreground)
   - [ ] Tests against a fake API
+- Notes: Android done (WorkManager polling, retry reuses upload, 429 message). iOS in progress.
 
 ### T-205a / T-205i Files + Media Library sources
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-204*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-204*
 - Acceptance:
   - [ ] Files: system picker limited to audio. Media Library: iOS `MPMediaPickerController` (only non-DRM items with an `assetURL`), Android `MediaStore.Audio` picker
   - [ ] Import sheet per DESIGN.md §3.3 (use the corrected copy) → "Import & decode"
   - [ ] File copied to `audio/{trackId}.{ext}`; title from metadata, falling back to the filename
+- Notes: Android done (OpenDocument + MediaStore ACTION_PICK, no storage permission). iOS in progress.
 
 ### T-206a / T-206i Record source
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-204*
+- Lane: android / ios · Status: in-progress · Owner: claude · Deps: T-204*
 - Acceptance:
   - [ ] Mic permission flow with a denied state
   - [ ] UI per DESIGN.md §3.6: state dot, timer, live waveform, 16-segment input meter with dB, Discard / Record-Pause / Finish
   - [ ] AAC 44.1 kHz mono; max 10 minutes; Finish asks for a title
   - [ ] Saved to `audio/`, then the job starts
+- Notes: Android done (AAC 44.1k mono, 16-segment meter, 10-min cap). iOS in progress.
 
 ### T-212a / T-212i Music theory helpers (pure, no UI)
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-202*
+- Lane: android / ios · Status: done · Owner: claude · Deps: T-202*
 - Goal: The logic from DESIGN.md §4 as pure functions with unit tests on the fixture. Every player task builds on this.
 - Acceptance:
-  - [ ] `currentState(t, analysis) → {chordIndex, beatIndex, bar}` (binary search)
-  - [ ] `upNext(t, analysis) → {chord, inBeats}`; `prevChordStart` / `nextChordStart` (skip `N`, 1s rule)
-  - [ ] `chordNotes(label, transpose) → [midi]` per `chord-voicings.json` (tests cover every `examples` entry)
-  - [ ] `displayName(label, transpose, accidentals, simplify)` per DESIGN.md §4 (A:maj→A, F#:min7→F♯m7, D:maj/3→D/F♯, Basic simplification)
-  - [ ] `barRange(t, analysis)` for the loop
-- Notes: iOS side done (MusicDecodedCore, 36 tests on Linux CI); Android side in progress.
+  - [x] `currentState(t, analysis) → {chordIndex, beatIndex, bar}` (binary search)
+  - [x] `upNext(t, analysis) → {chord, inBeats}`; `prevChordStart` / `nextChordStart` (skip `N`, 1s rule)
+  - [x] `chordNotes(label, transpose) → [midi]` per `chord-voicings.json` (tests cover every `examples` entry)
+  - [x] `displayName(label, transpose, accidentals, simplify)` per DESIGN.md §4 (A:maj→A, F#:min7→F♯m7, D:maj/3→D/F♯, Basic simplification)
+  - [x] `barRange(t, analysis)` for the loop
+- Notes: Both platforms done; Android ports every Swift test case (36).
 
 ### T-207a / T-207i Player: timeline
 - Lane: android / ios · Status: todo · Owner: — · Deps: T-200*, T-212*

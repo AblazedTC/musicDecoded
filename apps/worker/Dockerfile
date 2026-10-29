@@ -12,7 +12,11 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# CPU-only torch: the default PyPI wheel pulls ~3 GB of CUDA libraries we don't use.
+# ponytail: CPU inference; switch the index to a CUDA one for a GPU worker (Pro models, T-115).
+# --extra-index-url (not --index-url): everything else still comes from PyPI; torch resolves to
+# the higher-ranked "+cpu" build from the PyTorch index.
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 COPY . .
 
