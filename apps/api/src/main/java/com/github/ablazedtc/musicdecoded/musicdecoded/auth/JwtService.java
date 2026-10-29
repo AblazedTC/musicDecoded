@@ -6,19 +6,31 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secret;
+    static final int MIN_SECRET_BYTES = 32; // HS256 needs a key of at least 256 bits
 
-    @Value("${jwt.expiration}")
-    private long expiration;
+    private final SecretKey signInKey;
+    private final long expiration;
 
-    private SecretKey getSignInKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    public JwtService(@Value("${jwt.secret:}") String secret, @Value("${jwt.expiration}") long expiration) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is not set. Set the JWT_SECRET environment variable, "
+                            + "or run with SPRING_PROFILES_ACTIVE=dev for local development.");
+        }
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is too short: " + secretBytes.length + " bytes, HS256 needs at least "
+                            + MIN_SECRET_BYTES + " bytes.");
+        }
+        this.signInKey = Keys.hmacShaKeyFor(secretBytes);
+        this.expiration = expiration;
     }
 
     public String generateToken(String email) {
@@ -26,13 +38,13 @@ public class JwtService {
                 .subject(email)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignInKey())
+                .signWith(signInKey)
                 .compact();
     }
 
     public String extractEmail(String token) {
         return Jwts.parser()
-                .verifyWith(getSignInKey())
+                .verifyWith(signInKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
