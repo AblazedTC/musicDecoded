@@ -13,7 +13,7 @@ MusicDecoded turns any song into chords you can follow. A user picks a song from
 | iOS | Swift 6, SwiftUI, SwiftData, AVFoundation, URLSession async/await (iOS 17+) | `apps/ios` |
 | Android | Kotlin, Jetpack Compose, Room, Media3 ExoPlayer, Ktor client (minSdk 26) | `apps/android` |
 | API | Java 21, Spring Boot 4, Spring Security + JWT, PostgreSQL | `apps/api` |
-| Worker | Python, FFmpeg, PyTorch (Beat Transformer, CNN-LSTM chords), librosa/madmom | `apps/worker` |
+| Worker | Python, FFmpeg, PyTorch (Beat Transformer, CNN-LSTM chords), librosa | `apps/worker` |
 
 **Two separate native apps, no shared code.** Consistency between them comes from `contracts/` (API, analysis file format, chord voicings, fixtures) and from `DESIGN.md`, not from a shared codebase.
 
@@ -96,7 +96,7 @@ The player must work with **no network** whenever `analysis/{trackId}.json` exis
 - Triggers: app foreground, after a job completes, and after login.
 
 ### 5.3 Analysis pipeline (worker)
-Normalize to mono 22.05 kHz WAV → beats + downbeats (Beat Transformer; librosa/madmom fallback) → chords (CNN-LSTM) → key (Krumhansl-Schmuckler on mean chroma) → BPM (60 / median inter-beat interval) → time signature (median beats per downbeat interval, denominator 4) → mel spectrogram (64 bins, 20 fps, uint8) and waveform peaks (20 fps) → write `analysis.json` → delete temp media.
+Normalize to mono 22.05 kHz WAV → beats + downbeats (librosa on the free tier; Beat Transformer on Pro, see `apps/worker/MODELS.md`) → chords (CNN-LSTM) → key (Krumhansl-Schmuckler on mean chroma) → BPM (60 / median inter-beat interval) → time signature (median beats per downbeat interval, denominator 4) → mel spectrogram (64 bins, 20 fps, uint8) and waveform peaks (20 fps) → write `analysis.json` → delete temp media.
 
 ## 6. Decisions
 
@@ -123,7 +123,7 @@ Normalize to mono 22.05 kHz WAV → beats + downbeats (Beat Transformer; librosa
 | R-4 | Two apps drift apart in behavior or design | Shared fixtures, `DESIGN.md`, and parity tasks: every app task has an iOS twin and an Android twin. |
 | R-5 | The secret JWT fallback in `application.properties` | Removed in T-004. The app fails to start without `JWT_SECRET` outside the `dev` profile. |
 | **R-6** | **YouTube Data API quota.** The default is 10,000 units/day and `search.list` costs 100, so **~100 searches/day for the whole app**. This hits long before compute cost does | Redis cache per query (T-301); suggestions from local recent queries; "Paste a URL" needs no search. **Apply for a quota increase early (T-306)**, since it needs a working app + privacy policy and takes weeks. |
-| **R-7** | **madmom's pretrained models are CC BY-NC-SA 4.0 (non-commercial).** The worker uses madmom as a beat-tracking fallback (`services/madmom_detector_service.py`). Using it in a paid product violates the license | T-116: remove the madmom fallback (librosa is the primary path; Beat Transformer is MIT). Its source code (BSD) is fine, but the bundled models aren't. Check every new model's **weights** license, not just its code license. |
+| **R-7** | **madmom's pretrained models are CC BY-NC-SA 4.0 (non-commercial).** The worker used madmom as a beat-tracking fallback. Using it in a paid product would violate the license | **Done (T-116):** madmom removed, and a test fails if it comes back (librosa is the primary path; Beat Transformer is MIT). Its source code (BSD) is fine, but the bundled models aren't. Check every new model's **weights** license, not just its code license. |
 | R-8 | yt-dlp gets blocked from datacenter IPs ("Sign in to confirm you're not a bot") | Pin and auto-update yt-dlp; retry with backoff; surface `failed` with a clear message. If it becomes chronic: residential egress or PO-token setup, decided at that time. Note this doesn't change R-1. |
 
 ## 8. Milestones

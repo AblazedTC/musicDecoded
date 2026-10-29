@@ -44,12 +44,13 @@ Template for new tasks:
 - Notes: Requires macOS.
 
 ### T-004 Remove the hardcoded JWT secret fallback
-- Lane: api · Status: todo · Owner: — · Deps: —
+- Lane: api · Status: done · Owner: claude · Deps: —
 - Goal: The app refuses to start without `JWT_SECRET` unless the `dev` profile is active.
 - Acceptance:
-  - [ ] `application.properties` has `jwt.secret=${JWT_SECRET}`; the dev default lives only in `application-dev.properties`
-  - [ ] A test shows that context startup fails without the secret in the default profile
-  - [ ] `docker-compose.yml` and `docs/running-locally.md` set `SPRING_PROFILES_ACTIVE=dev` for local use
+  - [x] `application.properties` has `jwt.secret=${JWT_SECRET}`; the dev default lives only in `application-dev.properties`
+  - [x] A test shows that context startup fails without the secret in the default profile
+  - [x] `docker-compose.yml` and `docs/running-locally.md` set `SPRING_PROFILES_ACTIVE=dev` for local use
+- Notes: JwtService fails fast (missing/blank/<32 bytes); dev defaults in application-dev.properties. `contextLoads` needs a running Postgres.
 
 ### T-005 CI per lane
 - Lane: infra · Status: todo · Owner: — · Deps: T-003
@@ -59,18 +60,20 @@ Template for new tasks:
   - [ ] A PR touching `contracts/**` runs **all** workflows (contract changes can break every lane)
 
 ### T-006 Local infrastructure: Redis + MinIO
-- Lane: infra · Status: todo · Owner: — · Deps: —
+- Lane: infra · Status: done · Owner: claude · Deps: —
 - Goal: Add `redis` and `minio` (plus a bucket-init step) to `docker-compose.yml`, and wire their env vars into the api and worker.
 - Acceptance:
-  - [ ] `docker compose up -d` brings up db, redis, minio and a `musicdecoded` bucket
-  - [ ] The env vars are documented in `docs/running-locally.md`
+  - [x] `docker compose up -d` brings up db, redis, minio and a `musicdecoded` bucket
+  - [x] The env vars are documented in `docs/running-locally.md`
+- Notes: MinIO official images are gone; uses pinned bitnamilegacy/minio + minio-client (archive builds, dev only). `.env.example` added.
 
 ### T-007 Worker repo hygiene
-- Lane: worker · Status: todo · Owner: — · Deps: —
+- Lane: worker · Status: done · Owner: claude · Deps: —
 - Goal: Remove committed `__pycache__`, gitignore `outputs/` and `data/*.mp3` (keep one small test clip), and add `pytest` with one smoke test.
 - Acceptance:
-  - [ ] `git ls-files apps/worker | grep pycache` is empty
-  - [ ] `python -m pytest` runs and passes
+  - [x] `git ls-files apps/worker | grep pycache` is empty
+  - [x] `python -m pytest` runs and passes
+- Notes: Kept data/sunnydays.mp3; pytest smoke tests in apps/worker/tests (no ML deps needed).
 
 ---
 
@@ -160,13 +163,14 @@ Template for new tasks:
   - [ ] The same run on a GPU host if Beat Transformer is enabled (the Pro model path)
 
 ### T-116 Remove the madmom fallback (non-commercial model license)
-- Lane: worker · Status: todo · Owner: — · Deps: T-007
+- Lane: worker · Status: done · Owner: claude · Deps: T-007
 - Goal: PLAN.md R-7. madmom's pretrained models are CC BY-NC-SA and can't ship in a product with paid plans.
 - Acceptance:
-  - [ ] `ChordBeatAnalyzer` no longer imports or calls `MadmomDetectorService`; `madmom` removed from `requirements.txt` and the Dockerfile
-  - [ ] librosa beat tracking is the free-tier path; Beat Transformer (MIT) is the premium path
-  - [ ] `apps/worker/MODELS.md` lists every model and its **code and weights** licenses (Beat Transformer: MIT; ISMIR2019 chord model: MIT; librosa: ISC)
-  - [ ] The output for `data/sunnydays.mp3` still validates, and beat count is within ±5% of before
+  - [x] `ChordBeatAnalyzer` no longer imports or calls `MadmomDetectorService`; `madmom` removed from `requirements.txt` and the Dockerfile
+  - [x] librosa beat tracking is the free-tier path; Beat Transformer (MIT) is the premium path
+  - [x] `apps/worker/MODELS.md` lists every model and its **code and weights** licenses (Beat Transformer: MIT; ISMIR2019 chord model: MIT; librosa: ISC)
+  - [ ] The output for `data/sunnydays.mp3` still validates, and beat count is within ±5% of before (not run: needs real models + T-110)
+- Notes: librosa is the only beat path; tests/test_model_licenses.py fails if madmom returns. Beat-count check needs real models (not run). See MODELS.md follow-up on upstream Beat Transformer decoding.
 
 ---
 
