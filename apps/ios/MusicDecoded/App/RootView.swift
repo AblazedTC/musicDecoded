@@ -20,4 +20,5 @@ struct RootView: View {
 
 #Preview {
     RootView()
+        .environment(TranscriptionService.preview())
 }

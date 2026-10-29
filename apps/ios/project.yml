@@ -41,6 +41,7 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         NSMicrophoneUsageDescription: "MusicDecoded records audio so it can transcribe the chords."
+        NSAppleMusicUsageDescription: "MusicDecoded imports songs you choose from your music library so it can decode their chords."
         # Read at runtime via Bundle.main.object(forInfoDictionaryKey: "APIBaseURL").
         APIBaseURL: $(API_BASE_URL)
     settings:

@@ -357,3 +357,33 @@ final class TranscriptionService {
         }
     }
 }
+
+#if DEBUG
+extension TranscriptionService {
+    /// Kept alive for the life of the preview process (a context needs its container).
+    private static let previewContainer: ModelContainer = {
+        do {
+            return try ModelContainer(for: LibraryItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        } catch {
+            fatalError("Preview container: \(error)")
+        }
+    }()
+
+    /// For SwiftUI previews: an in-memory library, no API, files in a temporary folder.
+    static func preview() -> TranscriptionService {
+        let root = FileManager.default.temporaryDirectory.appending(path: "preview", directoryHint: .isDirectory)
+        return TranscriptionService(
+            session: SessionStore(api: nil, secureStore: PreviewSecureStore()),
+            context: previewContainer.mainContext,
+            analysisStore: AnalysisStore(directory: root.appending(path: "analysis", directoryHint: .isDirectory)),
+            audioDirectory: root.appending(path: "audio", directoryHint: .isDirectory)
+        )
+    }
+}
+
+@MainActor
+private final class PreviewSecureStore: SecureStore {
+    func string(for key: String) -> String? { nil }
+    func set(_ value: String?, for key: String) {}
+}
+#endif
