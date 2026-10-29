@@ -1,7 +1,7 @@
 """
 Chord-Beat Analysis Script
 Combines chord recognition with beat detection to link each chord to specific beats.
-Uses the BeatTransformerDetectorService and ChordCNNLSTMDetectorService.
+Uses LibrosaDetectorService (beats) and ChordCNNLSTMDetectorService (chords).
 """
 
 import os
@@ -16,7 +16,6 @@ worker_dir = Path(__file__).parent.parent
 if str(worker_dir) not in sys.path:
     sys.path.insert(0, str(worker_dir))
 
-from services.madmom_detector_service import MadmomDetectorService
 from services.librosa_detector_service import LibrosaDetectorService
 from services.chord_cnn_lstm_service import ChordCNNLSTMDetectorService
 
@@ -24,74 +23,54 @@ from services.chord_cnn_lstm_service import ChordCNNLSTMDetectorService
 class ChordBeatAnalyzer:
     """Analyzer that combines chord recognition with beat detection."""
     
-    def __init__(self, chord_model_dir: str, use_madmom_fallback: bool = True):
+    def __init__(self, chord_model_dir: str):
         """
         Initialize the analyzer.
-        
+
         Args:
             chord_model_dir: Path to chord recognition model directory
-            use_madmom_fallback: Use madmom as fallback if librosa fails
         """
         self.chord_service = ChordCNNLSTMDetectorService(chord_model_dir)
+        # librosa is the beat path. madmom is not allowed: its pretrained
+        # models are CC BY-NC-SA (PLAN.md R-7, see MODELS.md).
         self.librosa_service = LibrosaDetectorService()
-        self.madmom_service = MadmomDetectorService() if use_madmom_fallback else None
-        
-        # Check if at least one beat detection method is available
-        librosa_available = self.librosa_service.is_available()
-        madmom_available = self.madmom_service.is_available() if self.madmom_service else False
-        
-        if not librosa_available and not madmom_available:
-            raise RuntimeError("No beat detection service available (tried Librosa and madmom)")
-        
+
+        if not self.librosa_service.is_available():
+            raise RuntimeError("No beat detection service available (librosa is not installed)")
+
         if not self.chord_service.is_available():
             raise RuntimeError("Chord-CNN-LSTM is not available")
-        
-        # Determine which beat detector to use
-        if librosa_available:
-            print("Chord-Beat Analyzer initialized (using Librosa)")
-        else:
-            print("Chord-Beat Analyzer initialized (using madmom fallback)")
-        
-        self.use_librosa = librosa_available
-    
+
+        print("Chord-Beat Analyzer initialized (using Librosa)")
+
     def extract_beats(self, audio_path: str) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Extract beats and downbeats from audio using Librosa or madmom fallback.
-        
+        Extract beats and downbeats from audio using librosa.
+
         Args:
             audio_path: Path to audio file
-            
+
         Returns:
             Tuple of (beats array, downbeats array) in seconds
         """
         print(f"\nExtracting beats from {Path(audio_path).name}...")
-        
-        # Try librosa first if available
-        if self.use_librosa:
-            result = self.librosa_service.detect_beats(audio_path)
-            
-            # If librosa fails and madmom fallback is available, use it
-            if not result["success"] and self.madmom_service:
-                print(f"  Librosa failed, falling back to madmom...")
-                result = self.madmom_service.detect_beats(audio_path)
-        else:
-            # Use madmom directly
-            result = self.madmom_service.detect_beats(audio_path)
-        
+
+        result = self.librosa_service.detect_beats(audio_path)
+
         if not result["success"]:
             raise RuntimeError(f"Beat detection failed: {result.get('error', 'Unknown error')}")
-        
+
         beats = np.array(result["beats"])
         downbeats = np.array(result["downbeats"])
-        
+
         print(f"  Model used: {result['model_name']}")
         print(f"  Detected tempo: {result['bpm']:.1f} BPM")
         print(f"  Time signature: {result['time_signature']}")
         print(f"  Found {len(beats)} beats and {len(downbeats)} downbeats")
         print(f"  Processing time: {result['processing_time']:.2f}s")
-        
+
         return beats, downbeats
-    
+
     def extract_chords(self, audio_path: str) -> List[Tuple[float, float, str]]:
         """
         Extract chord progressions from audio using the chord recognition service.
