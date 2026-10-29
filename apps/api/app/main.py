@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app import auth, errors
+from app import auth, config, errors
 from app.db import migrate
 from app.settings import get_settings
 
@@ -18,6 +18,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="MusicDecoded API", lifespan=lifespan)
     errors.install(app)
     app.include_router(auth.router)
+    app.include_router(config.router)
 
     @app.get("/health")
     def health() -> dict:
