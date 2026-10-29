@@ -1,0 +1,44 @@
+name: worker
+
+on:
+  # push only on main; branches are covered by pull_request, so PR commits don't run twice.
+  push:
+    branches: [main]
+    paths:
+      - "apps/worker/**"
+      - "contracts/**"
+      - ".github/workflows/worker.yml"
+  pull_request:
+    paths:
+      - "apps/worker/**"
+      - "contracts/**"
+      - ".github/workflows/worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/worker
+    steps:
+      # No submodules: the model repos aren't needed, and the tests importorskip the heavy ML deps.
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+          cache-dependency-path: apps/worker/requirements-dev.txt
+      - name: Install test deps
+        run: python -m pip install -r requirements-dev.txt
+      - name: pytest
+        run: python -m pytest -q
