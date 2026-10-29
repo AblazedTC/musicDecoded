@@ -64,7 +64,7 @@ private struct SourceRoutesModifier: ViewModifier {
                     await importModel.importFile(url, using: transcription)
                 }
             }
-            .sheet(item: $sheet, onDismiss: presentNext) { sheet in
+            .sheet(item: $sheet, onDismiss: { presentNext() }) { sheet in
                 switch sheet {
                 case .mediaPicker:
                     MediaLibraryPicker { outcome in
@@ -72,7 +72,11 @@ private struct SourceRoutesModifier: ViewModifier {
                     }
                     .ignoresSafeArea()
                 case .importSheet:
-                    ImportSheet(model: importModel, onImport: importAndDecode, onChooseAnother: chooseAnother)
+                    ImportSheet(
+                        model: importModel,
+                        onImport: { importAndDecode() },
+                        onChooseAnother: { chooseAnother() }
+                    )
                 }
             }
             .navigationDestination(isPresented: $showRecorder) {
