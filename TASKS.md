@@ -47,14 +47,14 @@ Template for new tasks:
 - Lane: api · Status: done · Owner: claude · Deps: —
 - Goal: The app refuses to start without `JWT_SECRET` unless the `dev` profile is active.
 - Acceptance:
-  - [x] `application.properties` has `jwt.secret=${JWT_SECRET}`; the dev default lives only in `application-dev.properties`
+  - [x] No secret default outside dev (originally Spring's `application-dev.properties`; now `APP_ENV=dev` in `app/settings.py`)
   - [x] A test shows that context startup fails without the secret in the default profile
-  - [x] `docker-compose.yml` and `docs/running-locally.md` set `SPRING_PROFILES_ACTIVE=dev` for local use
-- Notes: JwtService fails fast (missing/blank/<32 bytes); dev defaults in application-dev.properties. `contextLoads` needs a running Postgres.
+  - [x] `docker-compose.yml` and `docs/running-locally.md` set the dev mode for local use (now `APP_ENV=dev`)
+- Notes: Done in Spring, then carried over in the FastAPI rewrite (D-11): `Settings` fails fast on a missing/blank/<32-byte secret; tests in `tests/test_settings.py`.
 
 ### T-005 CI per lane
 - Lane: infra · Status: todo · Owner: — · Deps: T-003
-- Goal: GitHub Actions workflows filtered by path: contracts (validate + lint), api (mvn test), worker (pytest), android (assembleDebug + unit tests), ios (macos runner, xcodebuild test).
+- Goal: GitHub Actions workflows filtered by path: contracts (validate + lint), api (`uv run pytest`), worker (pytest), android (assembleDebug + unit tests), ios (macos runner, xcodebuild test).
 - Acceptance:
   - [ ] Each workflow runs only when its lane's paths change
   - [ ] A PR touching `contracts/**` runs **all** workflows (contract changes can break every lane)
@@ -87,7 +87,7 @@ Template for new tasks:
   - [ ] `User` gains `kind` (guest/account), `plan` (free/pro, default free), `planExpiresAt`, a nullable email/password, and `deviceId`
   - [ ] Existing signup/login return `AuthResponse` per openapi (token, userId, kind, plan)
   - [ ] Tests for both paths
-- Notes: Reuse `auth/JwtService`, `AuthService`, `SecurityConfig`.
+- Notes: Extend `app/auth.py` (`create_token`, `current_user`) and `app/models.py`. Signup/login already return `AuthResponse` with `kind`/`plan`; `kind`/`plan` columns exist. Schema changes: introduce Alembic here (`create_all` can't alter existing tables).
 
 ### T-102 `GET /config` and `/health`
 - Lane: api · Status: todo · Owner: — · Deps: —

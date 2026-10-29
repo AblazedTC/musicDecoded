@@ -12,7 +12,7 @@ MusicDecoded turns any song into chords you can follow. A user picks a song from
 |---|---|---|
 | iOS | Swift 6, SwiftUI, SwiftData, AVFoundation, URLSession async/await (iOS 17+) | `apps/ios` |
 | Android | Kotlin, Jetpack Compose, Room, Media3 ExoPlayer, Ktor client (minSdk 26) | `apps/android` |
-| API | Java 21, Spring Boot 4, Spring Security + JWT, PostgreSQL | `apps/api` |
+| API | Python 3.13, FastAPI, SQLAlchemy 2, PyJWT, PostgreSQL (uv for dependencies) | `apps/api` |
 | Worker | Python, FFmpeg, PyTorch (Beat Transformer, CNN-LSTM chords), librosa | `apps/worker` |
 
 **Two separate native apps, no shared code.** Consistency between them comes from `contracts/` (API, analysis file format, chord voicings, fixtures) and from `DESIGN.md`, not from a shared codebase.
@@ -61,7 +61,7 @@ On-device ML inference, lyrics, sheet music export, a beat-grid view, a light th
           \                        /
            \   HTTPS / REST (contracts/openapi.yaml)
             v                    v
-        ┌───────────── Spring Boot API ─────────────┐
+        ┌──────────────── FastAPI API ──────────────┐
         │ auth (guest+account JWT) · uploads · jobs │
         │ youtube search proxy · sync · config      │
         └──┬──────────┬──────────────┬──────────────┘
@@ -111,6 +111,7 @@ Normalize to mono 22.05 kHz WAV → beats + downbeats (librosa on the free tier;
 | D-7 | Piano and timeline are drawn with native Canvas (SwiftUI `Canvas`, Compose `Canvas`), with no third-party libraries | Both are simple 2D drawing, and it avoids dependency risk. |
 | D-8 | The worker fetches YouTube/SoundCloud audio with **yt-dlp** as a Python library (audio-only, `bestaudio`), pinned and updated regularly | The most robust, best-maintained extractor (Unlicense), and it handles both sources. Rejected: `zararashraf/youtube-video-downloader-api`, a separate Flask service wrapping `pytubefix` that downloads progressive *video*: an extra hop, more bytes, a weaker extractor. |
 | D-9 | Licensing: apps, contracts and docs are **MIT** (root `LICENSE`); `apps/api` and `apps/worker` are **AGPL-3.0** | MIT keeps the apps easy to read and contribute to (recruiters, contributors). AGPL stops someone from hosting a closed clone of the backend. The owner holds copyright, so the official hosted service and Pro are unaffected. Contributions to AGPL parts need a CLA if relicensing is ever wanted (T-603). |
+| D-11 | The API is **FastAPI (Python)**, rewritten from Spring Boot before M1 | Hosting cost: ~70 MB RAM per container vs ~300–500 MB for Spring Boot, so it fits the cheapest tiers and scales to zero well. One backend language with the worker. Measured: 67 MB after requests. |
 | D-10 | Pro is enforced **server-side** via the user's `plan`; the apps only reflect it (see §9) | The apps are open source, so client checks can be patched out. What costs money (analysis, models, storage) only exists on the server. |
 
 ## 7. Risks

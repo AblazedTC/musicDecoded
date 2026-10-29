@@ -1,6 +1,6 @@
 # MusicDecoded iOS
 
-SwiftUI app for iOS 17+, Swift 6. See `AGENTS.md` in this folder for conventions.
+SwiftUI app for iOS 17+, Swift 6.
 
 ```
 apps/ios/

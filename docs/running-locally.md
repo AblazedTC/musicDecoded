@@ -3,19 +3,20 @@
 ## Local Development (daily use)
 
 Start the backing services (Postgres, Redis, MinIO) in Docker, then run the API and worker directly on your machine.
-The API auto-restarts on file save via Spring DevTools.
+The API auto-reloads on file save (`--reload`).
 
 ```powershell
 # 1. Start the backing services (once — leave them running).
 #    minio-init creates the `musicdecoded` bucket and exits.
 docker compose up db redis minio minio-init -d
 
-# 2. Run the API with the dev profile (auto-restarts on file save).
-#    The dev profile supplies local defaults for JWT_SECRET and SPRING_DATASOURCE_PASSWORD;
+# 2. Run the API (auto-reloads on file save). Needs uv: https://docs.astral.sh/uv/
+#    APP_ENV=dev supplies local defaults for JWT_SECRET and DATABASE_URL;
 #    without it you must set both env vars or the API refuses to start.
 cd apps/api
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
-#   macOS/Linux: ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+$env:APP_ENV = "dev"; uv run uvicorn app.main:app --reload --port 8080
+#   macOS/Linux: APP_ENV=dev uv run uvicorn app.main:app --reload --port 8080
+#   Tests: uv run pytest
 
 # 3. Run the Python worker (separate terminal)
 cd apps/worker
@@ -65,7 +66,7 @@ docker compose down
 | Tool        | Purpose                 | Required for                     |
 | ----------- | ----------------------- | -------------------------------- |
 | Docker      | Run containers          | DB/Redis/MinIO (local dev) + full deployment |
-| Java 21+    | Compile and run the API | Local dev                        |
+| uv (Python 3.13) | Run and test the API | Local dev                  |
 | Python 3.9+ | Run the worker          | Local dev                        |
 | Android Studio | Build/run `apps/android` | Android lane                 |
 | Xcode 16+ (macOS) | Build/run `apps/ios` | iOS lane                       |
@@ -107,10 +108,9 @@ Set by `docker-compose.yml` for the containers. Set them yourself when running t
 
 | Variable                 | Used by     | Description |
 | ------------------------ | ----------- | ----------- |
-| `SPRING_PROFILES_ACTIVE` | api         | `dev` locally. Outside `dev`, the API requires `JWT_SECRET` and `SPRING_DATASOURCE_PASSWORD`. |
-| `JWT_SECRET`             | api         | JWT signing key. Defaulted by the `dev` profile; required everywhere else. Never commit it. |
-| `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD` | api | Postgres JDBC connection. Password defaulted only by the `dev` profile. |
-| `DATABASE_URL`           | worker      | Postgres URL, e.g. `postgresql://postgres:postgres@db:5432/musicdecoded`. |
+| `APP_ENV`                | api         | `dev` locally. Anything else (default `prod`) requires `JWT_SECRET` and `DATABASE_URL`. |
+| `JWT_SECRET`             | api         | JWT signing key. Defaulted when `APP_ENV=dev`; required everywhere else. At least 32 bytes. Never commit it. |
+| `DATABASE_URL`           | api, worker | Postgres URL, e.g. `postgresql://postgres:postgres@db:5432/musicdecoded`. Defaulted (localhost) for the api only when `APP_ENV=dev`. |
 | `REDIS_URL`              | api, worker | Redis URL (job queue, job progress, caches), e.g. `redis://redis:6379`. |
 | `S3_ENDPOINT`            | api, worker | S3-compatible endpoint. MinIO locally (`http://minio:9000`), R2 in prod. |
 | `S3_BUCKET`              | api, worker | Bucket name, `musicdecoded`. |

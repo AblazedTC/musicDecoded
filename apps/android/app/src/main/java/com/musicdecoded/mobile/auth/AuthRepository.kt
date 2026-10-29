@@ -7,13 +7,11 @@ class AuthRepository(private val tokenStore: TokenStore) {
     val tokenFlow: Flow<String?> = tokenStore.tokenFlow
 
     suspend fun login(email: String, password: String) {
-        val token = AuthApiService.login(email, password)
-        tokenStore.saveToken(token)
+        tokenStore.saveToken(AuthApiService.login(email, password).token)
     }
 
     suspend fun signup(email: String, password: String) {
-        AuthApiService.signup(email, password)
-        login(email, password)
+        tokenStore.saveToken(AuthApiService.signup(email, password).token)
     }
 
     suspend fun logout() = tokenStore.clearToken()

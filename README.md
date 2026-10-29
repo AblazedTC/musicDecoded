@@ -17,7 +17,7 @@ Turn any song into chords you can follow. Pick a file, record audio, or find a s
 |---|---|
 | iOS | Swift, SwiftUI, SwiftData, AVFoundation |
 | Android | Kotlin, Jetpack Compose, Room, Media3 |
-| API | Java 21, Spring Boot, Spring Security, JWT |
+| API | Python, FastAPI, SQLAlchemy, JWT |
 | Worker | Python, FFmpeg, PyTorch (Beat Transformer, CNN-LSTM chords) |
 | Data | PostgreSQL, Redis, S3-compatible storage (MinIO / R2) |
 
@@ -27,7 +27,7 @@ Turn any song into chords you can follow. Pick a file, record audio, or find a s
 apps/
   android/   Kotlin Android app
   ios/       Swift iOS app
-  api/       Spring Boot API
+  api/       FastAPI API
   worker/    Python ML worker
 contracts/   shared interfaces: openapi.yaml, analysis.schema.json, chord-voicings.json, fixtures/
 docs/        architecture, data model, user flows, running locally
@@ -39,7 +39,7 @@ See [docs/running-locally.md](docs/running-locally.md).
 
 ```bash
 docker compose up db -d
-cd apps/api && ./mvnw spring-boot:run
+cd apps/api && APP_ENV=dev uv run uvicorn app.main:app --reload --port 8080
 ```
 
 ## License
