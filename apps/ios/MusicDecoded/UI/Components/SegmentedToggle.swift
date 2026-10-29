@@ -4,7 +4,21 @@ import SwiftUI
 struct SegmentedToggle<Option: Hashable>: View {
     let options: [Option]
     @Binding var selection: Option
+    /// Disabled options are dimmed and can't be selected (visualizer: Video unless youtube).
+    let isEnabled: (Option) -> Bool
     let label: (Option) -> String
+
+    init(
+        options: [Option],
+        selection: Binding<Option>,
+        isEnabled: @escaping (Option) -> Bool = { _ in true },
+        label: @escaping (Option) -> String
+    ) {
+        self.options = options
+        _selection = selection
+        self.isEnabled = isEnabled
+        self.label = label
+    }
 
     var body: some View {
         HStack(spacing: Spacing.xxs) {
@@ -22,6 +36,8 @@ struct SegmentedToggle<Option: Hashable>: View {
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
+                .disabled(isEnabled(option) == false)
+                .opacity(isEnabled(option) ? 1 : 0.4)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
