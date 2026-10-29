@@ -1,0 +1,380 @@
+openapi: 3.1.0
+info:
+  title: MusicDecoded API
+  version: 1.0.0
+  description: |
+    The single source of truth for the API that the iOS and Android apps call.
+    Apps talk ONLY to this API. They never call the worker, database, or object
+    storage directly, except for presigned URLs that this API hands out.
+
+    Auth: every endpoint except /auth/* and /health needs `Authorization: Bearer <jwt>`.
+    A JWT is either a **guest** token (from /auth/anonymous, bound to one device)
+    or an **account** token (from /auth/signup or /auth/login). The `sub` claim is the
+    user id. The `kind` claim is `guest` or `account`. The `plan` claim is `free` or `pro`.
+    After a purchase the plan changes server-side, so clients re-fetch `/config` (and refresh the token) on foreground.
+
+    Errors use the `Error` schema with a stable machine-readable `code`.
+servers:
+  - url: http://localhost:8080
+    description: Local dev
+security:
+  - bearer: []
+
+paths:
+  /health:
+    get:
+      security: []
+      summary: Liveness check
+      responses:
+        "200": { description: OK }
+
+  /config:
+    get:
+      summary: Feature flags for this client
+      description: Server-controlled flags. Clients must read them at launch and cache the last value.
+      responses:
+        "200":
+          description: Flags
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClientConfig" }
+
+  # ---------- auth ----------
+  /auth/anonymous:
+    post:
+      security: []
+      summary: Get a guest token for this device
+      description: Idempotent per deviceId. Calling it again with the same deviceId returns a token for the same guest user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deviceId, platform]
+              properties:
+                deviceId: { type: string, description: "Random UUID the app generates once and stores in Keychain/Keystore" }
+                platform: { enum: [ios, android] }
+      responses:
+        "200":
+          description: Guest token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+
+  /auth/signup:
+    post:
+      security: []
+      summary: Create an account
+      description: If a guest Bearer token is sent, that guest's tracks and jobs are moved to the new account (guest → account link).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Credentials" }
+      responses:
+        "201":
+          description: Account token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "409": { $ref: "#/components/responses/Error" }
+
+  /auth/login:
+    post:
+      security: []
+      summary: Log in
+      description: If a guest Bearer token is sent, that guest's tracks are merged into the account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Credentials" }
+      responses:
+        "200":
+          description: Account token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "401": { $ref: "#/components/responses/Error" }
+
+  # ---------- uploads & jobs ----------
+  /uploads:
+    post:
+      summary: Get a presigned URL to upload user-owned audio (file or recording)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [contentType, sizeBytes, sha256]
+              properties:
+                contentType: { enum: [audio/mpeg, audio/mp4, audio/aac, audio/wav, audio/x-wav, audio/flac, audio/ogg] }
+                sizeBytes: { type: integer, maximum: 104857600 }
+                sha256: { type: string, description: "Hex digest; the server dedupes analysis on it" }
+      responses:
+        "201":
+          description: Upload target
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [uploadId, putUrl, expiresAt]
+                properties:
+                  uploadId: { type: string }
+                  putUrl: { type: string, format: uri, description: "HTTP PUT the raw bytes here with the same Content-Type" }
+                  expiresAt: { type: string, format: date-time }
+        "413": { $ref: "#/components/responses/Error" }
+
+  /jobs:
+    post:
+      summary: Request an analysis
+      description: |
+        Creates or reuses a track and queues analysis. If an analysis already exists for the same
+        content (same sha256, videoId, or SoundCloud URL), the response is 200 with status `complete`
+        and no work is queued.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JobRequest" }
+      responses:
+        "202":
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "200":
+          description: Already analyzed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "429": { $ref: "#/components/responses/Error" }
+
+  /jobs/{jobId}:
+    get:
+      summary: Poll job status
+      description: Clients poll every 2s while the app is in the foreground, backing off to 10s after 60s.
+      parameters:
+        - { name: jobId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /tracks/{trackId}/analysis:
+    get:
+      summary: Download the analysis file
+      description: Returns a short-lived URL to the file, which conforms to contracts/analysis.schema.json.
+      parameters:
+        - { name: trackId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Analysis location
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, schemaVersion]
+                properties:
+                  url: { type: string, format: uri }
+                  schemaVersion: { type: integer }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /tracks/{trackId}/audio:
+    get:
+      summary: Download server-extracted audio for offline play (streaming sources only)
+      description: |
+        Only works when ClientConfig.offlineStreamAudio is true (see PLAN.md risk R-1).
+        Otherwise returns 403 with code `feature_disabled`.
+      parameters:
+        - { name: trackId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Audio location
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, contentType]
+                properties:
+                  url: { type: string, format: uri }
+                  contentType: { type: string }
+        "403": { $ref: "#/components/responses/Error" }
+
+  # ---------- YouTube sandbox ----------
+  /youtube/search:
+    get:
+      summary: Search YouTube (server proxies the YouTube Data API v3; the API key never reaches clients)
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 200 } }
+        - { name: pageToken, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  nextPageToken: { type: [string, "null"] }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/VideoSummary" }
+
+  # ---------- sync (account tokens only) ----------
+  /sync/library:
+    get:
+      summary: Pull library changes since a cursor
+      parameters:
+        - { name: since, in: query, schema: { type: string, description: "Opaque cursor from a previous response; omit for a full pull" } }
+      responses:
+        "200":
+          description: Changes
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, cursor]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/LibraryItem" } }
+                  cursor: { type: string }
+        "403": { $ref: "#/components/responses/Error" }
+    put:
+      summary: Push local library changes (last-write-wins on updatedAt)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items: { type: array, items: { $ref: "#/components/schemas/LibraryItem" } }
+      responses:
+        "200":
+          description: Server state after the merge, for the pushed ids
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/LibraryItem" } }
+        "403": { $ref: "#/components/responses/Error" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          enum: [bad_request, unauthorized, forbidden, not_found, conflict, too_large, rate_limited, feature_disabled, account_required, pro_required, internal]
+          description: "`rate_limited` = daily plan limit hit (apps show the upsell). `pro_required` = a Pro-only feature was requested on the free plan."
+        message: { type: string }
+
+    Credentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+
+    AuthResponse:
+      type: object
+      required: [token, userId, kind, plan]
+      properties:
+        token: { type: string }
+        userId: { type: string }
+        kind: { enum: [guest, account] }
+        plan: { $ref: "#/components/schemas/Plan" }
+
+    ClientConfig:
+      type: object
+      required: [offlineStreamAudio, maxUploadBytes, plan, limits]
+      properties:
+        offlineStreamAudio: { type: boolean, description: "R-1 flag. false in store builds." }
+        maxUploadBytes: { type: integer }
+        soundcloudEnabled: { type: boolean }
+        plan: { $ref: "#/components/schemas/Plan" }
+        limits:
+          type: object
+          description: For display and upsell only. The server enforces these regardless of what the client shows.
+          required: [dailyJobs, jobsUsedToday]
+          properties:
+            dailyJobs: { type: [integer, "null"], description: "null = unlimited" }
+            jobsUsedToday: { type: integer }
+
+    Plan:
+      enum: [free, pro]
+      description: Server-side entitlement (PLAN.md §9). Also present as the JWT `plan` claim. Set by the billing webhook (M6).
+
+    JobRequest:
+      type: object
+      required: [source]
+      properties:
+        source: { enum: [file, recording, youtube, soundcloud] }
+        uploadId: { type: string, description: "Required for file/recording" }
+        videoId: { type: string, description: "Required for youtube" }
+        soundcloudUrl: { type: string, format: uri, description: "Required for soundcloud" }
+        title: { type: string, description: "Client-side display title for file/recording" }
+
+    Job:
+      type: object
+      required: [jobId, trackId, status, progress]
+      properties:
+        jobId: { type: string }
+        trackId: { type: string }
+        status: { enum: [queued, processing, complete, failed] }
+        stage:
+          type: [string, "null"]
+          enum: [fetching_media, normalizing_audio, detecting_beats, detecting_chords, detecting_key, rendering_spectrogram, saving_results, null]
+        progress: { type: integer, minimum: 0, maximum: 100 }
+        error: { type: [string, "null"] }
+
+    VideoSummary:
+      type: object
+      required: [videoId, title, channelTitle, thumbnailUrl]
+      properties:
+        videoId: { type: string }
+        title: { type: string }
+        channelTitle: { type: string }
+        thumbnailUrl: { type: string, format: uri }
+        durationSec: { type: [integer, "null"] }
+
+    LibraryItem:
+      type: object
+      description: One entry in the user's history. Mirrors the on-device library row (see docs/data-model.md).
+      required: [trackId, title, source, createdAt, updatedAt, deleted]
+      properties:
+        trackId: { type: string }
+        title: { type: string }
+        artist: { type: [string, "null"] }
+        source: { enum: [file, recording, youtube, soundcloud] }
+        sourceRef: { type: [string, "null"] }
+        durationSec: { type: [number, "null"] }
+        thumbnailUrl: { type: [string, "null"] }
+        audioUploadId: { type: [string, "null"], description: "For file/recording: lets another device download the user's own audio" }
+        favorite: { type: boolean, default: false }
+        lastPlayedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        deleted: { type: boolean, description: "Tombstone so deletes sync" }

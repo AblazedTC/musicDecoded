@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://musicdecoded.app/contracts/analysis.schema.json",
+  "title": "MusicDecoded analysis file",
+  "description": "The chord file. Produced by the worker, stored in object storage, downloaded and saved on-device as analysis/{trackId}.json. All times are seconds from the start of the audio.",
+  "type": "object",
+  "required": ["schemaVersion", "meta", "key", "bpm", "timeSignature", "beats", "chords"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "meta": {
+      "type": "object",
+      "required": ["trackId", "source", "durationSec", "analyzedAt", "analyzerVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "trackId": { "type": "string" },
+        "source": { "enum": ["file", "recording", "youtube", "soundcloud"] },
+        "sourceRef": { "type": ["string", "null"], "description": "YouTube videoId or SoundCloud URL; null for file/recording." },
+        "durationSec": { "type": "number", "exclusiveMinimum": 0 },
+        "analyzedAt": { "type": "string", "format": "date-time" },
+        "analyzerVersion": { "type": "string", "description": "Worker git SHA or semver. Lets clients/servers decide to re-analyze." }
+      }
+    },
+    "key": {
+      "type": ["object", "null"],
+      "required": ["tonic", "mode"],
+      "additionalProperties": false,
+      "properties": {
+        "tonic": { "enum": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"] },
+        "mode": { "enum": ["major", "minor"] },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "bpm": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+    "timeSignature": {
+      "type": ["object", "null"],
+      "required": ["numerator", "denominator"],
+      "additionalProperties": false,
+      "properties": {
+        "numerator": { "type": "integer", "minimum": 1 },
+        "denominator": { "enum": [2, 4, 8, 16] }
+      }
+    },
+    "beats": {
+      "type": "array",
+      "description": "Sorted by t ascending.",
+      "items": {
+        "type": "object",
+        "required": ["t", "downbeat"],
+        "additionalProperties": false,
+        "properties": {
+          "t": { "type": "number", "minimum": 0 },
+          "downbeat": { "type": "boolean" }
+        }
+      }
+    },
+    "chords": {
+      "type": "array",
+      "description": "Sorted, contiguous, non-overlapping segments. label uses Harte-style notation from the chord model, e.g. 'A:maj', 'D:maj7', 'F#:min7', 'N' = no chord.",
+      "items": {
+        "type": "object",
+        "required": ["start", "end", "label"],
+        "additionalProperties": false,
+        "properties": {
+          "start": { "type": "number", "minimum": 0 },
+          "end": { "type": "number", "minimum": 0 },
+          "label": { "type": "string", "pattern": "^(N|X|[A-G](#|b)?:[A-Za-z0-9()#b,/]+)$" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    },
+    "spectrogram": {
+      "type": ["object", "null"],
+      "description": "Downsampled mel spectrogram so the player can render the timeline even when audio is not on-device. Row-major frames: data[frame * bins + bin].",
+      "required": ["fps", "bins", "frames", "encoding", "data"],
+      "additionalProperties": false,
+      "properties": {
+        "fps": { "type": "number", "exclusiveMinimum": 0 },
+        "bins": { "type": "integer", "minimum": 1 },
+        "frames": { "type": "integer", "minimum": 1 },
+        "encoding": { "const": "uint8-base64", "description": "Each value 0-255 = dB scaled into [-80, 0]." },
+        "data": { "type": "string", "contentEncoding": "base64" }
+      }
+    },
+    "waveformPeaks": {
+      "type": ["object", "null"],
+      "required": ["fps", "peaks"],
+      "additionalProperties": false,
+      "properties": {
+        "fps": { "type": "number", "exclusiveMinimum": 0 },
+        "peaks": { "type": "array", "items": { "type": "number", "minimum": 0, "maximum": 1 } }
+      }
+    }
+  }
+}

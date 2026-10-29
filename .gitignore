@@ -1,5 +1,7 @@
-# Agent / AI tooling
+# Agent / AI tooling (kept local, not published)
 .claude/
+AGENTS.md
+CLAUDE.md
 
 # OS
 .DS_Store
