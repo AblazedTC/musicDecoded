@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String
+from sqlalchemy import BigInteger, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -21,4 +21,17 @@ class User(Base):
     device_id: Mapped[str | None] = mapped_column(String(128), unique=True)  # guests only
     email: Mapped[str | None] = mapped_column(String(320), unique=True)  # accounts only
     password_hash: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+
+
+class Upload(Base):
+    """User-owned audio (file or recording) at object_key = uploads/{id}."""
+    __tablename__ = "uploads"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    sha256: Mapped[str] = mapped_column(String(64))
+    content_type: Mapped[str] = mapped_column(String(50))
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    object_key: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(default=_now)

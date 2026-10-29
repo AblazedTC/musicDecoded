@@ -10,6 +10,8 @@ MIN_SECRET_BYTES = 32  # HS256 needs a key of at least 256 bits
 DEV_JWT_SECRET = "local-dev-secret-change-in-production-must-be-long"
 DEV_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/musicdecoded"
 DEV_REDIS_URL = "redis://localhost:6379"
+DEV_S3_ENDPOINT = "http://localhost:9000"
+DEV_S3_KEY = "minioadmin"  # MinIO root user and password in docker-compose.yml
 
 
 class Settings(BaseSettings):
@@ -18,6 +20,13 @@ class Settings(BaseSettings):
     jwt_expiration_seconds: int = 86400
     database_url: str = ""
     redis_url: str = ""
+
+    # Object storage (MinIO locally, R2/S3 in prod). Empty endpoint = AWS S3.
+    s3_endpoint: str = ""
+    s3_bucket: str = "musicdecoded"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    s3_region: str = "us-east-1"
 
     # Feature flags (ClientConfig). OFFLINE_STREAM_AUDIO is PLAN.md R-1.
     offline_stream_audio: bool = False
@@ -39,6 +48,9 @@ class Settings(BaseSettings):
             self.jwt_secret = self.jwt_secret or DEV_JWT_SECRET
             self.database_url = self.database_url or DEV_DATABASE_URL
             self.redis_url = self.redis_url or DEV_REDIS_URL
+            self.s3_endpoint = self.s3_endpoint or DEV_S3_ENDPOINT
+            self.s3_access_key = self.s3_access_key or DEV_S3_KEY
+            self.s3_secret_key = self.s3_secret_key or DEV_S3_KEY
         if not self.jwt_secret.strip():
             raise ValueError("JWT_SECRET is not set. Set the JWT_SECRET environment variable, "
                              "or run with APP_ENV=dev for local development.")
