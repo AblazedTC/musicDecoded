@@ -110,6 +110,9 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                 state,
                 currentLabel,
                 onSelect = viewModel::selectVisualizer,
+                video = {
+                    track.videoId?.let { PlayerVideoPanel(viewModel, it, analysis.meta.durationSec) }
+                },
                 trailing = { MdIconButton(Icons.Rounded.OpenInFull, contentDescription = "Open piano view", onClick = onOpenPiano) },
                 piano = {
                     PianoKeyboard(
@@ -179,6 +182,7 @@ private fun VisualizerCard(
     onSelect: (Visualizer) -> Unit,
     trailing: @Composable () -> Unit = {},
     piano: @Composable () -> Unit = {},
+    video: @Composable () -> Unit = {},
 ) {
     Column(
         Modifier
@@ -198,6 +202,9 @@ private fun VisualizerCard(
             )
             trailing()
         }
+        // When the video is the clock it stays on screen under Piano too (no hidden playback);
+        // one call site keeps the same WebView across the toggle.
+        if (state.visualizer == Visualizer.VIDEO || state.videoIsClock) video()
         when (state.visualizer) {
             Visualizer.PIANO -> {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
@@ -213,12 +220,7 @@ private fun VisualizerCard(
                 }
                 piano()
             }
-            // The synced YouTube embed arrives with T-305a.
-            Visualizer.VIDEO -> Text(
-                "Video playback is coming soon.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MusicDecodedColors.TextSecondary,
-            )
+            Visualizer.VIDEO -> Unit
         }
     }
 }

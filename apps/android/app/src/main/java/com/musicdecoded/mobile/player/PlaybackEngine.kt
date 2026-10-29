@@ -66,8 +66,8 @@ class ExoPlaybackEngine(context: Context, audio: File, private val durationSec: 
 }
 
 /**
- * A clock with no audio, for tracks whose audio isn't on this device (until the YouTube clock
- * lands in T-305) and for the debug fixture. Advances in real time × speed; [nanoTime] is
+ * A clock with no audio, for file/recording tracks whose audio isn't on this device and for the
+ * debug fixture (youtube tracks use [YouTubePlaybackEngine]). Advances in real time × speed; [nanoTime] is
  * injectable so tests can drive it.
  */
 class SilentPlaybackEngine(

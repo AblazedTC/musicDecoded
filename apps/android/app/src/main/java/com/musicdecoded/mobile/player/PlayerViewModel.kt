@@ -31,6 +31,8 @@ data class PlayerTrack(
     val artist: String?,
     val favorite: Boolean,
     val audio: File?,
+    /** YouTube videoId for youtube tracks (the embed in the Video panel). */
+    val videoId: String? = null,
 )
 
 enum class ChordsMode { BASIC, FULL }
@@ -54,7 +56,10 @@ data class PlayerUiState(
     val analysis: Analysis? get() = track?.analysis
 
     /** Video is only for youtube sources (DESIGN.md §3.7 item 6). */
-    val videoAvailable: Boolean get() = analysis?.meta?.source == Source.YOUTUBE
+    val videoAvailable: Boolean get() = analysis?.meta?.source == Source.YOUTUBE && track?.videoId != null
+
+    /** No local audio: the video's `currentTime` is the clock (DESIGN.md §4), so it stays on screen. */
+    val videoIsClock: Boolean get() = videoAvailable && track?.audio == null
 
     val chords: ChordDisplay get() = ChordDisplay(analysis?.key, transpose, chordsMode == ChordsMode.BASIC, voicings)
 }
@@ -81,6 +86,9 @@ class PlayerViewModel(
     val position: StateFlow<Double> = _position.asStateFlow()
 
     private var engine: PlaybackEngine? = null
+
+    /** The embedded video when it's the clock (youtube track, no local audio); `null` otherwise. */
+    val videoEngine: YouTubePlaybackEngine? get() = engine as? YouTubePlaybackEngine
 
     init {
         viewModelScope.launch {
@@ -228,6 +236,7 @@ class PlayerViewModel(
                                     artist = item?.artist,
                                     favorite = item?.favorite ?: false,
                                     audio = localAudio(app, trackId, item?.localAudioPath),
+                                    videoId = (item?.sourceRef ?: it.meta.sourceRef).takeIf { _ -> it.meta.source == Source.YOUTUBE },
                                 )
                             }
                         }
@@ -235,8 +244,12 @@ class PlayerViewModel(
                     voicings = runCatching { loadChordVoicings(app) }.getOrNull(),
                     createEngine = { track ->
                         app.nowPlaying.engineFor(trackId, track) {
-                            it.audio?.let { audio -> ExoPlaybackEngine(app, audio, it.analysis.meta.durationSec) }
-                                ?: SilentPlaybackEngine(it.analysis.meta.durationSec)
+                            val duration = it.analysis.meta.durationSec
+                            when {
+                                it.audio != null -> ExoPlaybackEngine(app, it.audio, duration)
+                                it.videoId != null -> YouTubePlaybackEngine(duration)
+                                else -> SilentPlaybackEngine(duration)
+                            }
                         }
                     },
                     saveFavorite = { favorite ->

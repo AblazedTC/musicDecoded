@@ -34,7 +34,7 @@ class PlayerViewModelTest {
 
     /** Synthetic: A:maj 0–2 · N 2–4 · N 4–5 · D:maj 5–8 · N 8–10; beats every 1 s, downbeats 0, 4, 8. */
     private fun viewModel(analysis: Analysis = SyntheticAnalysis.make(), track: Boolean = true) = PlayerViewModel(
-        loadTrack = { if (track) PlayerTrack(analysis, "Song", "Artist", favorite = false, audio = null) else null },
+        loadTrack = { if (track) PlayerTrack(analysis, "Song", "Artist", favorite = false, audio = null, videoId = analysis.meta.sourceRef) else null },
         voicings = Contracts.voicings(),
         createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) { now }.also { engine = it } },
         saveFavorite = { savedFavorites += it },

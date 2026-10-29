@@ -111,6 +111,8 @@ class WebViewYouTubeBridge(
                 // seekTo() starts an unstarted/cued video, so cue it at t instead.
                 if (s === -1 || s === 5) player.cueVideoById({ videoId: videoId, startSeconds: t });
                 else player.seekTo(t, true);
+                // seekTo() also restarts an ended video; keep it paused like any other seek.
+                if (s === 0) player.pauseVideo();
                 report();
               },
               rate: function (r) { player.setPlaybackRate(r); },

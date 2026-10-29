@@ -89,6 +89,12 @@ fun PianoScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 chords = chords,
                 modifier = Modifier.padding(horizontal = Spacing.gutter),
             )
+            // The video is the clock for youtube tracks without local audio, so it comes along.
+            if (state.videoIsClock) {
+                track.videoId?.let {
+                    PlayerVideoPanel(viewModel, it, analysis.meta.durationSec, Modifier.padding(horizontal = Spacing.gutter))
+                }
+            }
             Box(Modifier.padding(horizontal = Spacing.gutter)) {
                 SeekBar(position, analysis.meta.durationSec, viewModel::seekTo)
             }
