@@ -89,6 +89,8 @@ services:
   worker:
     build:
       context: ./apps/worker
+      additional_contexts:
+        contracts: ./contracts # analysis.schema.json + validate.py, checked before each save
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/musicdecoded
       REDIS_URL: redis://redis:6379

@@ -12,7 +12,7 @@ import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -78,6 +78,7 @@ class ChordBeatAnalyzer:
         # models are CC BY-NC-SA (PLAN.md R-7, see MODELS.md).
         self.librosa_service = LibrosaDetectorService()
         self.timings: Dict[str, float] = {}
+        self._on_stage: Optional[Callable[[str], None]] = None
 
         if not self.librosa_service.is_available():
             raise RuntimeError("No beat detection service available (librosa is not installed)")
@@ -87,6 +88,8 @@ class ChordBeatAnalyzer:
 
     @contextmanager
     def _stage(self, name: str):
+        if self._on_stage:
+            self._on_stage(name)
         start = time.perf_counter()
         yield
         self.timings[name] = round(time.perf_counter() - start, 3)
@@ -113,14 +116,18 @@ class ChordBeatAnalyzer:
         source: str = "file",
         source_ref: Optional[str] = None,
         analyzer_version: str = DEFAULT_ANALYZER_VERSION,
+        on_stage: Optional[Callable[[str], None]] = None,
     ) -> Dict[str, Any]:
         """Run the pipeline and return (and optionally write) an analysis v1 document.
 
-        Per-stage wall times are left in self.timings (T-115).
+        Per-stage wall times are left in self.timings (T-115). on_stage(name) is called as each
+        stage starts (load, beats, chords, key, spectrogram, save); the queue consumer uses it
+        to report progress.
         """
         import librosa
 
         self.timings = {}
+        self._on_stage = on_stage
         audio_path = str(audio_path)
         with self._stage("load"):
             y, sr = librosa.load(audio_path, sr=SAMPLE_RATE, mono=True)
