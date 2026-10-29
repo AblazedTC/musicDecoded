@@ -106,6 +106,17 @@ These are dev-only defaults from `docker-compose.yml`. To change them, copy `.en
 > MinIO's official images are no longer published, so compose uses Bitnami's pinned archive builds
 > (`bitnamilegacy/minio`, `bitnamilegacy/minio-client`).
 
+### Android emulator and presigned URLs
+
+Upload/download links point at `http://localhost:9000`. Inside the Android emulator `localhost` is the emulator itself, so forward the ports once per emulator boot:
+
+```powershell
+adb reverse tcp:9000 tcp:9000
+adb reverse tcp:8080 tcp:8080   # optional: lets the app use localhost:8080 too
+```
+
+The iOS simulator shares the Mac's network, so `localhost` works there without this.
+
 ## Environment variables
 
 Set by `docker-compose.yml` for the containers. Set them yourself when running the API or worker outside Docker.
