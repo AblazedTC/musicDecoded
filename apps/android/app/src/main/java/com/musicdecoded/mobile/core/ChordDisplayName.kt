@@ -57,7 +57,7 @@ private fun suffix(quality: String): String =
         ?: quality.replace("b", "♭").replace("#", "♯")
 
 /** Chords: Basic. maj/7/maj7/9… → maj, min/min7/min9… → min; keeps dim, aug, sus and 5. */
-private fun triadFamily(quality: String): String = when {
+internal fun triadFamily(quality: String): String = when {
     quality.startsWith("dim") || quality.startsWith("hdim") -> "dim"
     quality.startsWith("min") -> "min"
     quality.startsWith("aug") -> "aug"

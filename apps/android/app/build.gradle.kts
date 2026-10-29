@@ -81,6 +81,8 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.datastore.preferences)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.media3.exoplayer)
     implementation(libs.room.runtime)
     ksp(libs.room.compiler)
     testImplementation(libs.junit)

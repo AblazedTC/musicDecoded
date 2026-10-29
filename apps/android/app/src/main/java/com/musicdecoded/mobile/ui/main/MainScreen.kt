@@ -1,15 +1,22 @@
 package com.musicdecoded.mobile.ui.main
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.musicdecoded.mobile.BuildConfig
+import com.musicdecoded.mobile.player.DebugFixtures
+import com.musicdecoded.mobile.player.PlayerRoutes
+import com.musicdecoded.mobile.player.playerDestinations
 import com.musicdecoded.mobile.ui.components.AppTab
 import com.musicdecoded.mobile.ui.components.MdBottomBar
 import com.musicdecoded.mobile.ui.home.HomeScreen
@@ -31,9 +38,18 @@ fun MainScreen() {
         },
     ) { innerPadding ->
         NavHost(navController, startDestination = AppTab.HOME.route, Modifier.padding(innerPadding)) {
-            composable(AppTab.HOME.route) { HomeScreen(onSeeAll = { navController.selectTab(AppTab.LIBRARY) }) }
+            composable(AppTab.HOME.route) {
+                // Debug only: long-press the Home screen to open the player on the bundled fixture.
+                val debugFixture = Modifier.pointerInput(Unit) {
+                    detectTapGestures(onLongPress = { navController.navigate(PlayerRoutes.player(DebugFixtures.SUNNY_DAYS)) })
+                }
+                Box(if (BuildConfig.DEBUG) debugFixture else Modifier) {
+                    HomeScreen(onSeeAll = { navController.selectTab(AppTab.LIBRARY) })
+                }
+            }
             composable(AppTab.LIBRARY.route) { LibraryScreen() }
             composable(AppTab.SETTINGS.route) { SettingsScreen() }
+            playerDestinations(navController)
         }
     }
 }
