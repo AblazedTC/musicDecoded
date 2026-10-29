@@ -263,6 +263,9 @@ paths:
                   items:
                     type: array
                     items: { $ref: "#/components/schemas/VideoSummary" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { description: "`feature_disabled`: search is unavailable (no YouTube API key configured)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "429": { description: "`rate_limited`: the server's YouTube quota is exhausted; retry later (not a plan limit, no upsell)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   # ---------- sync (account tokens only) ----------
   /sync/library:

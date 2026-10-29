@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     offline_stream_audio: bool = False
     soundcloud_enabled: bool = False
 
+    # YouTube Data API v3 key (PLAN.md D-4). No dev default: unset = search returns 403 feature_disabled.
+    youtube_api_key: str = ""
+
     # Daily job limits per plan (PLAN.md §9). Empty/unset = unlimited.
     limit_guest: int | None = 10
     limit_free: int | None = 50

@@ -352,11 +352,12 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 ## M3 — YouTube sandbox
 
 ### T-301 YouTube search proxy (`GET /youtube/search`)
-- Lane: api · Status: todo · Owner: — · Deps: T-101
+- Lane: api · Status: done · Owner: claude · Deps: T-101
 - Acceptance:
-  - [ ] Calls YouTube Data API v3 `search.list` (type=video, videoCategoryId=10 music) and then `videos.list` for durations
-  - [ ] `YOUTUBE_API_KEY` comes from env; responses are cached in Redis for 1 hour per query
-  - [ ] Results longer than 10 minutes are excluded
+  - [x] Calls YouTube Data API v3 `search.list` (type=video, videoCategoryId=10 music) and then `videos.list` for durations
+  - [x] `YOUTUBE_API_KEY` comes from env; responses are cached in Redis for 1 hour per query
+  - [x] Results longer than 10 minutes are excluded
+- Notes: stdlib urllib (no new dep). Cache yt:search:{sha1(q|pageToken)}, q lowercased/whitespace-collapsed. No key → 403 feature_disabled; Google quota → 429 rate_limited (not a plan limit: apps must not show the upsell); other upstream errors → 500 internal. Live/upcoming broadcasts skipped. openapi: added 400/403/429 responses to /youtube/search.
 
 ### T-302 Worker: fetch streaming sources
 - Lane: worker · Status: todo · Owner: — · Deps: T-113
