@@ -6,6 +6,9 @@ import com.musicdecoded.mobile.auth.AuthRepository
 import com.musicdecoded.mobile.auth.TokenStore
 import com.musicdecoded.mobile.library.AnalysisStore
 import com.musicdecoded.mobile.library.LibraryDatabase
+import com.musicdecoded.mobile.library.TranscriptionRepository
+import com.musicdecoded.mobile.library.TranscriptionWorker
+import com.musicdecoded.mobile.network.TranscriptionApiService
 import java.io.File
 import com.musicdecoded.mobile.network.AuthApiService
 import com.musicdecoded.mobile.network.ConfigApiService
@@ -31,6 +34,16 @@ class MusicDecodedApplication : Application() {
 
     val libraryDatabase by lazy { LibraryDatabase.create(this) }
     val analysisStore by lazy { AnalysisStore(File(filesDir, "analysis")) }
+    val transcriptionRepository by lazy {
+        TranscriptionRepository(
+            TranscriptionApiService(httpClient, BuildConfig.API_BASE_URL),
+            authRepository,
+            libraryDatabase.libraryDao(),
+            analysisStore,
+            filesDir,
+            TranscriptionWorker.Scheduler(this),
+        )
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -40,5 +53,8 @@ class MusicDecodedApplication : Application() {
             runCatching { authRepository.start() }
                 .onFailure { Log.w("MusicDecoded", "Session start failed; continuing offline", it) }
         }
+        // Jobs that were still running when the process died resume polling (WorkManager keeps
+        // already-scheduled work, so this only fills gaps).
+        appScope.launch { transcriptionRepository.resumePending() }
     }
 }

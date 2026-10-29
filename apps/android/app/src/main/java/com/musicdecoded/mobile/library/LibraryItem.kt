@@ -45,6 +45,8 @@ data class LibraryItem(
     /** `null` if streaming-only. */
     val localAudioPath: String? = null,
     val syncedAt: Instant? = null,
+    /** Local only: user-facing reason when [status] is FAILED. */
+    val error: String? = null,
 ) {
     /** Copies the list metadata (duration, key, BPM) from a finished analysis and marks it ready. */
     fun withAnalysis(analysis: Analysis, now: Instant): LibraryItem = copy(
@@ -53,6 +55,7 @@ data class LibraryItem(
         bpm = analysis.bpm,
         status = LibraryStatus.READY,
         jobId = null,
+        error = null,
         updatedAt = now,
     )
 }

@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.datastore.preferences)
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.room.runtime)
+    implementation(libs.work.runtime.ktx)
     ksp(libs.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)
