@@ -11,6 +11,7 @@ struct PlayerScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(TranscriptionService.self) private var transcription
     @Environment(NowPlaying.self) private var nowPlaying
+    @Environment(SettingsStore.self) private var settings
     @State private var model: PlayerModel?
 
     var body: some View {
@@ -41,6 +42,7 @@ struct PlayerScreen: View {
         let trackId = trackId
         let context = modelContext
         let nowPlaying = nowPlaying
+        let preferences = settings.preferences
         return PlayerModel(
             loadTrack: {
                 await PlayerTrackLoader.load(trackId: trackId, info: info)
@@ -50,14 +52,18 @@ struct PlayerScreen: View {
                 // The app-level session owns the engine, so playback outlives this screen and
                 // reopening the same track picks it up again.
                 nowPlaying.engine(for: trackId, track: track) { track in
-                    Self.makeEngine(for: track)
+                    let engine = Self.makeEngine(for: track)
+                    // A new engine starts at Settings → Default speed.
+                    engine.setSpeed(preferences.defaultSpeed)
+                    return engine
                 }
             },
             saveFavorite: { favorite in
                 guard let item else { return }
                 item.setFavorite(favorite)
                 try? context.save()
-            }
+            },
+            preferences: preferences
         )
     }
 

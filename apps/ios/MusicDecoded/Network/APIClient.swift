@@ -28,6 +28,32 @@ struct APIClient: Sendable {
         try await send("POST", "auth/anonymous", body: AnonymousAuthRequest(deviceId: deviceId))
     }
 
+    /// `POST /auth/signup`. `guestToken` (optional bearer) links that guest's data to the account.
+    func signUp(_ credentials: Credentials, guestToken: String?) async throws -> AuthResponse {
+        try await send("POST", "auth/signup", body: credentials, token: guestToken)
+    }
+
+    /// `POST /auth/login`. `guestToken` (optional bearer) merges that guest's data into the account.
+    func logIn(_ credentials: Credentials, guestToken: String?) async throws -> AuthResponse {
+        try await send("POST", "auth/login", body: credentials, token: guestToken)
+    }
+
+    /// `GET /sync/library`: one page (up to 500 items). `since == nil` is a full pull.
+    func pullLibrary(since: String?, token: String) async throws -> SyncPage {
+        let query = since.map { [URLQueryItem(name: "since", value: $0)] } ?? []
+        return try await send("GET", "sync/library", query: query, token: token)
+    }
+
+    /// `PUT /sync/library`: up to 500 items. Returns the server state of the pushed ids.
+    func pushLibrary(_ items: [SyncItem], token: String) async throws -> SyncItems {
+        try await send("PUT", "sync/library", body: SyncItems(items: items), token: token)
+    }
+
+    /// `GET /uploads/{uploadId}`: where to download the caller's own audio.
+    func uploadLocation(id uploadId: String, token: String) async throws -> UploadLocation {
+        try await send("GET", "uploads/\(uploadId)", token: token)
+    }
+
     /// `GET /config`.
     func config(token: String) async throws -> ClientConfig {
         try await send("GET", "config", token: token)
@@ -77,6 +103,18 @@ struct APIClient: Sendable {
         let (data, response) = try await session.data(from: url)
         try Self.check(response, data)
         return data
+    }
+
+    /// Downloads a presigned URL (no bearer token) to a temporary file and moves it to
+    /// `destination`, replacing any file there.
+    func download(_ url: URL, to destination: URL) async throws {
+        let (temporary, response) = try await session.download(from: url)
+        try Self.check(response, Data())
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: destination.path(percentEncoded: false)) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.moveItem(at: temporary, to: destination)
     }
 
     /// Sends a JSON request and decodes a JSON response. Throws `APIError` for non-2xx responses.

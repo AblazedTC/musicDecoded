@@ -53,4 +53,13 @@ struct ChordDisplayTests {
         #expect(chords.noteName(70) == "B♭")
         #expect(chords.noteNames("G:min") == "G · B♭ · D")
     }
+
+    @Test func accidentalsSettingOverridesTheKey() {
+        let sharp = ChordDisplay(key: nil, voicings: voicings, accidentals: .sharp)
+        #expect(sharp.name("A#:maj") == "A♯")
+        #expect(sharp.noteName(70) == "A♯")
+        let flat = ChordDisplay(key: nil, voicings: voicings, accidentals: .flat)
+        #expect(flat.name("A#:maj") == "B♭")
+        #expect(flat.noteName(66) == "G♭")
+    }
 }

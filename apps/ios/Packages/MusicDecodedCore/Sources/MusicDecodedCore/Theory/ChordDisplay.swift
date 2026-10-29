@@ -7,20 +7,29 @@ public struct ChordDisplay: Sendable, Equatable {
     /// Chords: Basic. Names and notes use the triad family, without the slash bass.
     public let basic: Bool
     public let voicings: ChordVoicings?
+    /// Settings → Accidentals.
+    public let accidentals: Accidentals
 
     private let spelling: PitchSpelling
 
-    public init(key: Analysis.Key?, transpose: Int = 0, basic: Bool = false, voicings: ChordVoicings? = nil) {
+    public init(
+        key: Analysis.Key?,
+        transpose: Int = 0,
+        basic: Bool = false,
+        voicings: ChordVoicings? = nil,
+        accidentals: Accidentals = .auto
+    ) {
         self.key = key
         self.transpose = transpose
         self.basic = basic
         self.voicings = voicings
-        spelling = PitchSpelling(accidentals: .auto, key: key, transpose: transpose)
+        self.accidentals = accidentals
+        spelling = PitchSpelling(accidentals: accidentals, key: key, transpose: transpose)
     }
 
     /// `F#:min7` → `F♯m7` (Full) or `F♯m` (Basic); `""` for `N`/`X`.
     public func name(_ label: String) -> String {
-        chordDisplayName(label, transpose: transpose, accidentals: .auto, key: key, simplify: basic)
+        chordDisplayName(label, transpose: transpose, accidentals: accidentals, key: key, simplify: basic)
     }
 
     /// MIDI notes from `chord-voicings.json`; Basic voices the triad family without the slash bass.

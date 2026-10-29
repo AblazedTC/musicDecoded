@@ -38,6 +38,8 @@ final class TranscriptionService {
     private let analysisStore: AnalysisStore
     private let timing: PollTiming
     private let backgroundActivity: BackgroundActivity?
+    /// Called when a job finished and its analysis is saved (triggers a sync, PLAN.md §5.2).
+    private let onJobComplete: @MainActor () -> Void
 
     private struct Poll {
         let id: UUID
@@ -55,7 +57,8 @@ final class TranscriptionService {
         analysisStore: AnalysisStore,
         audioDirectory: URL,
         timing: PollTiming = PollTiming(),
-        backgroundActivity: BackgroundActivity? = nil
+        backgroundActivity: BackgroundActivity? = nil,
+        onJobComplete: @escaping @MainActor () -> Void = {}
     ) {
         self.session = session
         self.context = context
@@ -63,6 +66,7 @@ final class TranscriptionService {
         self.audioDirectory = audioDirectory
         self.timing = timing
         self.backgroundActivity = backgroundActivity
+        self.onJobComplete = onJobComplete
     }
 
     // MARK: - Files
@@ -318,6 +322,7 @@ final class TranscriptionService {
         guard let item = fetch(trackId) else { return }
         item.apply(analysis)
         save()
+        onJobComplete()
     }
 
     // MARK: - Steps

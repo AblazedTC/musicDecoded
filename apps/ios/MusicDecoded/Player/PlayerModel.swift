@@ -11,8 +11,15 @@ struct PlayerTrack: Sendable {
     let audioURL: URL?
 }
 
-enum ChordsMode: Sendable {
+enum ChordsMode: String, CaseIterable, Hashable, Sendable {
     case basic, full
+
+    var title: String {
+        switch self {
+        case .basic: "Basic"
+        case .full: "Full"
+        }
+    }
 }
 
 enum Visualizer: String, CaseIterable, Hashable, Sendable {
@@ -60,6 +67,8 @@ final class PlayerModel {
     private(set) var transpose = 0
     private(set) var showNoteNames = true
     private(set) var visualizer = Visualizer.piano
+    /// Settings → Accidentals.
+    private(set) var accidentals = Accidentals.auto
     /// Playhead in seconds, published on every tick and seek.
     private(set) var position = 0.0
     /// Index into `analysis.chords` of the chord under the playhead. Changes only at chord boundaries.
@@ -71,6 +80,7 @@ final class PlayerModel {
     private let voicings: ChordVoicings?
     private let makeEngine: EngineFactory
     private let saveFavorite: FavoriteSaver
+    private let preferences: PlayerPreferences
     private let tickInterval: Duration?
     @ObservationIgnored private var engine: (any PlaybackEngine)?
     @ObservationIgnored private var clockTask: Task<Void, Never>?
@@ -83,12 +93,14 @@ final class PlayerModel {
         voicings: ChordVoicings?,
         makeEngine: @escaping EngineFactory,
         saveFavorite: @escaping FavoriteSaver = { _ in },
+        preferences: PlayerPreferences = PlayerPreferences(),
         tickInterval: Duration? = .milliseconds(16)
     ) {
         self.loadTrack = loadTrack
         self.voicings = voicings
         self.makeEngine = makeEngine
         self.saveFavorite = saveFavorite
+        self.preferences = preferences
         self.tickInterval = tickInterval
     }
 
@@ -106,7 +118,13 @@ final class PlayerModel {
 
     /// Names and notes with the current Chords and Transpose settings.
     var chords: ChordDisplay {
-        ChordDisplay(key: analysis?.key, transpose: transpose, basic: chordsMode == .basic, voicings: voicings)
+        ChordDisplay(
+            key: analysis?.key,
+            transpose: transpose,
+            basic: chordsMode == .basic,
+            voicings: voicings,
+            accidentals: accidentals
+        )
     }
 
     /// The label of the chord under the playhead (`N`/`X` included).
@@ -158,6 +176,11 @@ final class PlayerModel {
         }
         track = loaded
         favorite = loaded?.favorite ?? false
+        // Settings defaults (DESIGN.md §3.9). Default speed is applied when a new engine is made
+        // (PlayerScreen), so a track that's still playing keeps its speed.
+        chordsMode = preferences.chordsMode
+        accidentals = preferences.accidentals
+        visualizer = preferences.visualizer == .video && videoAvailable ? .video : .piano
         isLoading = false
         updateDerived()
         tick()

@@ -26,7 +26,11 @@ struct PlayerModelTests {
     }
 
     /// Synthetic: A:maj 0–2 · N 2–4 · N 4–5 · D:maj 5–8 · N 8–10; beats every 1 s, downbeats 0, 4, 8.
-    private func makeModel(analysis: Analysis? = nil, hasTrack: Bool = true) async throws -> PlayerModel {
+    private func makeModel(
+        analysis: Analysis? = nil,
+        hasTrack: Bool = true,
+        preferences: PlayerPreferences = PlayerPreferences()
+    ) async throws -> PlayerModel {
         let resolved = try analysis ?? PlayerFixtures.synthetic()
         let harness = harness
         let track = hasTrack ? PlayerTrack(analysis: resolved, title: "Song", artist: "Artist", favorite: false, audioURL: nil) : nil
@@ -39,10 +43,24 @@ struct PlayerModelTests {
                 return engine
             },
             saveFavorite: { harness.savedFavorites.append($0) },
+            preferences: preferences,
             tickInterval: nil
         )
         await model.load()
         return model
+    }
+
+    @Test func settingsDefaultsApplyWhenATrackOpens() async throws {
+        let preferences = PlayerPreferences(defaultSpeed: 1, chordsMode: .basic, accidentals: .flat, visualizer: .video)
+        let model = try await makeModel(preferences: preferences)
+        #expect(model.chordsMode == .basic)
+        #expect(model.chords.accidentals == .flat)
+        // Video isn't available for a file source, so the piano stays.
+        #expect(model.visualizer == .piano)
+
+        let youtube = try PlayerFixtures.synthetic(source: .youtube, sourceRef: "abc")
+        let youtubeModel = try await makeModel(analysis: youtube, preferences: preferences)
+        #expect(youtubeModel.visualizer == .video)
     }
 
     @Test func loadsTheTrack() async throws {
