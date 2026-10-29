@@ -280,4 +280,62 @@ class TranscriptionRepositoryTest {
         assertEquals(listOf("track-1" to false), scheduled)
         assertFalse(dao.analyzing().isEmpty())
     }
+    @Test fun youTubeJobSkipsTheUploadAndPollsTheSameWay() = runTest {
+        setUp()
+        server.pollResponses += listOf(job("processing", progress = 50), job("complete", progress = 100))
+
+        val trackId = repository.startYouTube("dQw4w9WgXcQ", "Sunny Days", "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg", 200.0)
+
+        assertEquals("track-1", trackId)
+        assertEquals(0, server.count("POST", "/uploads"))
+        assertTrue(server.requests.none { it.method.value == "PUT" })
+        assertEquals("youtube", body("jobs")["source"]!!.jsonPrimitive.content)
+        assertEquals("dQw4w9WgXcQ", body("jobs")["videoId"]!!.jsonPrimitive.content)
+        assertNull(body("jobs")["uploadId"])
+        val analyzing = dao.get(trackId)!!
+        assertEquals(LibraryStatus.ANALYZING, analyzing.status)
+        assertEquals(Source.YOUTUBE, analyzing.source)
+        assertEquals("dQw4w9WgXcQ", analyzing.sourceRef)
+        assertEquals("Sunny Days", analyzing.title)
+        assertEquals("https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg", analyzing.thumbnailUrl)
+        // Streaming source: no local audio is kept (PLAN.md R-1).
+        assertNull(analyzing.localAudioPath)
+        assertNull(analyzing.audioUploadId)
+        assertEquals(listOf("track-1" to true), scheduled)
+
+        repository.poll(trackId)
+
+        assertEquals(LibraryStatus.READY, dao.get(trackId)!!.status)
+        assertEquals(2, server.count("GET", "/jobs/job-1"))
+    }
+
+    @Test fun youTubeRetryRequestsByVideoIdAgain() = runTest {
+        setUp()
+        server.pollResponses += job("failed", error = "Video unavailable")
+        val trackId = repository.startYouTube("dQw4w9WgXcQ", "Sunny Days", null, null)
+        repository.poll(trackId)
+        assertEquals(LibraryStatus.FAILED, dao.get(trackId)!!.status)
+
+        server.createJobBody = job("queued", jobId = "job-2")
+        repository.retry(trackId)
+
+        assertEquals(2, server.count("POST", "/jobs"))
+        assertEquals(0, server.count("POST", "/uploads"))
+        assertEquals("dQw4w9WgXcQ", body("jobs")["videoId"]!!.jsonPrimitive.content)
+        assertEquals("job-2", dao.get(trackId)!!.jobId)
+        assertEquals(LibraryStatus.ANALYZING, dao.get(trackId)!!.status)
+    }
+
+    @Test fun youTubePlanLimitShowsTheUpsellMessage() = runTest {
+        setUp()
+        server.createJobStatus = HttpStatusCode.TooManyRequests
+        server.createJobBody = """{"code":"rate_limited","message":"Daily limit"}"""
+        try {
+            repository.startYouTube("dQw4w9WgXcQ", "Sunny Days", null, null)
+            fail("Expected TranscriptionException")
+        } catch (e: TranscriptionException) {
+            assertEquals(TranscriptionRepository.RATE_LIMITED, e.message)
+        }
+        assertNull(dao.get("track-1"))
+    }
 }

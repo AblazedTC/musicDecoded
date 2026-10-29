@@ -32,6 +32,8 @@ import com.musicdecoded.mobile.sources.ImportFrom
 import com.musicdecoded.mobile.sources.navigateToImport
 import com.musicdecoded.mobile.sources.navigateToRecorder
 import com.musicdecoded.mobile.sources.sourceRoutes
+import com.musicdecoded.mobile.sources.youtube.YouTubeRoutes
+import com.musicdecoded.mobile.sources.youtube.youTubeRoutes
 import com.musicdecoded.mobile.ui.components.AppTab
 import com.musicdecoded.mobile.ui.components.MdBottomBar
 import com.musicdecoded.mobile.ui.home.HomeNavigation
@@ -99,6 +101,12 @@ fun MainScreen() {
             // After the job starts, the import sheet / recorder is replaced by Processing.
             sourceRoutes(navController, onDecodeStarted = navController::navigateToProcessing)
             processingDestination(navController)
+            youTubeRoutes(
+                navController,
+                onDecodeStarted = navController::navigateToProcessing,
+                onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) },
+                onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },
+            )
         }
     }
 }
@@ -124,6 +132,7 @@ private fun homeNavigation(navController: NavHostController) = HomeNavigation(
     onProfile = { navController.selectTab(AppTab.SETTINGS) },
     onFiles = { navController.navigateToImport(ImportFrom.FILES) },
     onMediaLibrary = { navController.navigateToImport(ImportFrom.MEDIA_LIBRARY) },
+    onYouTube = { navController.navigate(YouTubeRoutes.SEARCH) },
     onRecord = { navController.navigateToRecorder() },
     onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) },
     onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },

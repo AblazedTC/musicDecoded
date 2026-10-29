@@ -28,6 +28,10 @@ interface LibraryDao {
     @Query("SELECT * FROM library_items WHERE trackId = :trackId")
     fun observe(trackId: String): Flow<LibraryItem?>
 
+    /** The visible row for a streaming source (e.g. a YouTube videoId), as it changes (video detail). */
+    @Query("SELECT * FROM library_items WHERE source = :source AND sourceRef = :sourceRef AND deleted = 0 ORDER BY createdAt DESC LIMIT 1")
+    fun observeBySourceRef(source: String, sourceRef: String): Flow<LibraryItem?>
+
     /** The visible history, newest first. */
     @Query("SELECT * FROM library_items WHERE deleted = 0 ORDER BY createdAt DESC, trackId")
     fun newestFirst(): Flow<List<LibraryItem>>

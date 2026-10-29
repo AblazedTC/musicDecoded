@@ -60,6 +60,7 @@ class HomeNavigation(
     val onProfile: () -> Unit,
     val onFiles: () -> Unit,
     val onMediaLibrary: () -> Unit,
+    val onYouTube: () -> Unit,
     val onRecord: () -> Unit,
     val onOpenPlayer: (trackId: String) -> Unit,
     val onOpenProcessing: (trackId: String) -> Unit,
@@ -124,14 +125,13 @@ private fun BrandHeader(onSearch: () -> Unit, onProfile: () -> Unit) {
 
 private const val LOGO_TILT = -4f
 
-/** 2×2 grid: Files · Media Library · YouTube · SoundCloud (only when enabled). YouTube/SoundCloud are M3. */
+/** 2×2 grid: Files · Media Library · YouTube · SoundCloud (only when enabled; its flow is still M3). */
 @Composable
 private fun SourceGrid(soundcloudEnabled: Boolean, nav: HomeNavigation) {
     val cards = buildList<@Composable (Modifier) -> Unit> {
         add { SourceCard(SourceKind.FILES, "Files", "Import audio from this device", nav.onFiles, it) }
         add { SourceCard(SourceKind.MEDIA_LIBRARY, "Media Library", "Choose local music", nav.onMediaLibrary, it) }
-        // YouTube arrives in M3: shown, but disabled.
-        add { SourceCard(SourceKind.YOUTUBE, "YouTube", "Coming soon", onClick = {}, modifier = it.alpha(DISABLED_ALPHA)) }
+        add { SourceCard(SourceKind.YOUTUBE, "YouTube", "Discover & play", nav.onYouTube, it) }
         // Only when the server enables it; the SoundCloud flow itself arrives in M3.
         if (soundcloudEnabled) {
             add { SourceCard(SourceKind.SOUNDCLOUD, "SoundCloud", "Coming soon", onClick = {}, modifier = it.alpha(DISABLED_ALPHA)) }

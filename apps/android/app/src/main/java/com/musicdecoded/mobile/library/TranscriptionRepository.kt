@@ -98,10 +98,39 @@ class TranscriptionRepository(
         job.trackId
     }
 
+    /**
+     * Requests the analysis of a YouTube video (T-304a): no upload, the worker fetches the audio by
+     * [videoId]. Same LibraryItem + polling as [start]; no local audio is kept (PLAN.md R-1).
+     */
+    suspend fun startYouTube(videoId: String, title: String, thumbnailUrl: String?, durationSec: Double?): String = userFacing {
+        val job = auth.authorized { api.createJob(it, youTubeJob(videoId)) }
+        val now = clock()
+        val existing = dao.get(job.trackId)
+        val item = (existing ?: LibraryItem(
+            trackId = job.trackId,
+            title = title,
+            source = Source.YOUTUBE,
+            createdAt = now,
+            updatedAt = now,
+            status = LibraryStatus.ANALYZING,
+        )).copy(
+            sourceRef = videoId,
+            thumbnailUrl = thumbnailUrl ?: existing?.thumbnailUrl,
+            durationSec = durationSec ?: existing?.durationSec,
+            deleted = false,
+        )
+        begin(item, job)
+        job.trackId
+    }
+
     /** Requests a new analysis for a failed (or re-analyzed) item, reusing its upload when possible. */
     suspend fun retry(trackId: String): Unit = userFacing {
         val item = checkNotNull(dao.get(trackId)) { "Unknown track" }
         try {
+            if (item.source == Source.YOUTUBE) {
+                val videoId = item.sourceRef ?: throw TranscriptionException(GENERIC)
+                return@userFacing begin(item, auth.authorized { api.createJob(it, youTubeJob(videoId)) })
+            }
             val uploadId = item.audioUploadId ?: upload(localAudio(item))
             val job = try {
                 createJob(item, uploadId)
@@ -178,6 +207,8 @@ class TranscriptionRepository(
         _jobs.update { it + (job.trackId to job) }
         scheduler.schedule(job.trackId, replace = true)
     }
+
+    private fun youTubeJob(videoId: String) = JobRequest(Source.YOUTUBE, videoId = videoId)
 
     private suspend fun createJob(item: LibraryItem, uploadId: String): Job =
         auth.authorized { api.createJob(it, JobRequest(item.source, uploadId = uploadId, title = item.title)) }

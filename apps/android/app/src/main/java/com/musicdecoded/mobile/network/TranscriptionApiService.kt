@@ -26,7 +26,7 @@ data class UploadRequest(val contentType: String, val sizeBytes: Long, val sha25
 @Serializable
 data class UploadTarget(val uploadId: String, val putUrl: String, val expiresAt: String)
 
-/** `JobRequest` in contracts/openapi.yaml (file/recording fields only; the others are for streaming sources). */
+/** `JobRequest` in contracts/openapi.yaml: `uploadId` for file/recording, `videoId` for youtube. */
 @Serializable
 data class JobRequest(
     val source: Source,
