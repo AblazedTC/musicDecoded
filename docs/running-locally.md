@@ -20,13 +20,41 @@ $env:APP_ENV = "dev"; uv run uvicorn app.main:app --reload --port 8080
 #   Changed POSTGRES_USER/POSTGRES_PASSWORD in .env? The host-run API doesn't read .env, so also set
 #   $env:DATABASE_URL = "postgresql://<user>:<password>@localhost:5432/musicdecoded"
 
-# 3. Run the Python worker (separate terminal)
+# 3. Run the worker's queue consumer (separate terminal). Python 3.9 venv, CPU torch:
 cd apps/worker
-python services/chord_beat_analysis.py
+uv venv --python 3.9 .venv
+uv pip install --python .venv -r requirements.txt -r requirements-dev.txt --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match
+$env:REDIS_URL = "redis://127.0.0.1:6379"
+$env:DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/musicdecoded"
+$env:S3_ENDPOINT = "http://127.0.0.1:9000"; $env:S3_BUCKET = "musicdecoded"
+$env:S3_ACCESS_KEY = "minioadmin"; $env:S3_SECRET_KEY = "minioadmin"
+.venv\Scripts\python services/consumer.py
+#   One-off analysis without the queue: python services/chord_beat_analysis.py data/sunnydays.mp3 outputs/out.json
 ```
 
-When running outside Docker, use `localhost` instead of the service names in the env vars below
-(e.g. `REDIS_URL=redis://localhost:6379`, `S3_ENDPOINT=http://localhost:9000`).
+When running outside Docker, use `127.0.0.1` instead of the service names in the env vars below
+(e.g. `REDIS_URL=redis://127.0.0.1:6379`, `S3_ENDPOINT=http://127.0.0.1:9000`). `localhost` can resolve to
+IPv6 first on Windows, and the containers only listen on IPv4.
+
+The consumer normalizes audio with FFmpeg when it is on `PATH` (the Docker image has it) and otherwise falls
+back to librosa decoding; it logs which one it used. It needs the chord model submodule
+(`git submodule update --init`), or point `CHORD_MODEL_DIR` at a checkout of it.
+
+## End-to-end check
+
+`scripts/e2e.sh` (bash: Git Bash on Windows, or CI) drives the whole pipeline through the API:
+guest auth → `POST /uploads` → PUT `apps/worker/data/sunnydays.mp3` → `POST /jobs` → poll `GET /jobs/{id}`
+(5 min timeout) → `GET /tracks/{id}/analysis` → download → `python contracts/validate.py`. It prints each step
+and exits non-zero on the first failure.
+
+```bash
+# With the API and consumer running (above, or `docker compose up --build -d`):
+PYTHON=apps/worker/.venv/Scripts/python scripts/e2e.sh   # any Python with jsonschema works
+# Env: API_URL (default http://127.0.0.1:8080), AUDIO (another mp3), E2E_TIMEOUT (seconds, default 300)
+```
+
+The same mp3 is deduplicated by its SHA-256, so a second run is an instant cache hit (`200`, already
+`complete`). Run `docker compose down -v` to start from scratch.
 
 To stop: `Ctrl+C` in each terminal. The containers keep running until you explicitly stop them:
 
@@ -85,8 +113,6 @@ pip install jsonschema
 python contracts/validate.py                       # validates contracts/fixtures/*.json
 npx @redocly/cli@1 lint contracts/openapi.yaml
 ```
-
-> The full e2e script arrives with T-114.
 
 ## Services
 
