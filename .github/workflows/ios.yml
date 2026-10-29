@@ -1,7 +1,9 @@
 name: ios
 
 on:
+  # push only on main; branches are covered by pull_request, so PR commits don't run twice.
   push:
+    branches: [main]
     paths:
       - "apps/ios/**"
       - "contracts/**"
@@ -49,14 +51,15 @@ jobs:
         run: xcodegen generate
       - name: Pick an iPhone simulator
         id: simulator
-        # Runner images change their simulator set, so use whatever iPhone is available.
+        # Runner images change their simulator set and can include runtimes newer than the active Xcode,
+        # so ask xcodebuild which iPhone simulators this scheme can actually run on.
         run: |
-          udid=$(xcrun simctl list devices available --json | jq -r '
-            [.devices | to_entries[] | select(.key | test("SimRuntime\\.iOS")) | .value[]
-             | select(.name | startswith("iPhone"))] | first | .udid // empty')
+          destinations=$(xcodebuild -project MusicDecoded.xcodeproj -scheme MusicDecoded -showdestinations 2>/dev/null)
+          udid=$(printf '%s\n' "$destinations" | grep 'platform:iOS Simulator' | grep -v -i placeholder \
+            | grep -m1 'name:iPhone' | sed -E 's/.*id:([^,]+),.*/\1/' || true)
           if [ -z "$udid" ]; then
-            echo "::error::No available iPhone simulator"
-            xcrun simctl list devices available
+            echo "::error::No iPhone simulator compatible with this Xcode"
+            printf '%s\n' "$destinations"
             exit 1
           fi
           echo "Using simulator $udid"

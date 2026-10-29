@@ -128,7 +128,9 @@ struct TimelineTests {
     }
 
     @Test func barRangeAfterTheLastDownbeatEndsAtTheDuration() throws {
-        let last = try #require(fixture.beats.last(where: \.downbeat))
+        // Evaluated outside #require: Swift 6.0's macro expansion rejects rethrowing calls with key-path arguments.
+        let lastDownbeat = fixture.beats.last(where: \.downbeat)
+        let last = try #require(lastDownbeat)
         #expect(barRange(at: 263, in: fixture) == last.t..<263.407)
         #expect(barRange(at: 9, in: synthetic) == 8.0..<10.0)
     }

@@ -81,6 +81,8 @@ class LibrosaDetectorService:
 
             # Detect beats
             tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+            # Newer librosa returns tempo as a 1-element array; float() on it is a TypeError in NumPy >= 2.4.
+            tempo = float(np.atleast_1d(tempo)[0])
             beat_times = librosa.frames_to_time(beats, sr=sr)
 
             # Estimate downbeats (every 4th beat as a simple heuristic)

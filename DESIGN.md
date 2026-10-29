@@ -124,7 +124,7 @@ Bottom navigation with 4 tabs: **Home · Library · Tuner · Settings**.
 
 ### 3.3 Import sheet (`ImportSheet`)
 Shown after picking from Files or Media Library: file name, type · size, Duration / Quality / Storage, a note, **"Import & decode"** (primary) and **"Choose another file"** (secondary).
-> Copy fix: the prototype says "analyze this file **on your device**". v1 analyzes on the server (PLAN D-1). Use: "MusicDecoded will analyze this file and create an interactive chord timeline. Your audio stays on this device."
+> Copy fix: the prototype says "analyze this file **on your device**". v1 analyzes on the server (PLAN D-1). Use: "MusicDecoded uploads this file to our servers to analyze it and create an interactive chord timeline. A copy stays on your device for offline playback." (The upload is kept so a signed-in user can sync their own audio to other devices; the privacy policy, T-504, must say so.)
 
 ### 3.4 YouTube (`YouTubeScreen`)
 - **Search**: search field (emphasized border), suggestion chips (recent queries), "Top results" list. Result: 132×78 thumbnail with a duration badge · title (2 lines) · channel · views · age · ⋯.

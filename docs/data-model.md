@@ -22,7 +22,8 @@ Owned by the `contracts` lane. Wire formats are defined in `contracts/` and this
 | audioUploadId | String? | file/recording only; enables sync download |
 | favorite | Bool | Library "Favorites" filter; synced |
 | key, bpm | String? / Double? | copied from the analysis file so lists can show "3:22 · B minor · 140 BPM" and search by key without decoding JSON |
-| lastPlayedAt, createdAt, updatedAt | Instant | `updatedAt` drives last-write-wins |
+| lastPlayedAt | Instant? | null until first played |
+| createdAt, updatedAt | Instant | `updatedAt` drives last-write-wins |
 | deleted | Bool | tombstone |
 | *local:* status | enum | analyzing · ready · failed |
 | *local:* jobId | String? | while analyzing |
@@ -50,7 +51,7 @@ extracted-audio/{trackId}.m4a       streaming-source audio, ONLY when OFFLINE_ST
 ## 4. Redis
 
 ```
-jobs:analysis                 LIST   queue (API LPUSH, worker BLPOP)
+jobs:analysis                 LIST   FIFO queue (API RPUSH, worker BLPOP)
 job:{jobId}                   HASH   status, stage, progress, error   (TTL 1 day)
 yt:search:{sha1(q|pageToken)} STRING cached search response           (TTL 1 hour)
 rate:{userId}:{yyyymmdd}      INT    job count                        (TTL 2 days)

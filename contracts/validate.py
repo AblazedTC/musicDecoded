@@ -22,6 +22,8 @@ def check(doc):
     for a, b in zip(doc["chords"], doc["chords"][1:]):
         if b["start"] < a["end"] - 1e-3:
             errors.append(f"chords overlap at {b['start']}")
+        elif b["start"] > a["end"] + 1e-3:
+            errors.append(f"gap between chords at {a['end']}")  # the schema says contiguous; gaps are 'N' segments
     if any(c["end"] < c["start"] for c in doc["chords"]):
         errors.append("chord with end < start")
     return errors

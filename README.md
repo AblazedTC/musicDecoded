@@ -42,6 +42,10 @@ docker compose up db -d
 cd apps/api && APP_ENV=dev uv run uvicorn app.main:app --reload --port 8080
 ```
 
+> **Upgrading from the old Spring Boot API?** Its local `users` table is missing the new columns, and the API
+> only creates missing tables (migrations arrive with T-101). Reset the dev database with `docker compose down -v`,
+> which **deletes all local Postgres and MinIO data**.
+
 ## License
 
 | Part | License |

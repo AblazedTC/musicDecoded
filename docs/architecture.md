@@ -19,7 +19,7 @@ App                      API                          Redis      Worker         
  |<-- putUrl ------------|                              |           |                    |
  | PUT bytes ---------------------------------------------------------------------------->| uploads/{id}
  | POST /jobs ---------->| dedupe by sha256             |           |                    |
- |                       |-- LPUSH jobs:analysis ------>|           |                    |
+ |                       |-- RPUSH jobs:analysis ------>|           |                    |
  |<-- 202 {jobId} -------|                              |-- BLPOP ->|                    |
  | GET /jobs/{id} (poll)>| reads job:{id}:* from Redis  |<- stage --|-- get upload ----->|
  |                       |                              |           |-- put analysis --->| analysis/{trackId}.json

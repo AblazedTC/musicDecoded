@@ -17,6 +17,8 @@ cd apps/api
 $env:APP_ENV = "dev"; uv run uvicorn app.main:app --reload --port 8080
 #   macOS/Linux: APP_ENV=dev uv run uvicorn app.main:app --reload --port 8080
 #   Tests: uv run pytest
+#   Changed POSTGRES_USER/POSTGRES_PASSWORD in .env? The host-run API doesn't read .env, so also set
+#   $env:DATABASE_URL = "postgresql://<user>:<password>@localhost:5432/musicdecoded"
 
 # 3. Run the Python worker (separate terminal)
 cd apps/worker
@@ -74,7 +76,7 @@ docker compose down
 ## Mobile apps
 
 - **Android**: open `apps/android` in Android Studio and run on an emulator. The emulator reaches the API at `http://10.0.2.2:8080`.
-- **iOS**: open `apps/ios/MusicDecoded.xcodeproj` (created by T-003) and run on a simulator. The simulator reaches the API at `http://localhost:8080`.
+- **iOS** (macOS only): generate the project first: `brew install xcodegen && cd apps/ios && xcodegen generate`, then open `MusicDecoded.xcodeproj` and run on a simulator (see `apps/ios/README.md`). The simulator reaches the API at `http://localhost:8080`.
 
 ## Contracts
 
@@ -95,6 +97,8 @@ npx @redocly/cli@1 lint contracts/openapi.yaml
 | Redis         | redis://localhost:6379                        | none                        |
 | MinIO S3 API  | http://localhost:9000 (bucket `musicdecoded`) | `minioadmin` / `minioadmin` |
 | MinIO console | http://localhost:9001                         | `minioadmin` / `minioadmin` |
+
+Postgres, Redis and MinIO listen on `127.0.0.1` only, because their dev credentials are public. The Android emulator (`10.0.2.2`) and iOS simulator still reach them; a physical phone on your Wi-Fi can reach the API on port 8080 but not MinIO, so file uploads need an emulator/simulator for now.
 
 These are dev-only defaults from `docker-compose.yml`. To change them, copy `.env.example` to `.env`
 (gitignored) and edit it; compose works with no `.env` at all.

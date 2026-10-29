@@ -13,6 +13,7 @@ struct RootView: View {
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
+        .preferredColorScheme(.dark) // v1 is dark-only (DESIGN.md §1)
     }
 }
 

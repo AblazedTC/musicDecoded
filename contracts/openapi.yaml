@@ -64,7 +64,7 @@ paths:
 
   /auth/signup:
     post:
-      security: []
+      security: [{}, { bearer: [] }] # bearer optional: a guest token links that guest's data
       summary: Create an account
       description: If a guest Bearer token is sent, that guest's tracks and jobs are moved to the new account (guest → account link).
       requestBody:
@@ -78,11 +78,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400": { $ref: "#/components/responses/Error" }
         "409": { $ref: "#/components/responses/Error" }
 
   /auth/login:
     post:
-      security: []
+      security: [{}, { bearer: [] }] # bearer optional: a guest token merges that guest's data
       summary: Log in
       description: If a guest Bearer token is sent, that guest's tracks are merged into the account.
       requestBody:
@@ -96,6 +97,7 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400": { $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Error" }
 
   # ---------- uploads & jobs ----------
@@ -111,8 +113,8 @@ paths:
               required: [contentType, sizeBytes, sha256]
               properties:
                 contentType: { enum: [audio/mpeg, audio/mp4, audio/aac, audio/wav, audio/x-wav, audio/flac, audio/ogg] }
-                sizeBytes: { type: integer, maximum: 104857600 }
-                sha256: { type: string, description: "Hex digest; the server dedupes analysis on it" }
+                sizeBytes: { type: integer, minimum: 1, maximum: 104857600 }
+                sha256: { type: string, pattern: "^[a-f0-9]{64}$", description: "Lowercase hex SHA-256 of the bytes; the server dedupes analysis on it" }
       responses:
         "201":
           description: Upload target
@@ -125,7 +127,30 @@ paths:
                   uploadId: { type: string }
                   putUrl: { type: string, format: uri, description: "HTTP PUT the raw bytes here with the same Content-Type" }
                   expiresAt: { type: string, format: date-time }
+        "400": { $ref: "#/components/responses/Error" }
         "413": { $ref: "#/components/responses/Error" }
+
+  /uploads/{uploadId}:
+    get:
+      summary: Download the caller's own uploaded audio (file or recording)
+      description: |
+        Used by sync to fetch a LibraryItem's audio onto another device (LibraryItem.audioUploadId).
+        Only the account that owns the upload can read it; anyone else gets 404.
+      parameters:
+        - { name: uploadId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Audio location
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [url, contentType, expiresAt]
+                properties:
+                  url: { type: string, format: uri, description: "Presigned GET, short-lived" }
+                  contentType: { type: string }
+                  expiresAt: { type: string, format: date-time }
+        "404": { $ref: "#/components/responses/Error" }
 
   /jobs:
     post:
@@ -150,6 +175,12 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Job" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404":
+          description: "`uploadId` doesn't exist or belongs to another user"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "429": { $ref: "#/components/responses/Error" }
 
   /jobs/{jobId}:
@@ -205,6 +236,7 @@ paths:
                   url: { type: string, format: uri }
                   contentType: { type: string }
         "403": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
 
   # ---------- YouTube sandbox ----------
   /youtube/search:

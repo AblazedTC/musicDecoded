@@ -1,6 +1,13 @@
 # TASKS.md — Work board
 
-Rules: see `AGENTS.md` §2. Pick the lowest-numbered `todo` task in your lane whose deps are all `done`.
+How to work a task (people and AI agents alike):
+1. Pick the lowest-numbered `todo` task in your lane whose deps are all `done`.
+2. Claim it: set `Status: in-progress` and `Owner`, commit that change on its own, and branch as `<lane>/T-###-slug`.
+3. Stay inside the acceptance criteria. Log anything else you find as a new task instead of fixing it on the side.
+4. Prove every criterion (test, command output, or screenshot), set `Status: done` with a one-line `Notes:`, and open a PR titled `T-###: <title>`.
+5. Stuck, or need a product decision? Set `Status: blocked`, explain in `Notes:`, and stop.
+
+Lanes: `contracts`, `api`, `worker`, `android`, `ios`, `infra`, `design`. Edit only your lane's folder (plus your task's entry here). Contract changes land first, in their own `contracts` task.
 App tasks come in twins: `a` = Android, `i` = iOS. Twins share acceptance criteria and may run in parallel.
 
 Template for new tasks:
@@ -38,7 +45,7 @@ Template for new tasks:
 - Goal: A SwiftUI app `MusicDecoded` in `apps/ios` with app + unit test targets, iOS 17, bundle id `com.musicdecoded.app`.
 - Acceptance:
   - [ ] `xcodebuild … build` and `… test` succeed on the simulator
-  - [ ] Folder layout matches `apps/ios/AGENTS.md`
+  - [ ] Folder layout matches `apps/ios/README.md`
   - [ ] `contracts/fixtures/sample.analysis.json` and `contracts/chord-voicings.json` are added to the test bundle **by reference** (not copied)
   - [ ] Tab/nav shell with an empty Home screen
 - Notes: Requires macOS.
@@ -106,7 +113,7 @@ Template for new tasks:
 
 ### T-104 Jobs + tracks (`POST /jobs`, `GET /jobs/{id}`)
 - Lane: api · Status: todo · Owner: — · Deps: T-103
-- Goal: Create or reuse a track by dedupe key (sha256 / videoId / soundcloudUrl), create a job, and enqueue it to Redis list `jobs:analysis`.
+- Goal: Create or reuse a track by dedupe key (sha256 / videoId / soundcloudUrl), create a job, and enqueue it with `RPUSH` to Redis list `jobs:analysis` (FIFO with the worker's `BLPOP`).
 - Acceptance:
   - [ ] An already-analyzed dedupe key returns 200 `complete` without enqueueing
   - [ ] Queue message format is documented in `docs/data-model.md`
@@ -301,7 +308,7 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Acceptance:
   - [ ] Uses **yt-dlp as a Python library** (PLAN.md D-8), not a separate downloader service: `format=bestaudio/best`, no video download, `noplaylist`, a 10-minute max duration check *before* downloading (`extract_info(download=False)`)
   - [ ] The `youtube` job fetches by videoId and `soundcloud` by URL, into `TemporaryDirectory`; title/duration/thumbnail are written back to the track
-  - [ ] `yt-dlp` is pinned in `requirements.txt`; a note in `apps/worker/AGENTS.md` says to bump it whenever extraction breaks
+  - [ ] `yt-dlp` is pinned in `requirements.txt`; a comment next to the pin says to bump it whenever extraction breaks
   - [ ] Extraction failures (incl. bot checks, PLAN.md R-8) → job `failed` with a readable error; one retry with backoff
   - [ ] If the server flag `offlineStreamAudio` is on, the extracted audio is stored at `extracted-audio/{trackId}.m4a`; otherwise it is deleted
 - Notes: Read PLAN.md R-1 and R-8 first.
@@ -349,7 +356,7 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Acceptance:
   - [ ] `GET/PUT /sync/library` per openapi, last-write-wins on `updatedAt`, tombstones
   - [ ] Guest tokens get 403 `account_required`
-  - [ ] An upload referenced by a synced item is readable by the same account on any device
+  - [ ] `GET /uploads/{uploadId}` per openapi: presigned GET for the owning account only, 404 for anyone else
 
 ### T-403a / T-403i Account UI
 - Lane: android / ios · Status: todo · Owner: — · Deps: T-401
@@ -363,7 +370,7 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Lane: android / ios · Status: todo · Owner: — · Deps: T-402, T-403*
 - Acceptance:
   - [ ] Pull/push on foreground, after a job completes and after login; stores the cursor
-  - [ ] Downloads missing analysis files and owned audio for pulled items
+  - [ ] Downloads missing analysis files (`GET /tracks/{id}/analysis`) and owned audio (`GET /uploads/{audioUploadId}`) for pulled items
   - [ ] Test: two fake devices converge
 
 ---
@@ -421,7 +428,7 @@ Read PLAN.md §9 first. **Rule: the API enforces Pro. The apps only reflect it.*
 - Lane: infra · Status: todo · Owner: — · Deps: —
 - Goal: Make the repo welcoming for contributors and recruiters, and keep relicensing possible (PLAN.md D-9).
 - Acceptance:
-  - [ ] `CONTRIBUTING.md`: setup, lanes (link to AGENTS.md), how to pick a task, PR rules, the license split (MIT apps / AGPL backend)
+  - [ ] `CONTRIBUTING.md`: setup, lanes and the task workflow (from the top of TASKS.md), how to pick a task, PR rules, the license split (MIT apps / AGPL backend)
   - [ ] CLA via CLA Assistant (GitHub app) required on PRs that touch `apps/api` or `apps/worker`
   - [ ] Issue/PR templates; `good first issue` labels on 5 small tasks
   - [ ] README badges (license, CI) and an architecture diagram near the top

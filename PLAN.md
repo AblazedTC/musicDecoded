@@ -1,6 +1,6 @@
 # MusicDecoded — Product & Architecture Plan
 
-> Read this file before any task. It defines **what** we're building and **why**. `TASKS.md` defines the work, `AGENTS.md` defines how agents work, and `contracts/` defines the interfaces.
+> Read this file before any task. It defines **what** we're building and **why**. `TASKS.md` defines the work and how to pick it up, `DESIGN.md` the screens, and `contracts/` the interfaces.
 
 ## 1. Vision
 
@@ -92,7 +92,7 @@ The player must work with **no network** whenever `analysis/{trackId}.json` exis
 ### 5.2 Sync
 - Account tokens only. `GET /sync/library?since=cursor` and `PUT /sync/library`.
 - Conflicts resolve **last-write-wins on `updatedAt`**. Deletes are tombstones (`deleted: true`).
-- When a pulled item has no local analysis, the app downloads it via `GET /tracks/{id}/analysis`. When a pulled file/recording has no local audio, the app downloads it using `audioUploadId`.
+- When a pulled item has no local analysis, the app downloads it via `GET /tracks/{id}/analysis`. When a pulled file/recording has no local audio, the app downloads it with `GET /uploads/{audioUploadId}` (owner-only).
 - Triggers: app foreground, after a job completes, and after login.
 
 ### 5.3 Analysis pipeline (worker)
