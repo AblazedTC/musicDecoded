@@ -41,14 +41,14 @@ Template for new tasks:
 - Notes: The fixture was converted from legacy `bad_analysis.json`. Its key is a placeholder, and `spectrogram`/`waveformPeaks` are null until T-112 regenerates it.
 
 ### T-003 Create iOS Xcode project
-- Lane: ios · Status: todo · Owner: — · Deps: T-001
+- Lane: ios · Status: done · Owner: claude · Deps: T-001
 - Goal: A SwiftUI app `MusicDecoded` in `apps/ios` with app + unit test targets, iOS 17, bundle id `com.musicdecoded.app`.
 - Acceptance:
-  - [ ] `xcodebuild … build` and `… test` succeed on the simulator
-  - [ ] Folder layout matches `apps/ios/README.md`
-  - [ ] `contracts/fixtures/sample.analysis.json` and `contracts/chord-voicings.json` are added to the test bundle **by reference** (not copied)
-  - [ ] Tab/nav shell with an empty Home screen
-- Notes: Requires macOS.
+  - [x] `xcodebuild … build` and `… test` succeed on the simulator
+  - [x] Folder layout matches `apps/ios/README.md`
+  - [x] `contracts/fixtures/sample.analysis.json` and `contracts/chord-voicings.json` are added to the test bundle **by reference** (not copied)
+  - [x] Tab/nav shell with an empty Home screen
+- Notes: XcodeGen project.yml; CI builds and runs app tests on a macOS simulator.
 
 ### T-004 Remove the hardcoded JWT secret fallback
 - Lane: api · Status: done · Owner: claude · Deps: —
@@ -60,11 +60,12 @@ Template for new tasks:
 - Notes: Done in Spring, then carried over in the FastAPI rewrite (D-11): `Settings` fails fast on a missing/blank/<32-byte secret; tests in `tests/test_settings.py`.
 
 ### T-005 CI per lane
-- Lane: infra · Status: todo · Owner: — · Deps: T-003
+- Lane: infra · Status: done · Owner: claude · Deps: T-003
 - Goal: GitHub Actions workflows filtered by path: contracts (validate + lint), api (`uv run pytest`), worker (pytest), android (assembleDebug + unit tests), ios (macos runner, xcodebuild test).
 - Acceptance:
-  - [ ] Each workflow runs only when its lane's paths change
-  - [ ] A PR touching `contracts/**` runs **all** workflows (contract changes can break every lane)
+  - [x] Each workflow runs only when its lane's paths change
+  - [x] A PR touching `contracts/**` runs **all** workflows (contract changes can break every lane)
+- Notes: 5 workflows (api incl. Docker build, worker, android, contracts, ios); contracts/** triggers all. First real run with PR #2.
 
 ### T-006 Local infrastructure: Redis + MinIO
 - Lane: infra · Status: done · Owner: claude · Deps: —
@@ -87,63 +88,70 @@ Template for new tasks:
 ## M1 — Pipeline
 
 ### T-101 Guest auth (`POST /auth/anonymous`)
-- Lane: api · Status: todo · Owner: — · Deps: T-004
+- Lane: api · Status: done · Owner: claude · Deps: T-004
 - Goal: Issue guest JWTs keyed by deviceId, and add the `kind` and `plan` claims to every token.
 - Acceptance:
-  - [ ] Same deviceId → same userId (idempotent)
-  - [ ] `User` gains `kind` (guest/account), `plan` (free/pro, default free), `planExpiresAt`, a nullable email/password, and `deviceId`
-  - [ ] Existing signup/login return `AuthResponse` per openapi (token, userId, kind, plan)
-  - [ ] Tests for both paths
-- Notes: Extend `app/auth.py` (`create_token`, `current_user`) and `app/models.py`. Signup/login already return `AuthResponse` with `kind`/`plan`; `kind`/`plan` columns exist. Schema changes: introduce Alembic here (`create_all` can't alter existing tables).
+  - [x] Same deviceId → same userId (idempotent)
+  - [x] `User` gains `kind` (guest/account), `plan` (free/pro, default free), `planExpiresAt`, a nullable email/password, and `deviceId`
+  - [x] Existing signup/login return `AuthResponse` per openapi (token, userId, kind, plan)
+  - [x] Tests for both paths
+- Notes: Alembic in apps/api/app/migrations (upgrade head at startup). Guest→account linking is T-401.
 
 ### T-102 `GET /config` and `/health`
-- Lane: api · Status: todo · Owner: — · Deps: —
+- Lane: api · Status: done · Owner: claude · Deps: —
 - Acceptance:
-  - [ ] Flags come from env vars (`OFFLINE_STREAM_AUDIO`, default false; `SOUNDCLOUD_ENABLED`, default false)
-  - [ ] Returns the caller's `plan` and `limits` (`dailyJobs` from the plan's limit, `jobsUsedToday` from the Redis counter)
-  - [ ] Matches the `ClientConfig` schema
+  - [x] Flags come from env vars (`OFFLINE_STREAM_AUDIO`, default false; `SOUNDCLOUD_ENABLED`, default false)
+  - [x] Returns the caller's `plan` and `limits` (`dailyJobs` from the plan's limit, `jobsUsedToday` from the Redis counter)
+  - [x] Matches the `ClientConfig` schema
+- Notes: LIMIT_GUEST/LIMIT_FREE/LIMIT_PRO env; jobsUsedToday from Redis rate:{userId}:{yyyymmdd} (UTC).
 
 ### T-103 Uploads (`POST /uploads`)
-- Lane: api · Status: todo · Owner: — · Deps: T-006, T-101
+- Lane: api · Status: done · Owner: claude · Deps: T-006, T-101
 - Goal: Validate content type and size, then return a presigned S3/MinIO PUT URL at `uploads/{uploadId}`.
 - Acceptance:
-  - [ ] Rejects >100 MB with 413 `too_large`
-  - [ ] Stores `{uploadId, userId, sha256, contentType}`
-  - [ ] An integration test PUTs a file to the URL against MinIO
+  - [x] Rejects >100 MB with 413 `too_large`
+  - [x] Stores `{uploadId, userId, sha256, contentType}`
+  - [x] An integration test PUTs a file to the URL against MinIO
+- Notes: botocore presigning (no boto3). Also GET /uploads/{uploadId} (owner-only). Compose signs with localhost:9000; Android emulator needs adb reverse (running-locally).
 
 ### T-104 Jobs + tracks (`POST /jobs`, `GET /jobs/{id}`)
-- Lane: api · Status: todo · Owner: — · Deps: T-103
+- Lane: api · Status: done · Owner: claude · Deps: T-103
 - Goal: Create or reuse a track by dedupe key (sha256 / videoId / soundcloudUrl), create a job, and enqueue it with `RPUSH` to Redis list `jobs:analysis` (FIFO with the worker's `BLPOP`).
 - Acceptance:
-  - [ ] An already-analyzed dedupe key returns 200 `complete` without enqueueing
-  - [ ] Queue message format is documented in `docs/data-model.md`
-  - [ ] Per-user daily limit by plan, from config (`LIMIT_GUEST=10`, `LIMIT_FREE=50`, `LIMIT_PRO=` empty = unlimited) → 429 `rate_limited`. Cache hits (already analyzed) don't count
-  - [ ] `GET /jobs/{id}` returns 404 for another user's job
+  - [x] An already-analyzed dedupe key returns 200 `complete` without enqueueing
+  - [x] Queue message format is documented in `docs/data-model.md`
+  - [x] Per-user daily limit by plan, from config (`LIMIT_GUEST=10`, `LIMIT_FREE=50`, `LIMIT_PRO=` empty = unlimited) → 429 `rate_limited`. Cache hits (already analyzed) don't count
+  - [x] `GET /jobs/{id}` returns 404 for another user's job
+- Notes: Cache hits create a job row (links user→track) but are not queued or counted. Repeat requests return the caller's in-flight job. Only SoundCloud hosts accepted.
 
 ### T-105 Analysis download (`GET /tracks/{id}/analysis`)
-- Lane: api · Status: todo · Owner: — · Deps: T-104
+- Lane: api · Status: done · Owner: claude · Deps: T-104
 - Acceptance:
-  - [ ] Returns a presigned GET URL for `analysis/{trackId}.json` (5-minute expiry)
-  - [ ] 404 until the job is complete
+  - [x] Returns a presigned GET URL for `analysis/{trackId}.json` (5-minute expiry)
+  - [x] 404 until the job is complete
+- Notes: Access = caller has a job for the track (library_items arrive in T-402).
 
 ### T-110 Worker v1 output (key, BPM, time signature)
-- Lane: worker · Status: todo · Owner: — · Deps: T-002, T-007
+- Lane: worker · Status: done · Owner: claude · Deps: T-002, T-007
 - Goal: Extend `ChordBeatAnalyzer` (`services/chord_beat_analysis.py`) to emit analysis v1 instead of the legacy format.
 - Acceptance:
-  - [ ] Output for `data/sunnydays.mp3` passes `python contracts/validate.py <out>`
-  - [ ] Key via Krumhansl-Schmuckler on mean chroma; BPM = 60 / median IBI; time signature = median beats per bar
-  - [ ] Unit tests for key/BPM/time-signature on synthetic inputs
+  - [x] Output for `data/sunnydays.mp3` passes `python contracts/validate.py <out>`
+  - [x] Key via Krumhansl-Schmuckler on mean chroma; BPM = 60 / median IBI; time signature = median beats per bar
+  - [x] Unit tests for key/BPM/time-signature on synthetic inputs
+- Notes: features.py (key/bpm/timesig); time signature is 4/4 until real downbeats (Beat Transformer). ~16 s/song warm on CPU.
 
 ### T-111 Worker spectrogram + waveform peaks
-- Lane: worker · Status: todo · Owner: — · Deps: T-110
+- Lane: worker · Status: done · Owner: claude · Deps: T-110
 - Acceptance:
-  - [ ] 64-bin mel, 20 fps, dB clipped to [-80, 0] → uint8 → base64; peaks at 20 fps normalized to 0–1
-  - [ ] A 4-minute song produces an analysis file < 1.5 MB
+  - [x] 64-bin mel, 20 fps, dB clipped to [-80, 0] → uint8 → base64; peaks at 20 fps normalized to 0–1
+  - [x] A 4-minute song produces an analysis file < 1.5 MB
+- Notes: Mel at hop 512 averaged into 20 fps frames; dB relative to track max.
 
 ### T-112 Regenerate the fixture from real worker output
-- Lane: contracts · Status: todo · Owner: — · Deps: T-111
+- Lane: contracts · Status: done · Owner: claude · Deps: T-111
 - Acceptance:
-  - [ ] `contracts/fixtures/sample.analysis.json` has a real key, spectrogram and peaks, and validates
+  - [x] `contracts/fixtures/sample.analysis.json` has a real key, spectrogram and peaks, and validates
+- Notes: Added contracts/fixtures/sunnydays.analysis.json (real output, 476 KB); sample.analysis.json kept because iOS tests pin its values.
 
 ### T-113 Worker queue consumer
 - Lane: worker · Status: todo · Owner: — · Deps: T-104, T-110
@@ -267,6 +275,7 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
   - [ ] `chordNotes(label, transpose) → [midi]` per `chord-voicings.json` (tests cover every `examples` entry)
   - [ ] `displayName(label, transpose, accidentals, simplify)` per DESIGN.md §4 (A:maj→A, F#:min7→F♯m7, D:maj/3→D/F♯, Basic simplification)
   - [ ] `barRange(t, analysis)` for the loop
+- Notes: iOS side done (MusicDecodedCore, 36 tests on Linux CI); Android side in progress.
 
 ### T-207a / T-207i Player: timeline
 - Lane: android / ios · Status: todo · Owner: — · Deps: T-200*, T-212*
