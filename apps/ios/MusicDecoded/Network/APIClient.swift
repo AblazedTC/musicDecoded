@@ -88,8 +88,13 @@ struct APIClient: Sendable {
         token: String? = nil
     ) async throws -> Response {
         var url = baseURL.appending(path: path)
-        if query.isEmpty == false {
-            url.append(queryItems: query)
+        if query.isEmpty == false,
+           var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
+            components.queryItems = query
+            // URLComponents leaves "+" as is, and servers decode it as a space ("c++" -> "c  ").
+            components.percentEncodedQuery = components.percentEncodedQuery?
+                .replacingOccurrences(of: "+", with: "%2B")
+            url = components.url ?? url
         }
         var request = URLRequest(url: url)
         request.httpMethod = method

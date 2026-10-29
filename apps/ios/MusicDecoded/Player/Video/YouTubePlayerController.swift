@@ -1,5 +1,6 @@
 import Foundation
 import WebKit
+import UIKit
 
 /// The official YouTube IFrame Player API in a `WKWebView` (PLAN.md D-4, T-305i). Commands go in
 /// with `evaluateJavaScript`; state and `currentTime` come back through a `WKScriptMessageHandler`.
@@ -135,6 +136,15 @@ private final class Bridge: NSObject, @preconcurrency WKScriptMessageHandler, @p
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let parsed = YouTubeBridgeMessage(body: message.body) else { return }
         controller?.handle(parsed)
+    }
+
+    /// Taps on links inside the embed (YouTube logo, title) open in Safari instead of
+    /// replacing the player page; the page itself and the embed's iframes load normally.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
+        let isUserLink = navigationAction.navigationType == .linkActivated || navigationAction.targetFrame == nil
+        guard isUserLink, let url = navigationAction.request.url else { return .allow }
+        await UIApplication.shared.open(url)
+        return .cancel
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: any Error) {
