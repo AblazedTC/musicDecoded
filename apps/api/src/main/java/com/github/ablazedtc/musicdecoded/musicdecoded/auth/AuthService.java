@@ -1,7 +1,9 @@
 package com.github.ablazedtc.musicdecoded.musicdecoded.auth;
 
+import com.github.ablazedtc.musicdecoded.musicdecoded.common.ApiException;
 import com.github.ablazedtc.musicdecoded.musicdecoded.user.User;
 import com.github.ablazedtc.musicdecoded.musicdecoded.user.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +22,7 @@ public class AuthService {
 
     public String register(AuthRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already in use");
+            throw new ApiException(HttpStatus.CONFLICT, "conflict", "Email already in use");
         }
 
         User user = new User();
@@ -32,12 +34,10 @@ public class AuthService {
     }
 
     public String login(AuthRequest request) {
+        // Same error for unknown email and wrong password, so callers can't probe which emails have accounts.
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid password");
-        }
+                .filter(u -> passwordEncoder.matches(request.getPassword(), u.getPasswordHash()))
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "unauthorized", "Invalid email or password"));
 
         return jwtService.generateToken(user.getEmail());
     }
