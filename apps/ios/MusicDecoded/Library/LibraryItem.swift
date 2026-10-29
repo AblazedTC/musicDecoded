@@ -121,6 +121,72 @@ extension LibraryItem {
         )
     }
 
+    /// Library search (DESIGN.md §3.2), newest first: `query.text` against title, artist and key
+    /// (case- and diacritic-insensitive), narrowed by the filter. Runs in the store.
+    static func search(_ query: LibraryQuery) -> FetchDescriptor<LibraryItem> {
+        let text = query.text
+        let anyText = text.isEmpty
+        let predicate: Predicate<LibraryItem>
+        switch query.filter {
+        case .all:
+            predicate = #Predicate<LibraryItem> { item in
+                !item.tombstoned
+                    && (anyText
+                        || item.title.localizedStandardContains(text)
+                        || (item.artist?.localizedStandardContains(text) ?? false)
+                        || (item.key?.localizedStandardContains(text) ?? false))
+            }
+        case .favorites:
+            predicate = #Predicate<LibraryItem> { item in
+                !item.tombstoned && item.favorite
+                    && (anyText
+                        || item.title.localizedStandardContains(text)
+                        || (item.artist?.localizedStandardContains(text) ?? false)
+                        || (item.key?.localizedStandardContains(text) ?? false))
+            }
+        case .offline:
+            predicate = #Predicate<LibraryItem> { item in
+                !item.tombstoned && item.localAudioPath != nil
+                    && (anyText
+                        || item.title.localizedStandardContains(text)
+                        || (item.artist?.localizedStandardContains(text) ?? false)
+                        || (item.key?.localizedStandardContains(text) ?? false))
+            }
+        case .recordings:
+            let recording = Analysis.Source.recording.rawValue
+            predicate = #Predicate<LibraryItem> { item in
+                !item.tombstoned && item.sourceRawValue == recording
+                    && (anyText
+                        || item.title.localizedStandardContains(text)
+                        || (item.artist?.localizedStandardContains(text) ?? false)
+                        || (item.key?.localizedStandardContains(text) ?? false))
+            }
+        }
+        return FetchDescriptor(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse), SortDescriptor(\.trackId)]
+        )
+    }
+
+    /// Visible items whose analysis is ready (the Library's "songs decoded" count).
+    static var decodedItems: FetchDescriptor<LibraryItem> {
+        let ready = Status.ready.rawValue
+        return FetchDescriptor(
+            predicate: #Predicate<LibraryItem> { item in
+                !item.tombstoned && item.statusRawValue == ready
+            }
+        )
+    }
+
+    /// Visible items with audio on this device (the "available offline" count).
+    static var offlineItems: FetchDescriptor<LibraryItem> {
+        FetchDescriptor(
+            predicate: #Predicate<LibraryItem> { item in
+                !item.tombstoned && item.localAudioPath != nil
+            }
+        )
+    }
+
     /// The row for `trackId`, including tombstones.
     static func withTrackId(_ trackId: String) -> FetchDescriptor<LibraryItem> {
         var descriptor = FetchDescriptor(
