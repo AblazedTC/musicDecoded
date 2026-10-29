@@ -27,6 +27,7 @@ Owned by the `contracts` lane. Wire formats are defined in `contracts/` and this
 | deleted | Bool | tombstone |
 | *local:* status | enum | analyzing · ready · failed |
 | *local:* jobId | String? | while analyzing |
+| *local:* error | String? | last failure message shown with Retry (status = failed) |
 | *local:* localAudioPath | String? | null if streaming-only |
 | *local:* syncedAt | Instant? | |
 
