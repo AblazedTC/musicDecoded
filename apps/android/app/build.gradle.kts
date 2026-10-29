@@ -36,6 +36,10 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets {
+        // Unit tests read the shared contracts (fixture, voicings) straight from the repo, never a copy.
+        getByName("test").resources.srcDir("../../../contracts")
+    }
 }
 
 dependencies {
