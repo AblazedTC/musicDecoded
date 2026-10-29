@@ -6,6 +6,8 @@ import SwiftUI
 enum SourceRoute: Hashable, Sendable {
     case files
     case mediaLibrary
+    /// The Recorder, pushed onto the caller's `NavigationStack`.
+    case record
 }
 
 extension View {
@@ -46,6 +48,7 @@ private struct SourceRoutesModifier: ViewModifier {
     @State private var showFilePicker = false
     @State private var sheet: Sheet?
     @State private var next: Next?
+    @State private var showRecorder = false
 
     func body(content: Content) -> some View {
         content
@@ -72,12 +75,24 @@ private struct SourceRoutesModifier: ViewModifier {
                     ImportSheet(model: importModel, onImport: importAndDecode, onChooseAnother: chooseAnother)
                 }
             }
+            .navigationDestination(isPresented: $showRecorder) {
+                RecorderView { trackId in
+                    showRecorder = false
+                    onDecodeStarted(trackId)
+                }
+            }
     }
 
     private func open(_ newRoute: SourceRoute) {
+        if newRoute == .record {
+            showRecorder = true
+            return
+        }
         importModel.reset()
         importOrigin = newRoute
         switch newRoute {
+        case .record:
+            break
         case .files:
             showFilePicker = true
         case .mediaLibrary:

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Placeholder. The real Home screen is T-203i; the source cards below are the entry points it
-/// will keep (Files, Media Library; `SourceRoute`).
+/// will keep (Files, Media Library, Record; `SourceRoute`).
 struct HomeView: View {
     @State private var sourceRoute: SourceRoute?
 
@@ -25,6 +25,9 @@ struct HomeView: View {
                             SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary) {
                                 sourceRoute = .mediaLibrary
                             }
+                        }
+                        SourceCard(title: "Record Audio", subtitle: "Capture a live performance", systemImage: "mic", tint: .record) {
+                            sourceRoute = .record
                         }
                     }
                 }

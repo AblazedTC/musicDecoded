@@ -12,4 +12,7 @@ enum ComponentSize {
     static let sourceIconTile: CGFloat = 44
     static let primaryButtonHeight: CGFloat = 48
     static let searchFieldHeight: CGFloat = 44
+    /// Recorder: live waveform drawing height and input-meter segment height.
+    static let recorderWaveformHeight: CGFloat = 112
+    static let meterSegmentHeight: CGFloat = 20
 }
