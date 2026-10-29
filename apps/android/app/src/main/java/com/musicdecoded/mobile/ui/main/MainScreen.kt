@@ -52,7 +52,9 @@ fun MainScreen() {
                     HomeScreen(homeNavigation(navController))
                 }
             }
-            composable(AppTab.LIBRARY.route) { LibraryScreen() }
+            composable(AppTab.LIBRARY.route) {
+                LibraryScreen(onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) }, onOpenProcessing = {})
+            }
             composable(AppTab.SETTINGS.route) { SettingsScreen() }
             playerDestinations(navController)
             sourceRoutes(navController)

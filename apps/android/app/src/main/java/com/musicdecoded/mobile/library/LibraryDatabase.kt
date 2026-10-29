@@ -32,6 +32,35 @@ interface LibraryDao {
     @Query("SELECT * FROM library_items WHERE deleted = 0 ORDER BY createdAt DESC, trackId LIMIT :limit")
     fun recent(limit: Int): Flow<List<LibraryItem>>
 
+    /**
+     * Library search (DESIGN.md §3.2), newest first. [pattern] is matched with `LIKE` against title,
+     * artist and key (`''` = everything; escape `%`, `_` and `!` with `!`, see [likePattern]). [source] is a [com.musicdecoded.mobile.core.Source] name.
+     */
+    @Query(
+        """
+        SELECT * FROM library_items WHERE deleted = 0
+          AND (:pattern = ''
+               OR title LIKE '%' || :pattern || '%' ESCAPE '!'
+               OR artist LIKE '%' || :pattern || '%' ESCAPE '!'
+               OR musicKey LIKE '%' || :pattern || '%' ESCAPE '!')
+          AND (:favoritesOnly = 0 OR favorite = 1)
+          AND (:offlineOnly = 0 OR localAudioPath IS NOT NULL)
+          AND (:source IS NULL OR source = :source)
+        ORDER BY createdAt DESC, trackId
+        """,
+    )
+    fun search(pattern: String, favoritesOnly: Boolean, offlineOnly: Boolean, source: String?): Flow<List<LibraryItem>>
+
+    /** Library summary: decoded (ready) and available-offline (audio on this device) counts. */
+    @Query(
+        """
+        SELECT COALESCE(SUM(status = 'READY'), 0) AS decoded,
+               COALESCE(SUM(localAudioPath IS NOT NULL), 0) AS offline
+        FROM library_items WHERE deleted = 0
+        """,
+    )
+    fun counts(): Flow<LibraryCounts>
+
     /** Tombstone delete: the row stays with `deleted = 1` so the delete can sync. */
     @Query("UPDATE library_items SET deleted = 1, updatedAt = :now WHERE trackId = :trackId")
     suspend fun markDeleted(trackId: String, now: Instant)
@@ -43,6 +72,12 @@ interface LibraryDao {
     @Query("UPDATE library_items SET favorite = :favorite, updatedAt = :now WHERE trackId = :trackId")
     suspend fun setFavorite(trackId: String, favorite: Boolean, now: Instant)
 }
+
+data class LibraryCounts(val decoded: Int, val offline: Int)
+
+/** Escapes user text for [LibraryDao.search]'s `LIKE … ESCAPE '!'`. */
+fun likePattern(text: String): String =
+    text.replace("!", "!!").replace("%", "!%").replace("_", "!_")
 
 class InstantConverters {
     @TypeConverter fun toEpochMillis(value: Instant?): Long? = value?.toEpochMilli()
