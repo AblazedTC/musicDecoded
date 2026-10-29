@@ -1,0 +1,92 @@
+package com.musicdecoded.mobile.player
+
+import com.musicdecoded.mobile.core.Analysis
+import com.musicdecoded.mobile.core.Contracts
+import com.musicdecoded.mobile.core.SyntheticAnalysis
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class TimelineMathTest {
+    private val synthetic = SyntheticAnalysis.make()
+
+    @Test fun viewportKeepsThePlayheadAtTheCenter() {
+        val viewport = TimelineViewport(width = 400f, playhead = 10.0, pxPerSec = 100f)
+        assertEquals(200f, viewport.x(10.0), 0.001f)
+        assertEquals(300f, viewport.x(11.0), 0.001f)
+        assertEquals(8.0, viewport.startTime, 1e-9)
+        assertEquals(12.0, viewport.endTime, 1e-9)
+        assertEquals(11.5, viewport.time(350f), 1e-9)
+    }
+
+    @Test fun zoomIsClampedTo60to400() {
+        assertEquals(60f, clampZoom(10f))
+        assertEquals(400f, clampZoom(1000f))
+        assertEquals(120f, clampZoom(DEFAULT_ZOOM_DP_PER_SEC))
+    }
+
+    @Test fun visibleChordsAreOnlyThoseOverlappingTheWindow() {
+        // A:maj 0–2 · N 2–4 · N 4–5 · D:maj 5–8 · N 8–10
+        assertEquals(1..3, visibleChordIndices(synthetic.chords, 3.0, 6.0))
+        assertEquals(0..0, visibleChordIndices(synthetic.chords, -5.0, 1.0))
+        assertEquals(4..4, visibleChordIndices(synthetic.chords, 9.0, 20.0))
+        assertTrue(visibleChordIndices(emptyList(), 0.0, 1.0).isEmpty())
+    }
+
+    @Test fun visibleBeatsAreInclusive() {
+        assertEquals(2..5, visibleBeatIndices(synthetic.beats, 2.0, 5.0))
+        assertTrue(visibleBeatIndices(synthetic.beats, -3.0, -1.0).isEmpty())
+    }
+
+    @Test fun visiblePeaksFollowFps() {
+        val peaks = Analysis.WaveformPeaks(fps = 10.0, peaks = List(100) { 0.5 })
+        assertEquals(20..40, visiblePeakIndices(peaks, 2.0, 4.0))
+        assertEquals(0..5, visiblePeakIndices(peaks, -3.0, 0.5))
+        assertEquals(90..99, visiblePeakIndices(peaks, 9.0, 30.0))
+        assertTrue(visiblePeakIndices(peaks, -3.0, -1.0).isEmpty())
+        assertTrue(visiblePeakIndices(peaks, 11.0, 12.0).isEmpty())
+    }
+
+    @Test fun sunnyDaysFixtureDrawsAFewHundredPeaksPerScreen() {
+        val analysis = Analysis.decode(Contracts.text("fixtures/sunnydays.analysis.json"))
+        val peaks = checkNotNull(analysis.waveformPeaks)
+        // 400 px wide at 120 px/s ≈ 3.3 s visible → ~67 bars, not all 4976.
+        val viewport = TimelineViewport(400f, 60.0, 120f)
+        val visible = visiblePeakIndices(peaks, viewport.startTime, viewport.endTime)
+        assertTrue(visible.count() in 60..70)
+    }
+
+    @Test fun snapsToTheNearestBeat() {
+        assertEquals(3.0, snapToBeat(3.4, synthetic.beats), 1e-9)
+        assertEquals(4.0, snapToBeat(3.6, synthetic.beats), 1e-9)
+        assertEquals(0.0, snapToBeat(-2.0, synthetic.beats), 1e-9)
+        assertEquals(9.0, snapToBeat(42.0, synthetic.beats), 1e-9)
+        assertEquals(1.7, snapToBeat(1.7, emptyList()), 1e-9)
+    }
+
+    @Test fun draggedLoopSnapsInEitherDirection() {
+        assertEquals(2.0..<6.0, snappedLoop(5.8, 2.2, synthetic))
+        assertEquals(2.0..<6.0, snappedLoop(2.2, 5.8, synthetic))
+    }
+
+    @Test fun tinyDragExtendsToTheNextBeat() {
+        assertEquals(3.0..<4.0, snappedLoop(3.1, 3.2, synthetic))
+    }
+
+    @Test fun dragPastTheLastBeatEndsAtTheDuration() {
+        assertEquals(9.0..<10.0, snappedLoop(9.2, 9.3, synthetic))
+    }
+
+    @Test fun noBeatsStillGivesALoop() {
+        val noBeats = synthetic.copy(beats = emptyList())
+        assertEquals(2.5..<4.0, snappedLoop(2.5, 4.0, noBeats))
+        assertNull(snappedLoop(-5.0, -1.0, noBeats.copy(meta = noBeats.meta.copy(durationSec = 0.0))))
+    }
+
+    @Test fun labelStepKeepsLabelsApart() {
+        assertEquals(1, timeLabelStep(pxPerSec = 120f, minSpacingPx = 56f))
+        assertEquals(2, timeLabelStep(pxPerSec = 40f, minSpacingPx = 56f))
+        assertEquals(60, timeLabelStep(pxPerSec = 0.1f, minSpacingPx = 56f))
+    }
+}

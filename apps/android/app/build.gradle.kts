@@ -49,6 +49,17 @@ android {
     sourceSets {
         // Unit tests read the shared contracts (fixture, voicings) straight from the repo, never a copy.
         getByName("test").resources.srcDir("../../../contracts")
+        // The app reads chord-voicings.json from assets, straight from the repo (no copy). Debug builds
+        // also get the fixtures, so the player can be tried without the backend.
+        getByName("main").assets.srcDir("../../../contracts")
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        // Only the JSON the app reads is packaged from contracts/; fixtures are debug-only.
+        variant.androidResources.ignoreAssetsPatterns.addAll("*.py", "*.yaml", "*.schema.json")
+        if (!variant.debuggable) variant.androidResources.ignoreAssetsPatterns.add("<dir>fixtures")
     }
 }
 
