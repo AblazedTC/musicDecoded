@@ -1,0 +1,5 @@
+// Debug settings for every target (wired up in project.yml `configFiles`).
+// `//` starts a comment in xcconfig files, hence `/$()/` in URLs.
+
+// Local API (docker compose or ./mvnw spring-boot:run).
+API_BASE_URL = http:/$()/localhost:8080

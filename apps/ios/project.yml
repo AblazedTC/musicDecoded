@@ -1,0 +1,109 @@
+# XcodeGen spec. Generate the project with:  xcodegen generate
+# MusicDecoded.xcodeproj is generated and NOT committed (see .gitignore).
+name: MusicDecoded
+
+options:
+  bundleIdPrefix: com.musicdecoded
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+
+configFiles:
+  Debug: Config/Debug.xcconfig
+  Release: Config/Release.xcconfig
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+
+packages:
+  MusicDecodedCore:
+    path: Packages/MusicDecodedCore
+
+targets:
+  MusicDecoded:
+    type: application
+    platform: iOS
+    sources:
+      - path: MusicDecoded
+    dependencies:
+      - package: MusicDecodedCore
+    info:
+      path: Generated/MusicDecoded-Info.plist
+      properties:
+        CFBundleDisplayName: MusicDecoded
+        LSRequiresIPhoneOS: true
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSMicrophoneUsageDescription: "MusicDecoded records audio so it can transcribe the chords."
+        # Read at runtime via Bundle.main.object(forInfoDictionaryKey: "APIBaseURL").
+        APIBaseURL: $(API_BASE_URL)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.musicdecoded.app
+        PRODUCT_NAME: MusicDecoded
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: NO
+        # The ATS script below edits the built Info.plist, which the script sandbox forbids.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    postBuildScripts:
+      # The Info.plist is generated once for all configurations, so the Debug-only
+      # ATS exception (plain HTTP to http://localhost:8080) is added to the built copy here.
+      - name: "ATS: allow localhost (Debug only)"
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)
+        script: |
+          if [ "${CONFIGURATION}" != "Debug" ]; then
+            exit 0
+          fi
+          PLIST="${TARGET_BUILD_DIR}/${INFOPLIST_PATH}"
+          /usr/libexec/PlistBuddy -c "Delete :NSAppTransportSecurity" "$PLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy \
+            -c "Add :NSAppTransportSecurity dict" \
+            -c "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true" \
+            "$PLIST"
+
+  MusicDecodedTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: MusicDecodedTests
+      # Contracts are referenced from the repo, not copied (T-003).
+      - path: ../../contracts/fixtures/sample.analysis.json
+        buildPhase: resources
+        group: Contracts
+      - path: ../../contracts/chord-voicings.json
+        buildPhase: resources
+        group: Contracts
+    dependencies:
+      - target: MusicDecoded
+      - package: MusicDecodedCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.musicdecoded.app.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  MusicDecoded:
+    build:
+      targets:
+        MusicDecoded: all
+        MusicDecodedTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MusicDecodedTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
