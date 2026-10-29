@@ -39,5 +39,4 @@ jobs:
           java-version: "21"
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test
-        # gradlew is committed without the executable bit (mode 100644), so invoke it through sh.
-        run: sh ./gradlew assembleDebug testDebugUnitTest
+        run: ./gradlew assembleDebug testDebugUnitTest
