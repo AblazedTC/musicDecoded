@@ -84,6 +84,7 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.media3.exoplayer)
     implementation(libs.room.runtime)
+    implementation(libs.work.runtime.ktx)
     ksp(libs.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)

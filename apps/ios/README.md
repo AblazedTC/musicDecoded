@@ -6,7 +6,7 @@ SwiftUI app for iOS 17+, Swift 6.
 apps/ios/
   project.yml                  XcodeGen spec (the .xcodeproj is generated, not committed)
   Config/                      Debug/Release xcconfig (API_BASE_URL)
-  MusicDecoded/                app sources (App/, UI/…)
+  MusicDecoded/                app sources (App/, Auth/, Network/, Library/, UI/)
   MusicDecodedTests/           app unit tests (Swift Testing)
   Packages/MusicDecodedCore/   pure logic: analysis model, chord voicings, theory helpers
 ```

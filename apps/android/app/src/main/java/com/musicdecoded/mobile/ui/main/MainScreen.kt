@@ -17,6 +17,7 @@ import com.musicdecoded.mobile.BuildConfig
 import com.musicdecoded.mobile.player.DebugFixtures
 import com.musicdecoded.mobile.player.PlayerRoutes
 import com.musicdecoded.mobile.player.playerDestinations
+import com.musicdecoded.mobile.sources.sourceRoutes
 import com.musicdecoded.mobile.ui.components.AppTab
 import com.musicdecoded.mobile.ui.components.MdBottomBar
 import com.musicdecoded.mobile.ui.home.HomeScreen
@@ -50,6 +51,7 @@ fun MainScreen() {
             composable(AppTab.LIBRARY.route) { LibraryScreen() }
             composable(AppTab.SETTINGS.route) { SettingsScreen() }
             playerDestinations(navController)
+            sourceRoutes(navController)
         }
     }
 }

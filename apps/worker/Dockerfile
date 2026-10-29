@@ -16,5 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Placeholder: keeps the container running until a proper HTTP/queue entrypoint is added
-CMD ["python", "-c", "import time; print('Worker ready'); [time.sleep(60) for _ in iter(int, 1)]"]
+# The consumer validates every analysis against the contract before saving it.
+# `contracts` is a named build context (docker-compose.yml additional_contexts);
+# services/consumer.py finds it at /contracts.
+COPY --from=contracts analysis.schema.json validate.py /contracts/
+
+ENV PYTHONUNBUFFERED=1
+# BLPOP jobs:analysis -> analyze -> analysis/{trackId}.json (T-113)
+CMD ["python", "services/consumer.py"]

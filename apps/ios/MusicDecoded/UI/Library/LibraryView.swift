@@ -9,6 +9,8 @@ struct LibraryView: View {
                 systemImage: "music.note.list",
                 description: Text("Everything you decode is saved here.")
             )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.canvas)
             .navigationTitle("Library")
         }
     }
