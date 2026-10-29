@@ -85,6 +85,8 @@ class ChordBeatAnalyzer:
 
         if not self.chord_service.is_available():
             raise RuntimeError("Chord-CNN-LSTM is not available")
+        # Weights load once per process, here, not on every job (T-118).
+        print(f"Chord-CNN-LSTM weights loaded in {self.chord_service.preload():.2f}s")
 
     @contextmanager
     def _stage(self, name: str):

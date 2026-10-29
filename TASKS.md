@@ -197,11 +197,12 @@ Template for new tasks:
   - [ ] Test with a fake clock
 
 ### T-118 Load the chord model once per process
-- Lane: worker · Status: todo · Owner: — · Deps: T-113
+- Lane: worker · Status: done · Owner: claude · Deps: T-113
 - Goal: `chord_recognition()` in the submodule reloads weights on every job (~seconds each).
 - Acceptance:
-  - [ ] Wrap the model so weights load at consumer startup (without editing the submodule); per-job chords stage time drops measurably
-  - [ ] T-115 benchmark numbers updated
+  - [x] Wrap the model so weights load at consumer startup (without editing the submodule); per-job chords stage time drops measurably
+  - [ ] T-115 benchmark numbers updated (T-115 has no numbers yet; it should measure with this cache in place)
+- Notes: `cache_networks()` in chord_cnn_lstm_service.py swaps the submodule's `NetworkInterface` for a per-process cache; `ChordBeatAnalyzer()` preloads the 5 nets (1.4 s). sunnydays.mp3, 3 runs each, first job chords stage median 6.9 s → 5.9 s; later jobs save only ~0.08 s (a warm reload of the 28 MB of checkpoints is cheap; the cost was the first, cold load).
 
 ### T-119 Leave key empty for near-silent or keyless audio
 - Lane: worker · Status: todo · Owner: — · Deps: T-110
