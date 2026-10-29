@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.14-slim
 
 # System dependencies (ffmpeg for audio, libsndfile for audio file reading,
 # gcc/g++ for any dependency that has no prebuilt wheel)

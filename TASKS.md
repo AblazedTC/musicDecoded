@@ -373,13 +373,13 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: services/fetch.py + tests/test_fetch.py (fake yt-dlp); flag read from env `OFFLINE_STREAM_AUDIO`. The pin (2025.10.14) is the newest yt-dlp for Python 3.9 and already fails on YouTube ("The page needs to be reloaded"); the same fetch.py works with yt-dlp 2026.10.26 on 3.12 (2 MB in 2.4 s). See T-307.
 
 ### T-307 Worker image on Python 3.10+ so yt-dlp can stay current
-- Lane: worker · Status: todo · Owner: — · Deps: T-302
+- Lane: worker · Status: done · Owner: claude · Deps: T-302
 - Goal: PLAN.md R-8. yt-dlp needs Python 3.10+ since late 2025, so the 3.9 image is stuck on a release YouTube already rejects.
 - Acceptance:
-  - [ ] Dockerfile on python:3.11-slim (or newer); the chord model, librosa path and `python -m pytest` still pass; `data/sunnydays.mp3` output still validates
-  - [ ] `yt-dlp` pinned to a current release; a JS runtime (deno) in the image for YouTube (yt-dlp EJS)
-  - [ ] A real YouTube fetch succeeds from the container
-- Notes: Found in T-302. CI (`.github/workflows/worker.yml`, infra lane) also pins 3.9.
+  - [x] Dockerfile on python:3.11-slim (or newer); the chord model, librosa path and `python -m pytest` still pass; `data/sunnydays.mp3` output still validates
+  - [x] `yt-dlp` pinned to a current release; a JS runtime (deno) in the image for YouTube (yt-dlp EJS)
+  - [x] A real YouTube fetch succeeds from the container
+- Notes: Image, CI and docs on Python 3.14 (3.13 also works). `yt-dlp[default,deno]==2026.10.26` installs yt-dlp-ejs plus deno as a wheel, so no apt step is needed. New dep `audioop-lts` (3.13+): pydub, imported by the chord model, needs the removed stdlib audioop. In the container, "Monkeys Spinning Monkeys" took 8.7 s to fetch and 17.7 s to analyze, and the output validates.
 
 ### T-303 `GET /tracks/{id}/audio`
 - Lane: api · Status: todo · Owner: — · Deps: T-302

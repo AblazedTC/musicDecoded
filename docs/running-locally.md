@@ -20,9 +20,9 @@ $env:APP_ENV = "dev"; uv run uvicorn app.main:app --reload --port 8080
 #   Changed POSTGRES_USER/POSTGRES_PASSWORD in .env? The host-run API doesn't read .env, so also set
 #   $env:DATABASE_URL = "postgresql://<user>:<password>@localhost:5432/musicdecoded"
 
-# 3. Run the worker's queue consumer (separate terminal). Python 3.9 venv, CPU torch:
+# 3. Run the worker's queue consumer (separate terminal). Python 3.14 venv, CPU torch:
 cd apps/worker
-uv venv --python 3.9 .venv
+uv venv --python 3.14 .venv
 uv pip install --python .venv -r requirements.txt -r requirements-dev.txt --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match
 $env:REDIS_URL = "redis://127.0.0.1:6379"
 $env:DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/musicdecoded"
@@ -38,7 +38,9 @@ IPv6 first on Windows, and the containers only listen on IPv4.
 
 The consumer normalizes audio with FFmpeg when it is on `PATH` (the Docker image has it) and otherwise falls
 back to librosa decoding; it logs which one it used. It needs the chord model submodule
-(`git submodule update --init`), or point `CHORD_MODEL_DIR` at a checkout of it.
+(`git submodule update --init`), or point `CHORD_MODEL_DIR` at a checkout of it. YouTube/SoundCloud jobs
+need FFmpeg on `PATH` (librosa can't decode the `.webm`/`.m4a` that yt-dlp downloads); `requirements.txt`
+installs yt-dlp with deno, the JS runtime YouTube extraction needs.
 
 ## End-to-end check
 
@@ -97,7 +99,7 @@ docker compose down
 | ----------- | ----------------------- | -------------------------------- |
 | Docker      | Run containers          | DB/Redis/MinIO (local dev) + full deployment |
 | uv (Python 3.13) | Run and test the API | Local dev                  |
-| Python 3.9+ | Run the worker          | Local dev                        |
+| Python 3.14 | Run the worker          | Local dev (same as the image)    |
 | Android Studio | Build/run `apps/android` | Android lane                 |
 | Xcode 16+ (macOS) | Build/run `apps/ios` | iOS lane                       |
 
