@@ -203,6 +203,13 @@ Template for new tasks:
   - [ ] Wrap the model so weights load at consumer startup (without editing the submodule); per-job chords stage time drops measurably
   - [ ] T-115 benchmark numbers updated
 
+### T-119 Leave key empty for near-silent or keyless audio
+- Lane: worker · Status: todo · Owner: — · Deps: T-110
+- Goal: Emulator QA: a near-silent recording got key "F♯ minor" and 129 BPM.
+- Acceptance:
+  - [ ] `key` is null when the Krumhansl correlation (confidence) is below a threshold or the signal RMS is near silence; `bpm` null when there are too few beats
+  - [ ] Unit tests with silence and noise
+
 ---
 
 ## M2 — Apps core (Android ‖ iOS)
@@ -328,6 +335,17 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
   - [ ] Visualizer Piano | Video toggle; Video is disabled unless the source is youtube; expand → learning view
   - [ ] Learning view per DESIGN.md §3.8: current/up-next card, position bar, progression strip (auto-scrolls), Speed/Loop/Note names/Transpose controls, big transport; a wider keyboard in landscape
 - Notes: Android done; iOS in progress.
+
+### T-213a / T-213i Visual polish from device QA
+- Lane: android / ios · Status: todo · Owner: — · Deps: M2
+- Goal: Remaining mismatches vs DESIGN.md found on the Android emulator (check the iOS equivalents on a simulator).
+- Acceptance:
+  - [ ] Player header ⋯ menu (Delete, Re-analyze, Favorite)
+  - [ ] Seek bar styled per DESIGN (thin track, round thumb), not the stock slider
+  - [ ] Song rows show the same initial-letter art as the mini player/Processing when there's no thumbnail
+  - [ ] Import sheet presented over Home, not an empty screen
+  - [ ] Media Library opens a proper audio picker (not the ringtone-style chooser) where the platform allows
+  - [ ] Delete-while-playing clears the mini player (logic tested; confirm on device)
 
 ---
 
