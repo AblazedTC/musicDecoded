@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app import auth, config, errors, uploads
+from app import auth, config, errors, jobs, uploads
 from app.db import migrate
 from app.settings import get_settings
 
@@ -20,6 +20,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(config.router)
     app.include_router(uploads.router)
+    app.include_router(jobs.router)
 
     @app.get("/health")
     def health() -> dict:
