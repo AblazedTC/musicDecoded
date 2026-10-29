@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.musicdecoded.mobile.sources.sourceRoutes
 import com.musicdecoded.mobile.ui.components.AppTab
 import com.musicdecoded.mobile.ui.components.MdBottomBar
 import com.musicdecoded.mobile.ui.home.HomeScreen
@@ -34,6 +35,7 @@ fun MainScreen() {
             composable(AppTab.HOME.route) { HomeScreen(onSeeAll = { navController.selectTab(AppTab.LIBRARY) }) }
             composable(AppTab.LIBRARY.route) { LibraryScreen() }
             composable(AppTab.SETTINGS.route) { SettingsScreen() }
+            sourceRoutes(navController)
         }
     }
 }
