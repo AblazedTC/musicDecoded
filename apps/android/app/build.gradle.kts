@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -69,9 +70,12 @@ dependencies {
     implementation(libs.navigation.compose)
     implementation(libs.datastore.preferences)
     implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.room.runtime)
+    ksp(libs.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

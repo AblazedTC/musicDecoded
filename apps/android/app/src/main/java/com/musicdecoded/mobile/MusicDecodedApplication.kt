@@ -4,6 +4,9 @@ import android.app.Application
 import android.util.Log
 import com.musicdecoded.mobile.auth.AuthRepository
 import com.musicdecoded.mobile.auth.TokenStore
+import com.musicdecoded.mobile.library.AnalysisStore
+import com.musicdecoded.mobile.library.LibraryDatabase
+import java.io.File
 import com.musicdecoded.mobile.network.AuthApiService
 import com.musicdecoded.mobile.network.ConfigApiService
 import com.musicdecoded.mobile.network.createHttpClient
@@ -25,6 +28,9 @@ class MusicDecodedApplication : Application() {
             TokenStore(this),
         )
     }
+
+    val libraryDatabase by lazy { LibraryDatabase.create(this) }
+    val analysisStore by lazy { AnalysisStore(File(filesDir, "analysis")) }
 
     override fun onCreate() {
         super.onCreate()
