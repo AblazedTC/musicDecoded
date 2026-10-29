@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.MusicNote
+import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
@@ -32,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,7 +56,7 @@ import kotlin.math.roundToInt
 
 /** The Player (DESIGN.md §3.7). */
 @Composable
-fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
+fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val position = viewModel.position.collectAsStateWithLifecycle()
     PlaybackClock(viewModel, state.isPlaying)
@@ -104,7 +106,19 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 ControlChip("Voicing", "Simple", onClick = {}, Modifier.weight(1f))
                 TransposeChip(state.transpose, viewModel::setTranspose, Modifier.weight(1f))
             }
-            VisualizerCard(state, currentLabel, onSelect = viewModel::selectVisualizer)
+            VisualizerCard(
+                state,
+                currentLabel,
+                onSelect = viewModel::selectVisualizer,
+                trailing = { MdIconButton(Icons.Rounded.OpenInFull, contentDescription = "Open piano view", onClick = onOpenPiano) },
+                piano = {
+                    PianoKeyboard(
+                        notes = currentLabel?.let(chords::notes).orEmpty(),
+                        bassNote = currentLabel?.let(chords::bassNote),
+                        modifier = Modifier.clip(Shapes.chip),
+                    )
+                },
+            )
             Spacer(Modifier.height(Spacing.xs))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -269,5 +283,5 @@ private fun PlayerScreenPreview() = MusicDecodedTheme {
             createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) },
         ).apply { seekTo(16.0) }
     }
-    PlayerScreen(viewModel, onBack = {})
+    PlayerScreen(viewModel, onBack = {}, onOpenPiano = {})
 }

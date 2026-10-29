@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
@@ -21,7 +22,9 @@ import kotlinx.coroutines.isActive
 /** Pushed player routes (DESIGN.md §2: no tab bar). */
 object PlayerRoutes {
     const val PLAYER = "player/{trackId}"
+    const val PIANO = "player/{trackId}/piano"
     fun player(trackId: String) = "player/$trackId"
+    fun piano(trackId: String) = "player/$trackId/piano"
 }
 
 /** `player/{trackId}` and `player/{trackId}/piano`. The piano view shares the player's ViewModel. */
@@ -29,12 +32,24 @@ fun NavGraphBuilder.playerDestinations(navController: NavHostController) {
     composable(PlayerRoutes.PLAYER) { entry ->
         val trackId = entry.arguments?.getString("trackId").orEmpty()
         val viewModel = playerViewModel(trackId, entry)
-        PlayerScreen(viewModel, onBack = { navController.popBackStack() })
+        PlayerScreen(
+            viewModel,
+            onBack = { navController.popBackStack() },
+            onOpenPiano = { navController.navigate(PlayerRoutes.piano(trackId)) },
+        )
+    }
+    composable(PlayerRoutes.PIANO) { entry ->
+        val trackId = entry.arguments?.getString("trackId").orEmpty()
+        // Same ViewModel (and playback) as the player underneath; falls back to its own if opened directly.
+        val playerEntry = remember(entry) {
+            runCatching { navController.getBackStackEntry(PlayerRoutes.PLAYER) }.getOrDefault(entry)
+        }
+        PianoScreen(playerViewModel(trackId, playerEntry), onBack = { navController.popBackStack() })
     }
 }
 
 @Composable
-private fun playerViewModel(trackId: String, owner: androidx.lifecycle.ViewModelStoreOwner): PlayerViewModel {
+private fun playerViewModel(trackId: String, owner: ViewModelStoreOwner): PlayerViewModel {
     val app = LocalContext.current.applicationContext as MusicDecodedApplication
     return viewModel(viewModelStoreOwner = owner, key = "player-$trackId", factory = PlayerViewModel.factory(app, trackId))
 }
