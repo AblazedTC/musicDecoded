@@ -6,6 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.Source
+import com.musicdecoded.mobile.sources.soundcloud.SoundCloudUrl
 import java.time.Instant
 
 /** Local-only row state (docs/data-model.md). */
@@ -58,4 +59,38 @@ data class LibraryItem(
         error = null,
         updatedAt = now,
     )
+
+    /** Whether [title] is only a stand-in we made up (a pasted YouTube link, a SoundCloud slug). */
+    val hasPlaceholderTitle: Boolean
+        get() = when (source) {
+            Source.YOUTUBE -> title == YOUTUBE_PLACEHOLDER_TITLE
+            Source.SOUNDCLOUD -> title == SOUNDCLOUD_PLACEHOLDER_TITLE ||
+                sourceRef?.let { title == SoundCloudUrl.titleFrom(it) } == true
+            else -> false
+        }
+
+    /**
+     * Fills in what a job learned about the track (`Job.title/thumbnailUrl/durationSec`): replaces a
+     * placeholder title and fills a missing thumbnail or duration, never overwriting real values.
+     * Returns this same instance when nothing changes, so callers can skip the write.
+     */
+    fun withJobMetadata(title: String?, thumbnailUrl: String?, durationSec: Double?, now: Instant): LibraryItem {
+        val newTitle = title?.trim()?.takeIf { it.isNotEmpty() && hasPlaceholderTitle && it != this.title }
+        val newThumb = thumbnailUrl?.takeIf { it.isNotBlank() && this.thumbnailUrl == null }
+        val newDuration = durationSec?.takeIf { it > 0 && this.durationSec == null }
+        if (newTitle == null && newThumb == null && newDuration == null) return this
+        return copy(
+            title = newTitle ?: this.title,
+            thumbnailUrl = newThumb ?: this.thumbnailUrl,
+            durationSec = newDuration ?: this.durationSec,
+            updatedAt = now,
+        )
+    }
+
+    companion object {
+        /** Title of a pasted YouTube link until the job names the video. */
+        const val YOUTUBE_PLACEHOLDER_TITLE = "YouTube video"
+        /** [SoundCloudUrl.titleFrom] when the link has no readable slug. */
+        const val SOUNDCLOUD_PLACEHOLDER_TITLE = "SoundCloud track"
+    }
 }

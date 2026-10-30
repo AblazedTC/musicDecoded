@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.musicdecoded.mobile.library.LibraryItem
 import com.musicdecoded.mobile.BuildConfig
 import com.musicdecoded.mobile.MusicDecodedApplication
 import com.musicdecoded.mobile.auth.AuthRepository
@@ -193,7 +194,7 @@ class YouTubeSearchViewModel(
         /** A pasted link has only an id: the title is filled in by the embed / analysis later. */
         fun pastedVideo(videoId: String) = VideoSummary(
             videoId = videoId,
-            title = "YouTube video",
+            title = LibraryItem.YOUTUBE_PLACEHOLDER_TITLE,
             channelTitle = "",
             thumbnailUrl = "https://i.ytimg.com/vi/$videoId/hqdefault.jpg",
         )

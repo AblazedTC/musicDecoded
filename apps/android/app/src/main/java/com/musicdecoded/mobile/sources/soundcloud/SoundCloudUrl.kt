@@ -20,7 +20,7 @@ object SoundCloudUrl {
     /** A readable placeholder title from the link's slug until the analysis names the track. */
     fun titleFrom(url: String): String {
         val slug = url.substringAfter("soundcloud.com/").split('/').getOrNull(1)
-        return slug?.replace('-', ' ')?.trim()?.replaceFirstChar { it.uppercase() }?.ifEmpty { null } ?: "SoundCloud track"
+        return slug?.replace('-', ' ')?.trim()?.replaceFirstChar { it.uppercase() }?.ifEmpty { null } ?: com.musicdecoded.mobile.library.LibraryItem.SOUNDCLOUD_PLACEHOLDER_TITLE
     }
 
     private fun normalize(match: String): String? {

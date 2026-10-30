@@ -6,6 +6,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.musicdecoded.mobile.library.LibraryItem
 import com.musicdecoded.mobile.network.VideoSummary
 
 /** YouTube search and video detail (pushed, no tab bar). */
@@ -52,7 +53,7 @@ fun NavGraphBuilder.youTubeRoutes(
         val videoId = args?.getString("videoId").orEmpty()
         val video = VideoSummary(
             videoId = videoId,
-            title = args?.getString("title")?.ifEmpty { null } ?: "YouTube video",
+            title = args?.getString("title")?.ifEmpty { null } ?: LibraryItem.YOUTUBE_PLACEHOLDER_TITLE,
             channelTitle = args?.getString("channel").orEmpty(),
             thumbnailUrl = args?.getString("thumb")?.ifEmpty { null } ?: YouTubeSearchViewModel.pastedVideo(videoId).thumbnailUrl,
             durationSec = args?.getInt("duration")?.takeIf { it >= 0 },

@@ -59,6 +59,10 @@ private class FixedSessionStore : SessionStore {
 private fun job(status: String, jobId: String = "job-1", error: String? = null, progress: Int = 0) =
     """{"jobId":"$jobId","trackId":"track-1","status":"$status","stage":null,"progress":$progress,"error":${error?.let { "\"$it\"" } ?: "null"}}"""
 
+/** A job that reports track metadata (contracts/openapi.yaml `Job.title/thumbnailUrl/durationSec`). */
+private fun jobWithMeta(status: String, title: String?, thumbnailUrl: String? = null, durationSec: Double? = null): String =
+    job(status).dropLast(1) + ""","title":${title?.let { "\"$it\"" } ?: "null"},"thumbnailUrl":${thumbnailUrl?.let { "\"$it\"" } ?: "null"},"durationSec":${durationSec ?: "null"}}"""
+
 /** A fake API + object storage. Scripted per test; records every request. */
 private class FakeServer {
     val requests = mutableListOf<HttpRequestData>()
@@ -307,6 +311,44 @@ class TranscriptionRepositoryTest {
 
         assertEquals(LibraryStatus.READY, dao.get(trackId)!!.status)
         assertEquals(2, server.count("GET", "/jobs/job-1"))
+    }
+
+    @Test fun jobMetadataReplacesAPastedLinksPlaceholderTitleAndThumbnail() = runTest {
+        setUp()
+        server.pollResponses += listOf(
+            jobWithMeta("processing", "Never Gonna Give You Up", "https://i.ytimg.com/vi/x/hq.jpg", 213.0),
+            job("complete", progress = 100),
+        )
+        val trackId = repository.startYouTube("dQw4w9WgXcQ", LibraryItem.YOUTUBE_PLACEHOLDER_TITLE, null, null)
+
+        repository.poll(trackId)
+
+        val item = dao.get(trackId)!!
+        assertEquals("Never Gonna Give You Up", item.title)
+        assertEquals("https://i.ytimg.com/vi/x/hq.jpg", item.thumbnailUrl)
+    }
+
+    @Test fun jobMetadataNeverOverwritesARealTitleOrThumbnail() = runTest {
+        setUp()
+        server.pollResponses += jobWithMeta("processing", "Server title", "https://other/thumb.jpg")
+        server.createJobBody = jobWithMeta("queued", "Server title", "https://other/thumb.jpg")
+        val trackId = repository.startYouTube("dQw4w9WgXcQ", "Sunny Days", "https://i.ytimg.com/mine.jpg", null)
+
+        val item = dao.get(trackId)!!
+        assertEquals("Sunny Days", item.title)
+        assertEquals("https://i.ytimg.com/mine.jpg", item.thumbnailUrl)
+    }
+
+    @Test fun createJobMetadataReplacesASoundCloudSlugTitle() = runTest {
+        setUp()
+        val url = "https://soundcloud.com/artist/sunny-days"
+        server.createJobBody = jobWithMeta("queued", "Sunny Days (Live)", "https://i1.sndcdn.com/art.jpg")
+
+        val trackId = repository.startSoundCloud(url, com.musicdecoded.mobile.sources.soundcloud.SoundCloudUrl.titleFrom(url))
+
+        val item = dao.get(trackId)!!
+        assertEquals("Sunny Days (Live)", item.title)
+        assertEquals("https://i1.sndcdn.com/art.jpg", item.thumbnailUrl)
     }
 
     @Test fun youTubeRetryRequestsByVideoIdAgain() = runTest {

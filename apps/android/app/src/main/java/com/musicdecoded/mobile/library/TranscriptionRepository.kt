@@ -191,6 +191,7 @@ class TranscriptionRepository(
                 return
             }
             _jobs.update { it + (trackId to job) }
+            applyJobMetadata(trackId, job)
             when (job.status) {
                 JobStatus.COMPLETE -> return complete(trackId)
                 JobStatus.FAILED -> return markFailed(trackId, job.error?.takeIf { it.isNotBlank() } ?: ANALYSIS_FAILED)
@@ -230,8 +231,19 @@ class TranscriptionRepository(
         onJobComplete()
     }
 
+    /** Saves the track metadata a job reports onto a placeholder title / missing thumbnail or duration. */
+    private suspend fun applyJobMetadata(trackId: String, job: Job) {
+        val item = dao.get(trackId) ?: return
+        val updated = item.withJobMetadata(job.title, job.thumbnailUrl, job.durationSec, clock())
+        if (updated !== item) dao.upsert(updated)
+    }
+
     private suspend fun begin(item: LibraryItem, job: Job) {
-        dao.upsert(item.copy(status = LibraryStatus.ANALYZING, jobId = job.jobId, error = null, updatedAt = clock()))
+        val now = clock()
+        dao.upsert(
+            item.copy(status = LibraryStatus.ANALYZING, jobId = job.jobId, error = null, updatedAt = now)
+                .withJobMetadata(job.title, job.thumbnailUrl, job.durationSec, now),
+        )
         _jobs.update { it + (job.trackId to job) }
         scheduler.schedule(job.trackId, replace = true)
     }

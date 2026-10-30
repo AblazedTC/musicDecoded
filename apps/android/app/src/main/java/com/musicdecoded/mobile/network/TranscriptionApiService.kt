@@ -46,6 +46,10 @@ data class Job(
     val stage: String? = null,
     val progress: Int,
     val error: String? = null,
+    /** Track metadata once the worker knows it (e.g. yt-dlp for streaming sources). */
+    val title: String? = null,
+    val thumbnailUrl: String? = null,
+    val durationSec: Double? = null,
 )
 
 @Serializable
