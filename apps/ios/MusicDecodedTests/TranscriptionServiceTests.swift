@@ -66,6 +66,15 @@ struct TranscriptionServiceTests {
         """)
     }
 
+    /// A job that reports track metadata (contracts/openapi.yaml `Job.title/thumbnailUrl/durationSec`).
+    private func job(_ status: String, title: String?, thumbnailUrl: String?) -> Data {
+        let titleJSON = title.map { "\"\($0)\"" } ?? "null"
+        let thumbJSON = thumbnailUrl.map { "\"\($0)\"" } ?? "null"
+        return json("""
+        {"jobId": "job-1", "trackId": "\(trackId)", "status": "\(status)", "stage": null, "progress": 0, "error": null, "title": \(titleJSON), "thumbnailUrl": \(thumbJSON), "durationSec": 213.0}
+        """)
+    }
+
     /// Answers the full happy path; `jobStatuses` are returned by successive `GET /jobs/job-1`.
     private func happyPath(
         log: RequestLog,
@@ -376,6 +385,62 @@ struct TranscriptionServiceTests {
         #expect(jobRequest == ["source": "soundcloud", "soundcloudUrl": url])
         #expect(log.routes.contains("POST /uploads") == false)
         #expect(try item(trackId)?.status == .ready)
+    }
+
+    @Test func polledJobMetadataReplacesAPastedLinksPlaceholderTitle() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let queued = job("queued")
+        let base = happyPath(log: log, jobStatuses: [], createJob: { _ in (202, queued) })
+        let complete = job("complete", title: "Never Gonna Give You Up", thumbnailUrl: "https://i.ytimg.com/vi/x/hq.jpg")
+        let service = makeService { request in
+            let answer = try base(request)
+            if request.httpMethod == "GET", request.url?.path() == "/jobs/job-1" { return (200, complete) }
+            return answer
+        }
+
+        let video = VideoSummary(pastedVideoId: "dQw4w9WgXcQ")
+        let started = try await service.startYouTube(video)
+        #expect(try item(started)?.title == Transcription.youtubeFallbackTitle)
+        await service.pollingTask(for: started)?.value
+
+        let saved = try #require(try item(started))
+        #expect(saved.title == "Never Gonna Give You Up")
+        #expect(saved.status == .ready)
+    }
+
+    @Test func jobMetadataNeverOverwritesARealTitleOrThumbnail() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let meta = job("complete", title: "Server title", thumbnailUrl: "https://other/thumb.jpg")
+        let service = makeService(happyPath(log: log, jobStatuses: [], createJob: { _ in (202, meta) }))
+        let video = VideoSummary(
+            videoId: "dQw4w9WgXcQ",
+            title: "Sunny Days",
+            channelTitle: "",
+            thumbnailUrl: URL(string: "https://i.ytimg.com/mine.jpg")!,
+            durationSec: nil
+        )
+
+        let started = try await service.startYouTube(video)
+        await service.pollingTask(for: started)?.value
+
+        let saved = try #require(try item(started))
+        #expect(saved.title == "Sunny Days")
+        #expect(saved.thumbnailUrl == "https://i.ytimg.com/mine.jpg")
+    }
+
+    @Test func createdJobMetadataReplacesASoundCloudSlugTitle() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let meta = job("queued", title: "Sunny Days (Live)", thumbnailUrl: "https://i1.sndcdn.com/art.jpg")
+        let service = makeService(happyPath(log: log, jobStatuses: [], createJob: { _ in (202, meta) }))
+
+        let started = try await service.startSoundCloud(url: "https://soundcloud.com/artist/sunny-days")
+        let saved = try #require(try item(started))
+        #expect(saved.title == "Sunny Days (Live)")
+        #expect(saved.thumbnailUrl == "https://i1.sndcdn.com/art.jpg")
+        await service.pollingTask(for: started)?.value
     }
 
     @Test func contentTypes() {

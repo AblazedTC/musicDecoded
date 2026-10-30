@@ -84,6 +84,10 @@ struct Job: Decodable, Sendable, Equatable {
     /// 0-100.
     var progress: Int
     var error: String?
+    /// Track metadata once the worker knows it (e.g. yt-dlp for streaming sources).
+    var title: String? = nil
+    var thumbnailUrl: String? = nil
+    var durationSec: Double? = nil
 }
 
 /// `VideoSummary`: one `GET /youtube/search` result.

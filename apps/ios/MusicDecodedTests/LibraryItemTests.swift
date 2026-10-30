@@ -94,4 +94,49 @@ struct LibraryItemTests {
 
         #expect(try context.fetchCount(FetchDescriptor<LibraryItem>()) == 0)
     }
+    // MARK: - Job metadata
+
+    private func item(_ source: Analysis.Source, _ title: String, sourceRef: String? = nil, thumbnailUrl: String? = nil, durationSec: Double? = nil) -> LibraryItem {
+        LibraryItem(
+            trackId: "t", title: title, source: source, sourceRef: sourceRef, durationSec: durationSec,
+            thumbnailUrl: thumbnailUrl, createdAt: Date(timeIntervalSince1970: 1_000_000)
+        )
+    }
+
+    @Test func placeholderTitles() {
+        #expect(item(.youtube, Transcription.youtubeFallbackTitle).hasPlaceholderTitle)
+        #expect(item(.soundcloud, "Sunny Days", sourceRef: "https://soundcloud.com/artist/sunny-days").hasPlaceholderTitle)
+        #expect(item(.soundcloud, Transcription.soundcloudFallbackTitle, sourceRef: "https://on.soundcloud.com/AbC").hasPlaceholderTitle)
+        #expect(item(.youtube, "Sunny Days").hasPlaceholderTitle == false)
+        #expect(item(.soundcloud, "Sunny Days (Live)", sourceRef: "https://soundcloud.com/artist/sunny-days").hasPlaceholderTitle == false)
+        #expect(item(.file, Transcription.youtubeFallbackTitle).hasPlaceholderTitle == false)
+    }
+
+    @Test func jobMetadataReplacesPlaceholdersAndBumpsUpdatedAt() throws {
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        let updated = item(.youtube, Transcription.youtubeFallbackTitle)
+        #expect(updated.applyJobMetadata(title: "Real title", thumbnailUrl: "https://t/1.jpg", durationSec: 213, at: now))
+        #expect(updated.title == "Real title")
+        #expect(updated.thumbnailUrl == "https://t/1.jpg")
+        #expect(updated.durationSec == 213)
+        #expect(updated.updatedAt == now)
+    }
+
+    @Test func jobMetadataFillsOnlyWhatIsMissing() {
+        let then = Date(timeIntervalSince1970: 1_000_000)
+        let now = Date(timeIntervalSince1970: 2_000_000)
+        let real = item(.youtube, "Sunny Days", thumbnailUrl: "https://mine.jpg", durationSec: 200)
+        #expect(real.applyJobMetadata(title: "Other", thumbnailUrl: "https://other.jpg", durationSec: 100, at: now) == false)
+        #expect(real.applyJobMetadata(title: nil, thumbnailUrl: nil, durationSec: nil, at: now) == false)
+        #expect(real.title == "Sunny Days")
+        #expect(real.thumbnailUrl == "https://mine.jpg")
+        #expect(real.durationSec == 200)
+        #expect(real.updatedAt == then)
+
+        let noThumb = item(.youtube, "Sunny Days")
+        #expect(noThumb.applyJobMetadata(title: "Other", thumbnailUrl: "https://t/1.jpg", durationSec: nil, at: now))
+        #expect(noThumb.title == "Sunny Days")
+        #expect(noThumb.thumbnailUrl == "https://t/1.jpg")
+        #expect(noThumb.updatedAt == now)
+    }
 }

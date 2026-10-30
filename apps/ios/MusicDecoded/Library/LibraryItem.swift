@@ -208,6 +208,53 @@ extension LibraryItem {
         )
     }
 
+    /// Whether `title` is only a stand-in made up on the device (a pasted YouTube link, a
+    /// SoundCloud slug or short link).
+    var hasPlaceholderTitle: Bool {
+        switch source {
+        case .youtube:
+            return title == Transcription.youtubeFallbackTitle
+        case .soundcloud:
+            if title == Transcription.soundcloudFallbackTitle { return true }
+            guard let sourceRef, let slugTitle = SoundCloudURL.suggestedTitle(for: sourceRef) else { return false }
+            return title == slugTitle
+        default:
+            return false
+        }
+    }
+
+    /// Fills in what a job learned about the track (`Job.title/thumbnailUrl/durationSec`): replaces
+    /// a placeholder title and fills a missing thumbnail or duration, never overwriting real values.
+    /// Bumps `updatedAt` and returns `true` only when something changed.
+    @discardableResult
+    func applyJobMetadata(title: String?, thumbnailUrl: String?, durationSec: Double?, at date: Date = .now) -> Bool {
+        var changed = false
+        if let newTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines),
+           newTitle.isEmpty == false, newTitle != self.title, hasPlaceholderTitle {
+            self.title = newTitle
+            changed = true
+        }
+        if let thumbnailUrl, thumbnailUrl.trimmingCharacters(in: .whitespaces).isEmpty == false,
+           self.thumbnailUrl == nil {
+            self.thumbnailUrl = thumbnailUrl
+            changed = true
+        }
+        if let durationSec, durationSec > 0, self.durationSec == nil {
+            self.durationSec = durationSec
+            changed = true
+        }
+        if changed {
+            updatedAt = date
+        }
+        return changed
+    }
+
+    /// `applyJobMetadata` with a job's fields.
+    @discardableResult
+    func applyMetadata(of job: Job, at date: Date = .now) -> Bool {
+        applyJobMetadata(title: job.title, thumbnailUrl: job.thumbnailUrl, durationSec: job.durationSec, at: date)
+    }
+
     /// Copies the display fields from a finished analysis and marks the item ready.
     func apply(_ analysis: Analysis, at date: Date = .now) {
         durationSec = analysis.meta.durationSec

@@ -289,8 +289,11 @@ final class TranscriptionService {
                 return
             }
             // A newer job replaced this one (retry): leave it to that poll.
-            guard fetch(trackId)?.jobId == jobId else { return }
+            guard let current = fetch(trackId), current.jobId == jobId else { return }
             jobs[trackId] = job
+            if current.applyMetadata(of: job) {
+                save()
+            }
 
             switch job.status {
             case .complete:
@@ -378,6 +381,7 @@ final class TranscriptionService {
         item.jobId = job.jobId
         item.error = nil
         item.updatedAt = .now
+        item.applyMetadata(of: job, at: item.updatedAt)
         save()
         jobs[job.trackId] = job
         schedulePolling(job.trackId, replace: true)
