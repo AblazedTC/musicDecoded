@@ -10,8 +10,9 @@ struct TransportPanel: View {
             if let loop = model.loop {
                 LoopPill(loop: loop) { model.clearLoop() }
             }
-            VStack(spacing: Spacing.xxs) {
-                PlayerSeekBar(model: model)
+            // Compact (~104): one-line seek bar, then the buttons (DESIGN.md §3.7 item 6).
+            VStack(spacing: 0) {
+                PlayerSeekBar(model: model, compact: true)
                 HStack {
                     SpeedButton(model: model)
                     Spacer(minLength: Spacing.xxs)
@@ -31,8 +32,8 @@ struct TransportPanel: View {
                 }
             }
             .padding(.horizontal, Spacing.md)
-            .padding(.top, Spacing.sm)
-            .padding(.bottom, Spacing.xs)
+            .padding(.top, Spacing.xs)
+            .padding(.bottom, Spacing.xxs)
             .background {
                 // A square sheet on ink with a 3pt black top rule.
                 Palette.surface
@@ -46,15 +47,39 @@ struct TransportPanel: View {
 /// Seek slider with current / total times.
 struct PlayerSeekBar: View {
     @Bindable var model: PlayerModel
+    /// Current time · bar · total time on one line (the player's compact transport).
+    var compact = false
 
     var body: some View {
         let duration = model.duration
+        if compact {
+            HStack(spacing: Spacing.xs) {
+                Text(PlayerFormat.time(model.position))
+                    .foregroundStyle(Palette.textSecondary)
+                    .accessibilityHidden(true)
+                seekBar(duration: duration)
+                Text(PlayerFormat.time(duration))
+                    .foregroundStyle(Palette.textMuted)
+                    .accessibilityHidden(true)
+            }
+            .font(.detail)
+            .monospacedDigit()
+        } else {
+            stacked(duration: duration)
+        }
+    }
+
+    private func seekBar(duration: Double) -> some View {
+        SeekBar(
+            value: $model.seekPosition,
+            range: 0...max(duration, 1),
+            valueDescription: "\(PlayerFormat.time(model.position)) of \(PlayerFormat.time(duration))"
+        )
+    }
+
+    private func stacked(duration: Double) -> some View {
         VStack(spacing: Spacing.xxs) {
-            SeekBar(
-                value: $model.seekPosition,
-                range: 0...max(duration, 1),
-                valueDescription: "\(PlayerFormat.time(model.position)) of \(PlayerFormat.time(duration))"
-            )
+            seekBar(duration: duration)
 
             HStack {
                 Text(PlayerFormat.time(model.position))
@@ -134,6 +159,7 @@ struct SpeedPicker: View {
 /// Transpose −6…+6 (display only), as a control chip that opens a menu.
 struct TransposeChip: View {
     @Bindable var model: PlayerModel
+    var inline = false
 
     var body: some View {
         Menu {
@@ -143,7 +169,7 @@ struct TransposeChip: View {
                 }
             }
         } label: {
-            ControlChipLabel(title: "Transpose", value: PlayerFormat.transpose(model.transpose))
+            ControlChipLabel(title: "Transpose", value: PlayerFormat.transpose(model.transpose), inline: inline)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Transpose")

@@ -108,8 +108,9 @@ struct PlayerScreen: View {
     }
 }
 
-/// The Player layout: metadata chips, timeline, Now Playing, control chips, visualizer card and
-/// the transport sheet. Each section reads only the model state it shows, so the 60 Hz clock
+/// The Player layout on one screen (DESIGN.md §3.7): metadata chips, the edge-to-edge timeline,
+/// the control row, the visualizer panel filling the rest, and the transport pinned at the
+/// bottom. Each section reads only the model state it shows, so the 60 Hz clock
 /// redraws just the timeline and the seek bar.
 struct PlayerView: View {
     let model: PlayerModel
@@ -118,6 +119,7 @@ struct PlayerView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.openPaywall) private var openPaywall
     @State private var showPiano = false
     @State private var confirmDelete = false
@@ -200,32 +202,47 @@ struct PlayerView: View {
         }
     }
 
+    /// The metadata row and the gap under it, taken off before sizing the timeline.
+    private static let metadataRowAllowance: CGFloat = 44 + Spacing.xs
+    private static let fallbackTimelineHeight: CGFloat = 220
+
+    /// Metadata chips · timeline (edge to edge) · control row · visualizer panel (DESIGN.md §3.7).
+    private func playerStack(_ analysis: Analysis, timelineHeight: CGFloat) -> some View {
+        VStack(spacing: Spacing.xs) {
+            MetadataRow(analysis: analysis)
+                .padding(.horizontal, Spacing.md)
+            PlayerTimeline(model: model)
+                .frame(height: timelineHeight)
+            ControlRow(model: model)
+                .padding(.horizontal, Spacing.md)
+            VisualizerPanel(model: model) {
+                showPiano = true
+            }
+            .frame(maxHeight: .infinity)
+            .padding(.horizontal, Spacing.md)
+            // Room for the panel's hard shadow above the transport.
+            .padding(.bottom, Spacing.xs)
+        }
+        .padding(.top, Spacing.xxs)
+    }
+
     @ViewBuilder
     private var content: some View {
         if let analysis = model.analysis {
-            ScrollView {
-                // lg gaps leave room for the hard shadows and the tilted Now Playing card.
-                VStack(spacing: Spacing.lg) {
-                    MetadataRow(analysis: analysis)
-                    PlayerTimeline(model: model)
-                    NowPlayingChord(model: model)
-                        .padding(.vertical, Spacing.xs)
-                    AdaptiveStack {
-                        ControlChip(title: "Chords", value: model.chordsMode == .basic ? "Basic" : "Full") {
-                            model.toggleChordsMode()
-                        }
-                        // Only Simple exists in v1 (DESIGN.md §5).
-                        ControlChip(title: "Voicing", value: "Simple") {}
-                            .disabled(true)
-                        TransposeChip(model: model)
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    // Fallback at the largest text sizes: fixed sizes in a scroll view.
+                    ScrollView {
+                        playerStack(analysis, timelineHeight: Self.fallbackTimelineHeight)
                     }
-                    VisualizerCard(model: model) {
-                        showPiano = true
+                } else {
+                    // One screen, no scrolling (DESIGN.md §3.7): the panel takes what's left.
+                    GeometryReader { proxy in
+                        let middle = proxy.size.height - Self.metadataRowAllowance
+                        playerStack(analysis, timelineHeight: TimelineMath.timelineHeight(available: middle))
+                            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
                     }
                 }
-                .padding(.horizontal, Spacing.md)
-                .padding(.top, Spacing.xs)
-                .padding(.bottom, Spacing.lg)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 TransportPanel(model: model)
@@ -245,26 +262,34 @@ struct PlayerView: View {
     }
 }
 
-/// Title and artist, centered in the navigation bar.
+/// Title (one line, ellipsized) and, only when it fits, the artist under it, centered in the
+/// navigation bar (DESIGN.md §3.7 item 1).
 struct PlayerTitle: View {
     let title: String
     let artist: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(title)
-                .font(.rowTitle)
-                .foregroundStyle(Palette.text)
-                .lineLimit(1)
-            if let artist {
-                Text(artist)
-                    .font(.detail)
-                    .foregroundStyle(Palette.textSecondary)
-                    .lineLimit(1)
+        ViewThatFits(in: .vertical) {
+            VStack(spacing: 0) {
+                titleText
+                if let artist {
+                    Text(artist)
+                        .font(.detail)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
+                }
             }
+            titleText
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
+    }
+
+    private var titleText: some View {
+        Text(title)
+            .font(.rowTitle)
+            .foregroundStyle(Palette.text)
+            .lineLimit(1)
     }
 }
 
@@ -325,24 +350,51 @@ private struct PlayerMoreMenu: View {
     }
 }
 
-/// Key · Time signature · BPM.
+/// Key · Time · BPM as compact chips (DESIGN.md §3.7 item 2): icon and value inline, no caption.
 private struct MetadataRow: View {
     let analysis: Analysis
 
     var body: some View {
         AdaptiveStack {
-            InfoChip(title: "Key", value: analysis.key.map(PlayerFormat.key) ?? "—", systemImage: "music.note")
-            InfoChip(
-                title: "Time",
+            MetaChip(title: "Key", value: analysis.key.map(PlayerFormat.key) ?? "—", systemImage: "music.note")
+            MetaChip(
+                title: "Time signature",
                 value: analysis.timeSignature.map { "\($0.numerator)/\($0.denominator)" } ?? "—",
                 systemImage: "metronome"
             )
-            InfoChip(
+            MetaChip(
                 title: "Tempo",
                 value: analysis.bpm.map { "\(Int($0.rounded())) BPM" } ?? "—",
                 systemImage: "waveform.path"
             )
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// One read-only metadata chip: lime icon + value on a square ink card.
+private struct MetaChip: View {
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: systemImage)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(Palette.lime)
+            Text(value)
+                .font(.label)
+                .monospacedDigit()
+                .foregroundStyle(Palette.text)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, Spacing.sm)
+        .frame(minHeight: ComponentSize.playerChipHeight)
+        .inkCard()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(value == "—" ? "Unknown" : ChordDisplay.spoken(value))
     }
 }
 
@@ -369,56 +421,32 @@ private struct PlayerTimeline: View {
     }
 }
 
-/// NOW PLAYING: the big lime chord name, its notes and the voicing caption, on the hero card
-/// (`card`, 3pt black border, pink `shadowXl`, tilted -1.5°).
-private struct NowPlayingChord: View {
+/// Chords (Basic/Full) · Voicing (Simple) · Transpose, label and value on one line where they fit
+/// (DESIGN.md §3.7 item 4).
+private struct ControlRow: View {
     let model: PlayerModel
 
     var body: some View {
-        let chords = model.chords
-        let label = model.currentLabel
-        let name = label.map(chords.name) ?? ""
-        let notes = label.map(chords.noteNames) ?? ""
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            HStack(alignment: .top) {
-                Eyebrow(text: "Now playing")
-                Spacer(minLength: Spacing.xs)
-                WaveformBars(bars: 5, color: Palette.lime, gap: Spacing.xxs)
-                    .frame(width: 40, height: 20)
+        AdaptiveStack {
+            ControlChip(title: "Chords", value: model.chordsMode == .basic ? "Basic" : "Full", inline: true) {
+                model.toggleChordsMode()
             }
-            Text(name.isEmpty ? "—" : name)
-                .font(.currentChord)
-                .foregroundStyle(Palette.chord)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            if notes.isEmpty == false {
-                Text(notes)
-                    .font(.rowTitle)
-                    .foregroundStyle(Palette.text)
-                Text("Representative root-position voicing")
-                    .font(.detail)
-                    .foregroundStyle(Palette.textSecondary)
-            }
+            // Only Simple exists in v1 (DESIGN.md §5).
+            ControlChip(title: "Voicing", value: "Simple", inline: true) {}
+                .disabled(true)
+            TransposeChip(model: model, inline: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.lg)
-        .block(Palette.card, shadow: HardShadow.xl, shadowColor: Palette.pink)
-        .tilt(Tilt.hero)
-        // "Now playing, D major: D, F sharp, A" instead of the glyph-heavy visible text.
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Now playing")
-        .accessibilityValue(chords.accessibilitySummary(label))
-        .accessibilityAddTraits([.isHeader, .updatesFrequently])
     }
 }
 
-/// Piano | Video (DESIGN.md §3.7 item 6). Video is disabled unless the source is youtube.
-private struct VisualizerCard: View {
+/// Piano | Video (DESIGN.md §3.7 item 5), taking all the height it's given. Video is disabled
+/// unless the source is youtube.
+private struct VisualizerPanel: View {
     @Bindable var model: PlayerModel
     let onExpand: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sm) {
+        VStack(spacing: Spacing.xs) {
             HStack(spacing: Spacing.xs) {
                 SegmentedToggle(
                     options: Visualizer.allCases,
@@ -432,78 +460,84 @@ private struct VisualizerCard: View {
             }
 
             if model.visualizer == .piano {
-                CurrentChordSummary(model: model)
-                CompactKeyboard(model: model)
+                PanelPiano(model: model)
+                    .frame(maxHeight: .infinity)
             }
             // Always in the hierarchy when there's a video (it may be the clock), shown only on
-            // the Video tab, so switching tabs never reloads the embed.
+            // the Video tab, so switching tabs never reloads the embed. Letterboxed 16:9.
             if let controller = model.videoPlayer as? YouTubePlayerController {
-                VideoPanel(controller: controller, isVisible: model.visualizer == .video)
+                let visible = model.visualizer == .video
+                VideoPanel(controller: controller, isVisible: visible)
+                    .frame(maxWidth: .infinity, maxHeight: visible ? CGFloat.infinity : nil)
+                    .background(visible ? Palette.black : Color.clear)
             } else if model.visualizer == .video {
                 Text("The video isn't available for this song.")
                     .font(.detail)
                     .foregroundStyle(Palette.textSecondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .padding(Spacing.md)
+        .padding(Spacing.sm)
         .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.violet)
     }
 }
 
-/// CURRENT CHORD + name + notes.
-private struct CurrentChordSummary: View {
+/// The active chord name (lime) and its Roman numeral above a keyboard that fills the rest of
+/// the panel: as many octaves as fit the width, centered on the active notes, with the note names
+/// under the highlighted keys. Replaces the old Now Playing card.
+private struct PanelPiano: View {
     let model: PlayerModel
+
+    /// The keyboard's minimum (96) plus its note-name row.
+    private static let minKeyboardHeight: CGFloat = ComponentSize.pianoCompactHeight + Spacing.md
 
     var body: some View {
         let chords = model.chords
         let label = model.currentLabel
         let name = label.map(chords.name) ?? ""
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Eyebrow(text: "Current chord")
-            // Name and notes on one line, or stacked when large text doesn't fit.
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                    chordName(name)
-                    noteNames(label.map(chords.noteNames) ?? "")
-                }
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    chordName(name)
-                    noteNames(label.map(chords.noteNames) ?? "")
+        let numeral = label.flatMap(chords.numeral)
+        VStack(spacing: Spacing.xs) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                Text(name.isEmpty ? "—" : name)
+                    .font(.sectionHeader)
+                    .foregroundStyle(Palette.chord)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                if let numeral {
+                    Text(numeral)
+                        .font(.rowTitle)
+                        .foregroundStyle(Palette.textSecondary)
+                        .lineLimit(1)
                 }
             }
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Current chord")
+            .accessibilityValue(Self.summary(chords, label: label, numeral: numeral))
+            .accessibilityAddTraits(.updatesFrequently)
+
+            GeometryReader { proxy in
+                PianoKeyboard(
+                    notes: label.map(chords.notes) ?? [],
+                    bassNote: label.flatMap(chords.bassNote),
+                    octaves: PianoLayout.octavesThatFit(width: Double(proxy.size.width)),
+                    height: max(proxy.size.height, Self.minKeyboardHeight),
+                    centersNotes: true,
+                    namesBelow: { chords.noteName($0) },
+                    notesDescription: chords.accessibilitySummary(label)
+                )
+                .clipShape(.rect)
+            }
+            .frame(minHeight: Self.minKeyboardHeight)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Current chord")
-        .accessibilityValue(chords.accessibilitySummary(label))
-        .accessibilityAddTraits(.updatesFrequently)
     }
 
-    private func chordName(_ name: String) -> some View {
-        Text(name.isEmpty ? "—" : name)
-            .font(.sectionHeader)
-            .foregroundStyle(Palette.chord)
-    }
-
-    private func noteNames(_ notes: String) -> some View {
-        Text(notes)
-            .font(.detail)
-            .foregroundStyle(Palette.textSecondary)
-    }
-}
-
-/// The 2-octave keyboard in the visualizer card.
-private struct CompactKeyboard: View {
-    let model: PlayerModel
-
-    var body: some View {
-        let chords = model.chords
-        let label = model.currentLabel
-        PianoKeyboard(
-            notes: label.map(chords.notes) ?? [],
-            bassNote: label.flatMap(chords.bassNote),
-            notesDescription: chords.accessibilitySummary(label)
-        )
-        .clipShape(.rect)
+    /// "E major, three: E, G sharp, B".
+    private static func summary(_ chords: ChordDisplay, label: String?, numeral: String?) -> String {
+        guard let label, let numeral else { return chords.accessibilitySummary(label) }
+        let notes = chords.spokenNoteNames(label)
+        let head = "\(chords.spokenName(label)), \(spokenRomanNumeral(numeral))"
+        return notes.isEmpty ? head : "\(head): \(notes)"
     }
 }
 

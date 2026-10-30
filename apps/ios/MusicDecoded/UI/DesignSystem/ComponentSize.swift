@@ -17,6 +17,8 @@ enum ComponentSize {
     static let meterSegmentHeight: CGFloat = 20
     /// Piano keyboard: 2 octaves in the player's visualizer card, edge to edge in the learning view.
     static let pianoCompactHeight: CGFloat = 96
+    /// The player's compact metadata chips (Key · Time · BPM, DESIGN.md §3.7 item 2).
+    static let playerChipHeight: CGFloat = 36
     static let pianoLargeHeight: CGFloat = 190
     /// YouTube result thumbnail (DESIGN.md §3.4).
     static let videoThumbnailWidth: CGFloat = 132

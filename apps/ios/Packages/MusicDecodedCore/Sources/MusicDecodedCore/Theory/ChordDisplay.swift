@@ -1,5 +1,5 @@
 /// How chords are shown with the current Chords (Basic/Full) and Transpose settings, so the
-/// timeline, Now Playing and the piano always agree (DESIGN.md §4).
+/// timeline, the piano panel and the learning view always agree (DESIGN.md §4).
 public struct ChordDisplay: Sendable, Equatable {
     public let key: Analysis.Key?
     /// Semitones, −6…+6 in the UI. Display only (not audio pitch).
