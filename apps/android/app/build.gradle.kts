@@ -5,6 +5,9 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+/** `-PlocalRelease`: sign the release with the debug key as `….local` (see the release build type). */
+val localRelease = project.hasProperty("localRelease")
+
 android {
     namespace = "com.musicdecoded.mobile"
     compileSdk {
@@ -39,8 +42,17 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
         }
         release {
-            optimization {
-                enable = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (localRelease) {
+                // -PlocalRelease: an optimized build to try on a device/emulator next to the debug app.
+                // Debug-keystore signed and pointed at the local backend; never a store build.
+                applicationIdSuffix = ".local"
+                versionNameSuffix = "-local"
+                signingConfig = signingConfigs.getByName("debug")
+                buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
+                resValue("string", "app_name", "MusicDecoded R")
             }
         }
     }
@@ -51,6 +63,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        resValues = true
     }
     // Robolectric Compose tests need the merged manifest (ui-test-manifest's ComponentActivity).
     testOptions.unitTests.isIncludeAndroidResources = true
@@ -60,6 +73,8 @@ android {
         // The app reads chord-voicings.json from assets, straight from the repo (no copy). Debug builds
         // also get the fixtures, so the player can be tried without the backend.
         getByName("main").assets.srcDir("../../../contracts")
+        // The local release talks to the dev backend over HTTP, like debug.
+        if (localRelease) getByName("release").res.srcDir("src/debug/res")
     }
 }
 
