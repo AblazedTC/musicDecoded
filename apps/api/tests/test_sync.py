@@ -1,7 +1,11 @@
 """T-402: GET/PUT /sync/library (last-write-wins on updatedAt, tombstones) and sync-based downloads."""
 import uuid
 
+from datetime import datetime, timedelta, timezone
+
 from app import sync
+from app.db import SessionLocal
+from app.models import LibraryItem, Upload, User
 
 from conftest import bearer
 from test_tracks import set_track
@@ -12,6 +16,20 @@ T0, T1, T2 = "2026-10-01T10:00:00Z", "2026-10-02T10:00:00Z", "2026-10-03T10:00:0
 def account(client, email="a@example.com"):
     r = client.post("/auth/signup", json={"email": email, "password": "password123"})
     return bearer(r.json()["token"])
+
+
+def set_plan(client, headers, plan="pro", expires_at=None):
+    uid = uuid.UUID(client.get("/_test/me", headers=headers).json()["userId"])
+    with SessionLocal() as db:
+        user = db.get(User, uid)
+        user.plan, user.plan_expires_at = plan, expires_at
+        db.commit()
+    return uid
+
+
+def new_upload(client, headers, sha="c" * 64):
+    return client.post("/uploads", headers=headers, json={"contentType": "audio/mpeg", "sizeBytes": 10,
+                                                          "sha256": sha}).json()["uploadId"]
 
 
 def login(client, email="a@example.com"):
@@ -45,6 +63,7 @@ def test_guest_gets_account_required(client, guest):
 
 def test_full_pull_returns_contract_shape(client):
     a = account(client)
+    set_plan(client, a)
     tid = track(client, a)
     upload_id = client.post("/uploads", headers=a, json={"contentType": "audio/mpeg", "sizeBytes": 10,
                                                          "sha256": "c" * 64}).json()["uploadId"]
@@ -121,6 +140,7 @@ def test_tombstones_sync(client):
 
 def test_push_validation(client):
     a, b = account(client), account(client, "b@example.com")
+    set_plan(client, a)
     tid = track(client, a)
     for bad in (item(str(uuid.uuid4())), item("nope")):
         r = push(client, a, bad)
@@ -158,6 +178,7 @@ def test_two_devices_converge(client):
     """Device A decodes a recording and syncs; device B (same account) pulls, downloads, edits;
     A pushes a stale edit made offline; both end with the same state."""
     a = account(client)
+    set_plan(client, a)
     upload_id = client.post("/uploads", headers=a, json={"contentType": "audio/mpeg", "sizeBytes": 10,
                                                          "sha256": "d" * 64}).json()["uploadId"]
     tid = client.post("/jobs", headers=a, json={"source": "file", "uploadId": upload_id}).json()["trackId"]
@@ -179,3 +200,55 @@ def test_two_devices_converge(client):
     b_state = pull(client, b, b_pull["cursor"])["items"]
     assert a_state == b_state == pull(client, a)["items"]
     assert a_state[0]["favorite"] is True
+
+
+def test_free_push_drops_audio_upload_id(client):
+    a, b = account(client), account(client, "b@example.com")
+    tid = track(client, a)
+    r = push(client, a, item(tid, audioUploadId=new_upload(client, a)))
+    assert r.status_code == 200 and r.json()["items"][0]["audioUploadId"] is None
+    r = push(client, a, item(tid, updated=T2, audioUploadId=new_upload(client, b)))  # dropped, not a 400
+    assert r.status_code == 200 and r.json()["items"][0]["audioUploadId"] is None
+    assert pull(client, a)["items"][0]["audioUploadId"] is None
+    with SessionLocal() as db:
+        assert db.get(LibraryItem, (set_plan(client, a, "free"), uuid.UUID(tid))).audio_upload_id is None
+
+
+def test_pro_push_keeps_audio_upload_id(client):
+    a = account(client)
+    set_plan(client, a, expires_at=datetime.now(timezone.utc) + timedelta(days=1))
+    tid, upload_id = track(client, a), new_upload(client, a)
+    assert push(client, a, item(tid, audioUploadId=upload_id)).json()["items"][0]["audioUploadId"] == upload_id
+    assert pull(client, a)["items"][0]["audioUploadId"] == upload_id
+
+
+def test_downgrade_hides_stored_audio_upload_id(client):
+    a = account(client)
+    uid = set_plan(client, a)
+    tid, upload_id = track(client, a), new_upload(client, a)
+    push(client, a, item(tid, audioUploadId=upload_id))
+    set_plan(client, a, expires_at=datetime.now(timezone.utc) - timedelta(days=1))  # Pro lapsed → free
+    assert pull(client, a)["items"][0]["audioUploadId"] is None
+    stale = push(client, a, item(tid, updated=T0)).json()["items"][0]  # server row wins, still hidden
+    assert stale["audioUploadId"] is None
+    with SessionLocal() as db:
+        assert str(db.get(LibraryItem, (uid, uuid.UUID(tid))).audio_upload_id) == upload_id  # kept for re-upgrade
+    set_plan(client, a)
+    assert pull(client, a)["items"][0]["audioUploadId"] == upload_id
+
+
+def test_library_reference_to_upload_requires_pro(client):
+    a, b = account(client), account(client, "b@example.com")
+    tid, b_upload = track(client, a), new_upload(client, b)
+    a_id = set_plan(client, a)
+    with SessionLocal() as db:  # pushes can't create this today; simulate a looser ownership rule
+        now = datetime.now(timezone.utc)
+        db.add(LibraryItem(user_id=a_id, track_id=uuid.UUID(tid), title="Song", source="file",
+                           audio_upload_id=uuid.UUID(b_upload), created_at=now, updated_at=now))
+        db.commit()
+    assert client.get(f"/uploads/{b_upload}", headers=a).status_code == 200
+    set_plan(client, a, "free")
+    r = client.get(f"/uploads/{b_upload}", headers=a)
+    assert r.status_code == 404 and r.json()["code"] == "not_found"
+    assert client.get(f"/uploads/{b_upload}", headers=b).status_code == 200  # the free uploader still reads it
+    assert client.get(f"/uploads/{new_upload(client, a, 'e' * 64)}", headers=a).status_code == 200

@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from app.auth import current_user
 from app.db import get_db
 from app.errors import ApiError
-from app.models import LibraryItem, Track, Upload, User
+from app.models import LibraryItem, Track, Upload, User, effective_plan
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
@@ -81,11 +81,12 @@ def _decode_cursor(cursor: str) -> tuple[datetime, uuid.UUID]:
         raise ApiError(400, "bad_request", "since: invalid cursor")
 
 
-def _to_body(row: LibraryItem) -> LibraryItemBody:
+def _to_body(row: LibraryItem, pro: bool) -> LibraryItemBody:
+    """audioUploadId is Pro only (PLAN.md §9): hidden from free callers, even if stored while Pro."""
     return LibraryItemBody(
         trackId=str(row.track_id), title=row.title, artist=row.artist, source=row.source, sourceRef=row.source_ref,
         durationSec=row.duration_sec, thumbnailUrl=row.thumbnail_url,
-        audioUploadId=str(row.audio_upload_id) if row.audio_upload_id else None, favorite=row.favorite,
+        audioUploadId=str(row.audio_upload_id) if pro and row.audio_upload_id else None, favorite=row.favorite,
         lastPlayedAt=_utc(row.last_played_at), createdAt=_utc(row.created_at), updatedAt=_utc(row.updated_at),
         deleted=row.deleted)
 
@@ -100,7 +101,8 @@ def pull(user: Annotated[User, Depends(account_user)], db: Annotated[Session, De
                                 and_(LibraryItem.server_updated_at == at, LibraryItem.track_id > tid)))
     rows = db.scalars(query.order_by(LibraryItem.server_updated_at, LibraryItem.track_id).limit(PAGE_SIZE)).all()
     cursor = _encode_cursor(rows[-1]) if rows else (since or "")
-    return PullResponse(items=[_to_body(r) for r in rows], cursor=cursor)
+    pro = effective_plan(user) == "pro"
+    return PullResponse(items=[_to_body(r, pro) for r in rows], cursor=cursor)
 
 
 def _uuid(value: str, field: str) -> uuid.UUID:
@@ -148,10 +150,14 @@ def _merge(db: Session, user: User, items: list[LibraryItemBody]) -> list[Librar
 @router.put("/library")
 def push(body: PushRequest, user: Annotated[User, Depends(account_user)],
          db: Annotated[Session, Depends(get_db)]) -> PushResponse:
+    pro = effective_plan(user) == "pro"
+    if not pro:  # audio sync is Pro only: free pushes store null instead of failing
+        for item in body.items:
+            item.audioUploadId = None
     _validate(db, user, body.items)
     try:
         rows = _merge(db, user, body.items)
     except IntegrityError:  # a concurrent push inserted one of these rows first; merge against it
         db.rollback()
         rows = _merge(db, user, body.items)
-    return PushResponse(items=[_to_body(r) for r in rows])
+    return PushResponse(items=[_to_body(r, pro) for r in rows])

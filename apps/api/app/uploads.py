@@ -11,7 +11,7 @@ from app.auth import current_user
 from app.config import MAX_UPLOAD_BYTES
 from app.db import get_db
 from app.errors import ApiError, not_found, parse_id
-from app.models import LibraryItem, Upload, User
+from app.models import LibraryItem, Upload, User, effective_plan
 from app.storage import Storage, get_storage
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
@@ -70,11 +70,14 @@ def get_upload(uploadId: str, user: Annotated[User, Depends(current_user)],
                db: Annotated[Session, Depends(get_db)],
                storage: Annotated[Storage, Depends(get_storage)]) -> UploadLocation:
     uid = parse_id(uploadId, "Upload")
-    # Owner, or referenced by the caller's synced library (pushes only accept the caller's own uploads,
-    # so today this is the owner too; it keeps a second device working if ownership rules evolve).
-    in_library = exists().where(LibraryItem.audio_upload_id == uid, LibraryItem.user_id == user.id,
-                                LibraryItem.deleted.is_(False))
-    upload = db.scalar(select(Upload).where(Upload.id == uid, or_(Upload.user_id == user.id, in_library)))
+    # Owner, or (Pro only, PLAN.md §9) referenced by the caller's synced library. Pushes only accept the
+    # caller's own uploads, so today this is the owner too; it keeps a second device working if ownership
+    # rules evolve.
+    allowed = Upload.user_id == user.id
+    if effective_plan(user) == "pro":
+        allowed = or_(allowed, exists().where(LibraryItem.audio_upload_id == uid, LibraryItem.user_id == user.id,
+                                              LibraryItem.deleted.is_(False)))
+    upload = db.scalar(select(Upload).where(Upload.id == uid, allowed))
     if upload is None:
         raise not_found("Upload")
     return UploadLocation(url=storage.presign_get(upload.object_key, GET_EXPIRES), contentType=upload.content_type,
