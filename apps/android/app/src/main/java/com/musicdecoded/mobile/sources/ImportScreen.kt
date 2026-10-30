@@ -61,6 +61,7 @@ import com.musicdecoded.mobile.ui.components.PreviewFixture
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.SecondaryButton
+import com.musicdecoded.mobile.ui.components.formatBytes
 import com.musicdecoded.mobile.ui.components.formatDuration
 import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.components.topRule
@@ -234,7 +235,7 @@ private fun FileHeader(draft: ImportDraft) {
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "${draft.typeLabel} · ${AudioImporter.formatSize(draft.sizeBytes)}",
+                "${draft.typeLabel} · ${formatBytes(draft.sizeBytes)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MusicDecodedColors.TextSecondary,
             )

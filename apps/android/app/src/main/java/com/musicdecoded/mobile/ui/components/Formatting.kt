@@ -23,12 +23,12 @@ fun songMetaLine(durationSec: Double?, key: Analysis.Key?, bpm: Double?): String
         bpm?.let { "${it.roundToInt()} BPM" },
     ).joinToString(" · ")
 
-/** `0 KB`, `840 KB`, `12.4 MB`, `1.2 GB` (1024-based). */
-fun formatBytes(bytes: Long): String {
-    val kb = bytes / 1024.0
-    return when {
-        kb < 1024 -> "${kb.roundToInt()} KB"
-        kb < 1024 * 1024 -> "%.1f MB".format(java.util.Locale.ROOT, kb / 1024)
-        else -> "%.1f GB".format(java.util.Locale.ROOT, kb / 1024 / 1024)
-    }
+/**
+ * The one file-size format (import sheet, migration, Settings storage): decimal units, one
+ * decimal for MB and GB. `0 KB`, `640 KB`, `6.0 MB`, `1.2 GB`.
+ */
+fun formatBytes(bytes: Long): String = when {
+    bytes < 999_500 -> "${(bytes / 1000.0).roundToInt()} KB"
+    bytes < 999_950_000 -> "%.1f MB".format(java.util.Locale.ROOT, bytes / 1_000_000.0)
+    else -> "%.1f GB".format(java.util.Locale.ROOT, bytes / 1_000_000_000.0)
 }

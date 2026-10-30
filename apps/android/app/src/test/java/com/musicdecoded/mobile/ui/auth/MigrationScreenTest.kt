@@ -45,7 +45,7 @@ class MigrationScreenTest {
 
     @Test fun proAccountsSyncTheirAudio() {
         show(pro = true)
-        compose.onNodeWithText("Eligible for private sync", substring = true).assertExists()
+        compose.onNodeWithText("Eligible for private sync · 6.0 MB", substring = true).assertExists()
         compose.onNodeWithText("part of Pro", substring = true).assertDoesNotExist()
     }
 }

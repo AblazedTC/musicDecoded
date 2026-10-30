@@ -82,12 +82,6 @@ class AudioImporterTest {
         assertNull(AudioImporter.extensionFor("clip.mid", "audio/midi"))
     }
 
-    @Test fun sizesAreHumanReadable() {
-        assertEquals("8.4 MB", AudioImporter.formatSize(8_400_000))
-        assertEquals("640 KB", AudioImporter.formatSize(640_000))
-        assertEquals("1 KB", AudioImporter.formatSize(10))
-    }
-
     private object FakeStore : com.musicdecoded.mobile.auth.SessionStore {
         override suspend fun session() = null
         override suspend fun saveSession(session: com.musicdecoded.mobile.auth.Session) = Unit

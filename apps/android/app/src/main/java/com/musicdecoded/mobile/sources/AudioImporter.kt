@@ -88,11 +88,5 @@ class AudioImporter(private val context: Context, private val repository: Transc
             }
             return fromMime?.takeIf { TranscriptionRepository.contentTypeFor(it) != null }
         }
-
-        /** `8.4 MB`, `640 KB`. */
-        fun formatSize(bytes: Long): String = when {
-            bytes >= 1_000_000 -> "%.1f MB".format(bytes / 1_000_000.0)
-            else -> "${(bytes / 1000).coerceAtLeast(1)} KB"
-        }
     }
 }
