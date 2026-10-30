@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Refresh
@@ -22,19 +23,24 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicdecoded.mobile.library.TranscriptionRepository
+import com.musicdecoded.mobile.ui.paywall.LocalOpenPaywall
+import com.musicdecoded.mobile.ui.paywall.opensPaywall
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
 
 /** The title [ErrorState] uses for a message: "You're offline" for the shared offline copy. */
-fun errorTitle(message: String): String =
-    if (message == TranscriptionRepository.OFFLINE) "You're offline" else "Something went wrong"
+fun errorTitle(message: String): String = when (message) {
+    TranscriptionRepository.OFFLINE -> "You're offline"
+    TranscriptionRepository.RATE_LIMITED -> "Daily limit reached"
+    else -> "Something went wrong"
+}
 
 /**
  * The one error state for anything that talks to the server (T-503a): icon, title, message and a
  * Retry button ([onRetry] `null` hides it, e.g. when retrying can't help). Announced politely by
- * screen readers when it appears.
+ * screen readers when it appears. The daily plan limit adds a "Go Pro" action that opens the paywall.
  */
 @Composable
 fun ErrorState(
@@ -62,6 +68,10 @@ fun ErrorState(
             Text(title, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
         }
         Text(message, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
+        val openPaywall = LocalOpenPaywall.current
+        if (openPaywall != null && opensPaywall(message)) {
+            PrimaryButton("Go Pro", onClick = openPaywall, icon = Icons.Rounded.AutoAwesome)
+        }
         if (onRetry != null) SecondaryButton(retryLabel, onClick = onRetry, icon = Icons.Rounded.Refresh)
     }
 }

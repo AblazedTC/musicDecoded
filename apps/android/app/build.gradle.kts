@@ -25,6 +25,12 @@ android {
         // Release base URL: override with -PapiBaseUrl=... until the production host is decided.
         val releaseApiBaseUrl = (project.findProperty("apiBaseUrl") as String?) ?: "https://api.musicdecoded.app"
         buildConfigField("String", "API_BASE_URL", "\"$releaseApiBaseUrl\"")
+
+        // RevenueCat public SDK key (PLAN.md §9): -PrevenuecatApiKey=... or REVENUECAT_ANDROID_API_KEY.
+        // Never commit a key. Empty = purchases unavailable in this build (the paywall says so).
+        val revenueCatApiKey = (project.findProperty("revenuecatApiKey") as String?)
+            ?: providers.environmentVariable("REVENUECAT_ANDROID_API_KEY").orNull ?: ""
+        buildConfigField("String", "REVENUECAT_API_KEY", "\"$revenueCatApiKey\"")
     }
 
     buildTypes {
@@ -87,6 +93,8 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.room.runtime)
     implementation(libs.work.runtime.ktx)
+    // Play Billing through RevenueCat (PLAN.md §9); the API decides Pro from RevenueCat's webhook.
+    implementation(libs.revenuecat.purchases)
     ksp(libs.room.compiler)
     testImplementation(libs.junit)
     testImplementation(libs.ktor.client.mock)

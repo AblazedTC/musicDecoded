@@ -65,7 +65,7 @@ private enum class SettingsDialog { SPEED, CHORDS, ACCIDENTALS, VISUALIZER, PRIV
 
 /** DESIGN.md §3.9 (v1 rows only): profile card, guest sync card, preferences, storage, about. */
 @Composable
-fun SettingsScreen(onAuth: (AuthMode) -> Unit) {
+fun SettingsScreen(onAuth: (AuthMode) -> Unit, onGoPro: (() -> Unit)? = null) {
     val app = LocalContext.current.applicationContext as MusicDecodedApplication
     val viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(app))
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -82,6 +82,9 @@ fun SettingsScreen(onAuth: (AuthMode) -> Unit) {
         PageHeader("Settings", overline = "Preferences & account")
         ProfileCard(state, onAuth = onAuth, onLogout = viewModel::logout)
         if (!state.isAccount) SyncCard(onClick = { onAuth(AuthMode.SIGN_UP) })
+        if (state.showsGoPro && onGoPro != null) {
+            SettingsGroup("MusicDecoded Pro") { SettingsRow("Go Pro", "Decode more", onClick = onGoPro) }
+        }
 
         SettingsGroup("Playback") {
             SettingsRow("Default speed", formatSpeed(prefs.defaultSpeed)) { dialog = SettingsDialog.SPEED }
@@ -173,6 +176,7 @@ private fun ProfileCard(state: SettingsUiState, onAuth: (AuthMode) -> Unit, onLo
                     Text("Music is stored on this device", style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
                 }
             }
+            if (state.isPro) ProChip()
             if (state.isAccount) {
                 Icon(Icons.Rounded.CheckCircle, contentDescription = "Synced", tint = MusicDecodedColors.Primary)
             }
@@ -186,6 +190,16 @@ private fun ProfileCard(state: SettingsUiState, onAuth: (AuthMode) -> Unit, onLo
             }
         }
     }
+}
+
+@Composable
+private fun ProChip() {
+    Text(
+        "Pro",
+        style = MaterialTheme.typography.labelMedium,
+        color = MusicDecodedColors.OnPrimary,
+        modifier = Modifier.background(MusicDecodedColors.Primary, Shapes.chip).padding(horizontal = Spacing.xs, vertical = Spacing.xxs),
+    )
 }
 
 @Composable

@@ -503,12 +503,13 @@ Read PLAN.md §9 first. **Rule: the API enforces Pro. The apps only reflect it.*
 - Notes: `app/billing.py` (+ PRODUCT_CHANGE/UNCANCELLATION; ids in `billing_events`, migration 0005); `REVENUECAT_WEBHOOK_SECRET` unset → 404. The plan is read only via `models.effective_plan` (expired Pro = free). No `model` field in `JobRequest` yet, so Pro-only routes use the `billing.require_pro` dependency. Tests: `tests/test_billing.py` + `tests/fixtures/revenuecat/`.
 
 ### T-602a / T-602i Paywall + purchase flow
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-601, T-403*
+- Lane: android / ios · Status: in-progress (android done, ios todo) · Owner: claude (android) · Deps: T-601, T-403*
 - Acceptance:
-  - [ ] RevenueCat SDK (StoreKit 2 / Play Billing); RevenueCat `appUserID` = our `userId`; guests are prompted to create an account first
-  - [ ] A paywall screen designed through a `design` task (DESIGN.md section added first), shown on `rate_limited` and from Settings
-  - [ ] Restore purchases; after purchase the app re-fetches `/config` and the UI updates without a restart
-  - [ ] Sandbox purchase verified on both stores
+  - [ ] RevenueCat SDK (StoreKit 2 / Play Billing); RevenueCat `appUserID` = our `userId`; guests are prompted to create an account first (android ✓)
+  - [ ] A paywall screen designed through a `design` task (DESIGN.md section added first), shown on `rate_limited` and from Settings (android ✓)
+  - [ ] Restore purchases; after purchase the app re-fetches `/config` and the UI updates without a restart (android ✓)
+  - [ ] Sandbox purchase verified on both stores (owner: needs a real RevenueCat project + Play Console product setup)
+- Notes (android): new dependency `com.revenuecat.purchases:purchases` 11.0.1 (sanctioned by PLAN.md §9; Play Billing has no cross-store entitlement backend). Key from `-PrevenuecatApiKey=` or `REVENUECAT_ANDROID_API_KEY` → `BuildConfig.REVENUECAT_API_KEY`; empty = "Purchases aren't available in this build". `billing/BillingService` + `RevenueCatBillingService` (store identity follows the session in `MusicDecodedApplication`); `ui/paywall/PaywallSheet` + `PaywallViewModel` (activity-scoped, survives the guest sign-up detour, re-reads `/config` up to 3× after a purchase since the webhook may lag). Entry points: `ErrorState` "Go Pro" on `RATE_LIMITED` (never the YouTube search quota), Settings "Go Pro" row (free accounts), "Pro" chip from `config.plan`. No token refresh endpoint exists, so the client relies on `/config` only. Tests: `ui/paywall/PaywallViewModelTest`, `PaywallEntryTest`.
 
 ### T-603 Contributor setup
 - Lane: infra · Status: blocked · Owner: claude → product owner · Deps: —

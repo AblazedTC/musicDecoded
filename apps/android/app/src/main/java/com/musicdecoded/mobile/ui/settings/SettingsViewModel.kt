@@ -8,7 +8,9 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.musicdecoded.mobile.MusicDecodedApplication
 import com.musicdecoded.mobile.auth.Session
 import com.musicdecoded.mobile.library.LibraryCounts
+import com.musicdecoded.mobile.network.ClientConfig
 import com.musicdecoded.mobile.network.Kind
+import com.musicdecoded.mobile.network.Plan
 import com.musicdecoded.mobile.settings.PlayerPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -28,13 +30,20 @@ data class SettingsUiState(
     val storageBytes: Long = 0,
     /** Songs whose audio is on this device. */
     val offlineFiles: Int = 0,
+    /** From `/config` (the server decides Pro); the profile card shows a "Pro" chip. */
+    val plan: Plan = Plan.FREE,
 ) {
     val isAccount: Boolean get() = session?.kind == Kind.ACCOUNT
+    val isPro: Boolean get() = plan == Plan.PRO
+
+    /** Settings' "Go Pro" row: free accounts only (guests sign up from the profile card). */
+    val showsGoPro: Boolean get() = isAccount && !isPro
 }
 
 /** DESIGN.md §3.9 (v1 rows only). */
 class SettingsViewModel(
     session: StateFlow<Session?>,
+    config: Flow<ClientConfig?>,
     preferences: Flow<PlayerPreferences>,
     counts: Flow<LibraryCounts>,
     private val storageBytes: suspend () -> Long,
@@ -45,8 +54,8 @@ class SettingsViewModel(
     /** Storage is re-measured whenever the library changes. */
     private val storage = counts.map { it to storageBytes() }.flowOn(Dispatchers.IO)
 
-    val state: StateFlow<SettingsUiState> = combine(session, preferences, storage) { s, p, (c, bytes) ->
-        SettingsUiState(session = s, preferences = p, storageBytes = bytes, offlineFiles = c.offline)
+    val state: StateFlow<SettingsUiState> = combine(session, config, preferences, storage) { s, cfg, p, (c, bytes) ->
+        SettingsUiState(session = s, preferences = p, storageBytes = bytes, offlineFiles = c.offline, plan = cfg?.plan ?: Plan.FREE)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     init {
@@ -67,6 +76,7 @@ class SettingsViewModel(
             initializer {
                 SettingsViewModel(
                     session = app.authRepository.session,
+                    config = app.authRepository.config,
                     preferences = app.settingsStore.preferences,
                     counts = app.libraryDatabase.libraryDao().counts(),
                     storageBytes = { directorySize(File(app.filesDir, "audio")) + directorySize(File(app.filesDir, "analysis")) },

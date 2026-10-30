@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -22,6 +24,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.musicdecoded.mobile.network.Plan
+import com.musicdecoded.mobile.ui.auth.AuthMode
+import com.musicdecoded.mobile.ui.paywall.LocalOpenPaywall
+import com.musicdecoded.mobile.ui.paywall.PaywallSheet
+import com.musicdecoded.mobile.ui.paywall.PaywallViewModel
 import com.musicdecoded.mobile.BuildConfig
 import com.musicdecoded.mobile.MusicDecodedApplication
 import com.musicdecoded.mobile.player.DebugFixtures
@@ -71,6 +79,34 @@ fun MainScreen(sharedText: String? = null, onSharedTextHandled: () -> Unit = {})
     val position by nowPlaying.position.collectAsStateWithLifecycle()
     PauseWhenBackgrounded(nowPlaying)
 
+    // The Pro paywall (T-602a) lives above every screen; a guest is sent to sign-up first.
+    val app = LocalContext.current.applicationContext as MusicDecodedApplication
+    val paywall: PaywallViewModel = viewModel(factory = PaywallViewModel.factory(app))
+    val paywallState by paywall.state.collectAsStateWithLifecycle()
+    val config by app.authRepository.config.collectAsStateWithLifecycle()
+    LaunchedEffect(paywallState.needsAccount) {
+        if (paywallState.needsAccount) {
+            paywall.accountFlowStarted()
+            navController.navigate(AccountRoutes.auth(AuthMode.SIGN_UP))
+        }
+    }
+    val open = remember(paywall) { { paywall.open() } }
+    val openPaywall = open.takeIf { config?.plan != Plan.PRO }
+
+    CompositionLocalProvider(LocalOpenPaywall provides openPaywall) {
+        AppScaffold(navController, currentTab, playing, { position }, nowPlaying)
+        PaywallSheet(paywall)
+    }
+}
+
+@Composable
+private fun AppScaffold(
+    navController: NavHostController,
+    currentTab: AppTab?,
+    playing: NowPlaying.State?,
+    position: () -> Double,
+    nowPlaying: NowPlaying,
+) {
     Scaffold(
         containerColor = MusicDecodedColors.Canvas,
         bottomBar = {
@@ -80,7 +116,7 @@ fun MainScreen(sharedText: String? = null, onSharedTextHandled: () -> Unit = {})
                     if (track != null && currentTab != AppTab.SETTINGS) {
                         MiniPlayer(
                             track,
-                            position = { position },
+                            position = position,
                             onTick = nowPlaying::tick,
                             onOpen = { navController.navigate(PlayerRoutes.player(track.trackId)) },
                             onTogglePlay = nowPlaying::togglePlay,
@@ -108,7 +144,9 @@ fun MainScreen(sharedText: String? = null, onSharedTextHandled: () -> Unit = {})
                     onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },
                 )
             }
-            composable(AppTab.SETTINGS.route) { SettingsScreen(onAuth = { navController.navigate(AccountRoutes.auth(it)) }) }
+            composable(AppTab.SETTINGS.route) {
+                SettingsScreen(onAuth = { navController.navigate(AccountRoutes.auth(it)) }, onGoPro = LocalOpenPaywall.current)
+            }
             accountRoutes(navController)
             playerDestinations(navController)
             // After the job starts, the import sheet / recorder is replaced by Processing.

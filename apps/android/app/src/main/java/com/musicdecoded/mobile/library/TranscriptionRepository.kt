@@ -292,7 +292,7 @@ class TranscriptionRepository(
         const val BACKOFF_AFTER_MS = 60_000L
 
         const val RATE_LIMITED =
-            "You've reached today's decode limit on the free plan. Try again tomorrow, or upgrade to Pro for more."
+            "You've used today's free transcriptions. Go Pro for more, or try again tomorrow."
         const val TOO_LARGE = "This file is too large to upload (the limit is 100 MB)."
         const val OFFLINE = "Couldn't reach MusicDecoded. Check your connection and try again."
         const val ANALYSIS_FAILED = "We couldn't decode this audio. Try again."

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -72,7 +73,7 @@ fun MdIconButton(
     }
 }
 
-/** Full-width primary action (48 tall, `primary` fill). */
+/** Full-width primary action (48 tall, `primary` fill). [loading] shows a spinner and disables it. */
 @Composable
 fun PrimaryButton(
     text: String,
@@ -80,10 +81,11 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true,
+    loading: Boolean = false,
 ) {
     Button(
         onClick = onClick,
-        enabled = enabled,
+        enabled = enabled && !loading,
         modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = Sizes.buttonHeight),
         shape = Shapes.button,
         colors = ButtonDefaults.buttonColors(
@@ -92,7 +94,13 @@ fun PrimaryButton(
             disabledContainerColor = MusicDecodedColors.SurfaceSoft,
             disabledContentColor = MusicDecodedColors.TextMuted,
         ),
-    ) { ButtonContent(text, icon) }
+    ) {
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(Sizes.smallIcon), color = MusicDecodedColors.Primary, strokeWidth = Sizes.progressTrack / 2)
+        } else {
+            ButtonContent(text, icon)
+        }
+    }
 }
 
 /** Full-width secondary action (`surface` fill, `line` border). */

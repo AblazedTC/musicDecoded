@@ -1,5 +1,7 @@
 package com.musicdecoded.mobile.ui.library
 
+import com.musicdecoded.mobile.ui.paywall.LocalOpenPaywall
+import com.musicdecoded.mobile.ui.paywall.opensPaywall
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
@@ -144,9 +146,12 @@ abstract class SongListViewModel(private val actions: SongActions) : ViewModel()
 @Composable
 fun SongListMessages(message: String?, onShown: () -> Unit) {
     val context = LocalContext.current
+    val openPaywall = LocalOpenPaywall.current
     LaunchedEffect(message) {
         if (message != null) {
-            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            // The daily plan limit (a re-analyze the user just asked for) opens the paywall.
+            if (openPaywall != null && opensPaywall(message)) openPaywall()
+            else Toast.makeText(context, message, Toast.LENGTH_LONG).show()
             onShown()
         }
     }

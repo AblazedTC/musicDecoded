@@ -59,4 +59,6 @@ object Sizes {
     val icon = 24.dp
     val smallIcon = 18.dp
     val progressTrack = 4.dp
+    /** Paywall plan card (and its loading skeleton). */
+    val planCard = 72.dp
 }
