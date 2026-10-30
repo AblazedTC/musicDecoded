@@ -59,6 +59,8 @@ fun PianoKeyboard(
     octaves: Int = 2,
     height: Dp = PianoKeyboardDefaults.CompactHeight,
     noteName: ((Int) -> String)? = null,
+    /** What TalkBack reads for the highlighted keys, e.g. "B · D · F♯" (the chord's note names). */
+    description: String? = null,
 ) {
     // Hold the last position while there's no chord, so the keyboard doesn't jump around.
     val lastStart = remember { intArrayOf(DEFAULT_START) }
@@ -73,7 +75,7 @@ fun PianoKeyboard(
             .fillMaxWidth()
             .height(height)
             .clipToBounds()
-            .semantics { contentDescription = if (notes.isEmpty()) "Piano, no chord" else "Piano with ${notes.size} keys highlighted" },
+            .semantics { contentDescription = pianoDescription(notes.size, description) },
     ) {
         drawRect(MusicDecodedColors.PianoBg)
         val whiteWidth = size.width / (octaves * WHITE_KEYS_PER_OCTAVE)
@@ -136,6 +138,13 @@ internal fun whiteKeyIndex(midi: Int): Int {
     val octave = Math.floorDiv(midi, 12)
     val pitchClass = Math.floorMod(midi, 12)
     return octave * WHITE_KEYS_PER_OCTAVE + WHITE_PITCH_CLASSES.indexOfLast { it <= pitchClass }
+}
+
+/** "Piano, keys B, D, F♯ highlighted" (or a count when the names aren't known). */
+internal fun pianoDescription(count: Int, noteNames: String?): String = when {
+    count == 0 -> "Piano, no chord"
+    !noteNames.isNullOrBlank() -> "Piano, keys ${noteNames.split('·').joinToString(", ") { it.trim() }} highlighted"
+    else -> "Piano with $count keys highlighted"
 }
 
 internal fun midiOfWhiteKey(index: Int): Int =

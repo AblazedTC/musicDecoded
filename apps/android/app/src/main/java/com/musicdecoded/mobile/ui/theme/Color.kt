@@ -23,7 +23,12 @@ object MusicDecodedColors {
 
     val Text = Color(0xFFF5F8FB)
     val TextSecondary = Color(0xFF9FB0C3)
-    val TextMuted = Color(0xFF63778C)
+    /**
+     * DESIGN.md says `#63778C`, which is only 3.6–4.1:1 on canvas/surface (WCAG AA needs 4.5:1 for
+     * text, T-503a). Lifted to `#8396AA` (5.5–6.3:1 on canvas, surface, transport); the DESIGN.md
+     * token change is logged as T-506. See ContrastTest.
+     */
+    val TextMuted = Color(0xFF8396AA)
 
     val Record = Color(0xFFEC6478)
     val RecordRing = Color(0xFFB94D5E)

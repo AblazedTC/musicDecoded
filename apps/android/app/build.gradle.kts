@@ -46,6 +46,8 @@ android {
         compose = true
         buildConfig = true
     }
+    // Robolectric Compose tests need the merged manifest (ui-test-manifest's ComponentActivity).
+    testOptions.unitTests.isIncludeAndroidResources = true
     sourceSets {
         // Unit tests read the shared contracts (fixture, voicings) straight from the repo, never a copy.
         getByName("test").resources.srcDir("../../../contracts")
@@ -90,6 +92,9 @@ dependencies {
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    // Compose semantics tests on Robolectric (T-503a); same catalog entry as the instrumented tests.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)

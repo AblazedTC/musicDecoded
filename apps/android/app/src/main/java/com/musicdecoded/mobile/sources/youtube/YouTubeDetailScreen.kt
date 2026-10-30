@@ -44,6 +44,7 @@ import com.musicdecoded.mobile.library.LibraryStatus
 import com.musicdecoded.mobile.network.VideoSummary
 import com.musicdecoded.mobile.player.YouTubeWebPlayer
 import com.musicdecoded.mobile.player.youTubeErrorMessage
+import com.musicdecoded.mobile.ui.components.ErrorState
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.PolicyNote
 import com.musicdecoded.mobile.ui.components.PreviewSurface
@@ -128,7 +129,7 @@ private fun YouTubeDetailContent(
                     enabled = !state.starting,
                 )
             }
-            state.error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.Record) }
+            state.error?.let { ErrorState(it, onRetry = onDecode.takeIf { !state.starting }) }
             PolicyNote(YOUTUBE_POLICY_NOTE, icon = Icons.Rounded.Shield)
         }
     }

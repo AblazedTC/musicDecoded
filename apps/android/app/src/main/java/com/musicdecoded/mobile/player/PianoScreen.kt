@@ -104,6 +104,7 @@ fun PianoScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 octaves = if (landscape) LANDSCAPE_OCTAVES else PORTRAIT_OCTAVES,
                 height = PianoKeyboardDefaults.LargeHeight,
                 noteName = chords::noteName.takeIf { state.showNoteNames },
+                description = currentLabel?.let(chords::noteNames),
             )
             ProgressionStrip(analysis, chordIndex, chords, onSeek = viewModel::seekTo)
             LearningControls(state, viewModel, Modifier.padding(horizontal = Spacing.gutter))

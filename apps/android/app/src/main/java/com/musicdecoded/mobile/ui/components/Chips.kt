@@ -31,7 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicdecoded.mobile.core.chordDisplayName
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
@@ -68,6 +68,7 @@ fun MdFilterChip(label: String, selected: Boolean, onClick: () -> Unit, modifier
 fun InfoChip(icon: ImageVector, label: String, value: String, modifier: Modifier = Modifier) {
     Row(
         modifier
+            .semantics(mergeDescendants = true) {} // read as one: "Key, B minor"
             .background(MusicDecodedColors.Surface, Shapes.chip)
             .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.chip)
             .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
@@ -76,14 +77,8 @@ fun InfoChip(icon: ImageVector, label: String, value: String, modifier: Modifier
     ) {
         Icon(icon, contentDescription = null, tint = MusicDecodedColors.Primary, modifier = Modifier.size(Sizes.smallIcon))
         Column {
-            Text(label.uppercase(), style = TextStyles.overline, maxLines = 1)
-            Text(
-                value,
-                style = MaterialTheme.typography.titleSmall,
-                color = MusicDecodedColors.Text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Text(label.uppercase(), style = TextStyles.overline)
+            Text(value, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
         }
     }
 }
@@ -102,8 +97,8 @@ fun ControlChip(label: String, value: String, onClick: () -> Unit, modifier: Mod
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(label.uppercase(), style = TextStyles.overline, maxLines = 1)
-            Text(value, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text, maxLines = 1)
+            Text(label.uppercase(), style = TextStyles.overline)
+            Text(value, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
         }
         Icon(Icons.Rounded.ExpandMore, contentDescription = null, tint = MusicDecodedColors.TextMuted, modifier = Modifier.size(Sizes.smallIcon))
     }

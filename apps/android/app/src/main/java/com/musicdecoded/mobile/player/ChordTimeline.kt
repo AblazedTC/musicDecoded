@@ -37,7 +37,16 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.chordDisplayName
 import com.musicdecoded.mobile.core.isNoChord
@@ -85,6 +94,8 @@ fun ChordTimeline(
     modifier: Modifier = Modifier,
     loop: OpenEndRange<Double>? = null,
     onLoopSelected: (OpenEndRange<Double>) -> Unit = {},
+    /** The current chord's display name, for screen readers. */
+    currentChord: String? = null,
 ) {
     var zoom by rememberSaveable { mutableFloatStateOf(DEFAULT_ZOOM_DP_PER_SEC) }
     var loopDraft by remember { mutableStateOf<OpenEndRange<Double>?>(null) }
@@ -110,11 +121,21 @@ fun ChordTimeline(
         Canvas(
             Modifier
                 .fillMaxWidth()
-                .height(TimelineMetrics.labels + Spacing.xxs + TimelineMetrics.chordTrack + Spacing.xs + TimelineMetrics.waveform)
+                .height(with(LocalDensity.current) { (TimelineLayout.waveTop(this) + TimelineMetrics.waveform.toPx()).toDp() })
                 .clipToBounds()
+                // Canvas content is invisible to TalkBack: describe it, and offer zoom as actions.
+                // Chords are reachable one by one through previous/next chord in the transport.
+                .semantics {
+                    contentDescription = "Chord timeline"
+                    stateDescription = currentChord?.let { "Current chord $it" } ?: "No chord"
+                    customActions = listOf(
+                        CustomAccessibilityAction("Zoom in") { zoom = clampZoom(zoom * ZOOM_STEP); true },
+                        CustomAccessibilityAction("Zoom out") { zoom = clampZoom(zoom / ZOOM_STEP); true },
+                    )
+                }
                 .pointerInput(Unit) {
-                    val chordTop = (TimelineMetrics.labels + Spacing.xxs).toPx()
-                    val chordBottom = chordTop + TimelineMetrics.chordTrack.toPx()
+                    val chordTop = TimelineLayout.chordTop(this)
+                    val chordBottom = chordTop + scaled(TimelineMetrics.chordTrack)
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val pxPerSec = zoom * density
@@ -189,6 +210,12 @@ fun ChordTimeline(
     }
 }
 
+/** A band that holds text: [height] at 100% font size, growing with the user's font scale (T-503a). */
+private fun Density.scaled(height: Dp): Float = max(height.toPx(), height.value.sp.toPx())
+
+/** One accessibility zoom step (×1.5 / ÷1.5). */
+private const val ZOOM_STEP = 1.5f
+
 /** Vertical bands of the canvas, in px. */
 private class TimelineLayout(scope: DrawScope) {
     val labelsBottom: Float
@@ -199,12 +226,19 @@ private class TimelineLayout(scope: DrawScope) {
 
     init {
         with(scope) {
-            labelsBottom = TimelineMetrics.labels.toPx()
+            labelsBottom = scaled(TimelineMetrics.labels)
             chordTop = labelsBottom + Spacing.xxs.toPx()
-            chordBottom = chordTop + TimelineMetrics.chordTrack.toPx()
+            chordBottom = chordTop + scaled(TimelineMetrics.chordTrack)
             waveTop = chordBottom + Spacing.xs.toPx()
             waveBottom = waveTop + TimelineMetrics.waveform.toPx()
         }
+    }
+
+    companion object {
+        fun chordTop(density: Density): Float = with(density) { scaled(TimelineMetrics.labels) + Spacing.xxs.toPx() }
+
+        fun waveTop(density: Density): Float =
+            with(density) { chordTop(density) + scaled(TimelineMetrics.chordTrack) + Spacing.xs.toPx() }
     }
 }
 

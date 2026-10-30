@@ -29,7 +29,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -52,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.musicdecoded.mobile.MusicDecodedApplication
 import com.musicdecoded.mobile.network.VideoSummary
+import com.musicdecoded.mobile.ui.components.ErrorState
 import com.musicdecoded.mobile.ui.components.MdFilterChip
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.PreviewSurface
@@ -241,20 +241,7 @@ internal fun DurationBadge(seconds: Int, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ErrorCard(error: SearchError, onRetry: () -> Unit) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
-            .padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Text(error.title, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
-        Text(error.message, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
-        if (error.retryable) {
-            TextButton(onClick = onRetry) { Text("Try again", style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Primary) }
-        }
-    }
+    ErrorState(error.message, title = error.title, onRetry = onRetry.takeIf { error.retryable })
 }
 
 /** "Paste a video URL" → videoId → detail. Needs no search, so it works when search doesn't (R-6). */
