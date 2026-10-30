@@ -81,7 +81,7 @@ private struct FileHeader: View {
                     .font(.rowTitle)
                     .foregroundStyle(Palette.text)
                     .lineLimit(2)
-                Text("\(draft.typeLabel) · \(Int64(draft.sizeBytes).formatted(.byteCount(style: .file)))")
+                Text("\(draft.typeLabel) · \(AccountFormat.bytes(Int64(draft.sizeBytes)))")
                     .font(.detail)
                     .foregroundStyle(Palette.textSecondary)
             }

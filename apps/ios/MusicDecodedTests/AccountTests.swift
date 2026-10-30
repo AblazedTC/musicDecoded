@@ -95,6 +95,15 @@ struct AccountTests {
         #expect(MigrationSummary.of([row("a", .file, "a.mp3")], audioDirectory: directory, pro: false).ownAudioSyncs == false)
     }
 
+    @Test func sizesUseDecimalUnitsWithOneDecimal() {
+        #expect(AccountFormat.bytes(6_000_000) == "6.0 MB")
+        #expect(AccountFormat.bytes(8_400_000) == "8.4 MB")
+        #expect(AccountFormat.bytes(999_999) == "1.0 MB")
+        #expect(AccountFormat.bytes(640_000) == "640 KB")
+        #expect(AccountFormat.bytes(0) == "0 KB")
+        #expect(AccountFormat.bytes(1_200_000_000) == "1.2 GB")
+    }
+
     @Test func migrationAudioRowSaysProOnlyForFreeAccounts() {
         let free = MigrationCheckRow.accessibilityLabel(title: "2 local audio files", subtitle: "Private audio sync · 6.0 MB", isChecked: false, isPro: true)
         #expect(free == "2 local audio files, Private audio sync · 6.0 MB, Pro only, not included")

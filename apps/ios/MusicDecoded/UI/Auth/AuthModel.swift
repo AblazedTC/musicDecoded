@@ -146,8 +146,15 @@ enum AccountFormat {
         "\(count) \(noun)\(count == 1 ? "" : "s")"
     }
 
-    /// `840 KB`, `12.4 MB` (1024-based).
+    /// The one file-size format (import sheet, migration, Settings storage): decimal units, one
+    /// decimal for MB and GB. `0 KB`, `640 KB`, `6.0 MB`, `1.2 GB`.
     static func bytes(_ count: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: count, countStyle: .binary)
+        if count < 999_500 {
+            return "\(Int((Double(count) / 1000).rounded())) KB"
+        }
+        if count < 999_950_000 {
+            return String(format: "%.1f MB", Double(count) / 1_000_000)
+        }
+        return String(format: "%.1f GB", Double(count) / 1_000_000_000)
     }
 }
