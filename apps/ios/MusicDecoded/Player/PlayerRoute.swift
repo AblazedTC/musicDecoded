@@ -15,6 +15,7 @@ enum PlayerTrackLoader {
         var artist: String?
         var favorite: Bool
         var audioURL: URL?
+        var artworkURL: URL? = nil
     }
 
     /// `analysis/{trackId}.json` (or, in Debug, a bundled `fixture-*` analysis) plus the local audio
@@ -29,7 +30,8 @@ enum PlayerTrackLoader {
                 title: info.title,
                 artist: info.artist,
                 favorite: info.favorite,
-                audioURL: audioURL
+                audioURL: audioURL,
+                artworkURL: info.artworkURL
             )
         }
         #if DEBUG
@@ -39,7 +41,8 @@ enum PlayerTrackLoader {
                 title: trackId == DebugFixtures.sunnyDays ? "Sunny Days" : info.title,
                 artist: info.artist ?? "Fixture",
                 favorite: info.favorite,
-                audioURL: nil
+                audioURL: nil,
+                artworkURL: info.artworkURL
             )
         }
         #endif

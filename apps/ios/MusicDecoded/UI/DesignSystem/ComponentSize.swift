@@ -20,6 +20,26 @@ enum ComponentSize {
     /// The player's compact metadata chips (Key · Time · BPM, DESIGN.md §3.7 item 2).
     static let playerChipHeight: CGFloat = 36
     static let pianoLargeHeight: CGFloat = 190
+    /// The fixed C3–B5 keyboard (DESIGN.md §3.7 "Owner revision 2"): 110–150 in the Timeline
+    /// view's piano panel, 90 in the compact panels (Beat grid, Chord sheet), 90 at the least.
+    static let fixedKeyboardMin: CGFloat = 110
+    static let fixedKeyboardMax: CGFloat = 150
+    static let fixedKeyboardCompact: CGFloat = 90
+    /// Piano panel rows: chord name, note names under the keys, inversion page dots.
+    static let pianoPanelChordRow: CGFloat = 28
+    static let pianoPanelNamesRow: CGFloat = 16
+    static let pianoPanelDotsRow: CGFloat = 12
+    static let pageDot: CGFloat = 6
+    /// The media panel: at least this tall, else it collapses to a strip.
+    static let mediaPanelMin: CGFloat = 120
+    static let mediaStripHeight: CGFloat = 56
+    static let mediaStripArt: CGFloat = 40
+    /// Beat grid: bar-number column and cell height.
+    static let barNumberWidth: CGFloat = 28
+    static let beatCellHeight: CGFloat = 44
+    /// Header view switcher segment (≥ 44 wide).
+    static let viewSwitcherSegmentWidth: CGFloat = 44
+    static let viewSwitcherHeight: CGFloat = 38
     /// YouTube result thumbnail (DESIGN.md §3.4).
     static let videoThumbnailWidth: CGFloat = 132
     static let videoThumbnailHeight: CGFloat = 78

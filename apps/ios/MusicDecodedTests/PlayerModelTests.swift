@@ -281,6 +281,41 @@ struct PlayerModelTests {
         #expect(model.upcoming == nil)
     }
 
+    @Test func inversionIsClampedPerChordAndSwipesStopAtTheEnds() async throws {
+        let model = try await makeModel()
+        model.seek(to: 0.5) // A:maj, 3 inversions
+        #expect(model.currentVoicing?.rightHand == [69, 73, 76])
+        #expect(model.shiftInversion(by: -1) == false)
+        #expect(model.shiftInversion(by: 1))
+        #expect(model.shiftInversion(by: 1))
+        #expect(model.inversion == 2)
+        #expect(model.shiftInversion(by: 1) == false)
+        #expect(model.currentVoicing?.rightHand == [64, 69, 73])
+
+        model.setInversion(3)
+        #expect(model.currentVoicing?.inversion == 2) // clamped to the triad
+        #expect(model.shiftInversion(by: -1))
+        #expect(model.inversion == 1)
+        model.setInversion(9)
+        #expect(model.inversion == PlayerModel.maxInversion)
+
+        model.seek(to: 3) // N: no voicing, nothing to swipe
+        #expect(model.currentVoicing == nil)
+        #expect(model.shiftInversion(by: 1) == false)
+    }
+
+    @Test func beatIndexFollowsThePlayhead() async throws {
+        let model = try await makeModel()
+        model.seek(to: 2.5)
+        #expect(model.beatIndex == 2)
+        model.seek(to: 9.5)
+        #expect(model.beatIndex == 9)
+    }
+
+    @Test func formatsInversions() {
+        #expect((0...3).map(PlayerFormat.inversion) == ["Root", "1st inv", "2nd inv", "3rd inv"])
+    }
+
     @Test func formatsChipValues() {
         #expect(PlayerFormat.transpose(2) == "+2")
         #expect(PlayerFormat.transpose(-3) == "−3")

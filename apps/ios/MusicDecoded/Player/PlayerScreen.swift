@@ -55,7 +55,8 @@ struct PlayerScreen: View {
             title: item?.title ?? trackId,
             artist: item?.artist,
             favorite: item?.favorite ?? false,
-            audioURL: item.flatMap { transcription.audioURL(for: $0) }
+            audioURL: item.flatMap { transcription.audioURL(for: $0) },
+            artworkURL: item?.thumbnailUrl.flatMap(URL.init(string:))
         )
         let trackId = trackId
         let context = modelContext
@@ -108,10 +109,10 @@ struct PlayerScreen: View {
     }
 }
 
-/// The Player layout on one screen (DESIGN.md §3.7): metadata chips, the edge-to-edge timeline,
-/// the control row, the visualizer panel filling the rest, and the transport pinned at the
-/// bottom. Each section reads only the model state it shows, so the 60 Hz clock
-/// redraws just the timeline and the seek bar.
+/// The Player on one screen (DESIGN.md §3.7, "Owner revision 2" and §3.7.1): header with the
+/// view switcher and ⋯, a compact title line, the metadata chips, the selected view in the middle
+/// and the transport pinned at the bottom. Each section reads only the model state it shows, so
+/// the 60 Hz clock redraws just the timeline and the seek bar.
 struct PlayerView: View {
     let model: PlayerModel
     /// The ⋯ menu's library actions; `nil` hides Re-analyze and Delete (previews, fixtures).
@@ -121,33 +122,41 @@ struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.openPaywall) private var openPaywall
-    @State private var showPiano = false
+    /// The view switcher's choice, kept for the whole app (DESIGN.md §3.7).
+    @AppStorage("player.viewMode") private var viewMode: PlayerViewMode = .timeline
+    @State private var showMediaSheet = false
     @State private var confirmDelete = false
     @State private var actionError: String?
     @State private var showActionError = false
 
     var body: some View {
         content
+            .overlayPreferenceValue(VideoSlotKey.self) { slot in
+                // The one YouTube video view: over the media panel, or parked at 1 pt (it may be
+                // the clock). While the media sheet is open, the sheet shows it instead.
+                if showMediaSheet == false, let controller = model.videoPlayer as? YouTubePlayerController {
+                    PlayerVideoHost(controller: controller, slot: slot)
+                }
+            }
             .background(Palette.canvas)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Palette.canvas, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    PlayerTitle(title: model.track?.title ?? "", artist: model.track?.artist)
+                    PlayerViewSwitcher(selection: $viewMode)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 0) {
-                        FavoriteButton(model: model)
-                            .disabled(model.track == nil)
-                        PlayerMoreMenu(
-                            model: model,
-                            actions: actions,
-                            onReanalyze: reanalyze,
-                            onDelete: { confirmDelete = true }
-                        )
-                    }
+                    PlayerMoreMenu(
+                        model: model,
+                        actions: actions,
+                        onReanalyze: reanalyze,
+                        onDelete: { confirmDelete = true }
+                    )
                 }
+            }
+            .sheet(isPresented: $showMediaSheet) {
+                MediaSheet(model: model)
             }
             .confirmationDialog(
                 "Delete “\(model.track?.title ?? "this song")”?",
@@ -179,10 +188,6 @@ struct PlayerView: View {
                     model.pause()
                 }
             }
-            .navigationDestination(isPresented: $showPiano) {
-                // Shares this model, so playback carries on in the learning view.
-                PianoView(model: model)
-            }
     }
 
     /// Re-analyze: starts a new job and leaves the Player; the song's row shows the progress.
@@ -202,28 +207,48 @@ struct PlayerView: View {
         }
     }
 
-    /// The metadata row and the gap under it, taken off before sizing the timeline.
-    private static let metadataRowAllowance: CGFloat = 44 + Spacing.xs
-    private static let fallbackTimelineHeight: CGFloat = 220
+    /// Fixed middle-region height for the largest text sizes, where the screen scrolls.
+    private static let fallbackMiddleHeight: CGFloat = 640
 
-    /// Metadata chips · timeline (edge to edge) · control row · visualizer panel (DESIGN.md §3.7).
-    private func playerStack(_ analysis: Analysis, timelineHeight: CGFloat) -> some View {
+    /// Title line · metadata chips · the selected view.
+    private func playerStack(_ analysis: Analysis, fillsHeight: Bool) -> some View {
         VStack(spacing: Spacing.xs) {
-            MetadataRow(analysis: analysis)
-                .padding(.horizontal, Spacing.md)
-            PlayerTimeline(model: model)
-                .frame(height: timelineHeight)
-            ControlRow(model: model)
-                .padding(.horizontal, Spacing.md)
-            VisualizerPanel(model: model) {
-                showPiano = true
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                PlayerTitleLine(title: model.track?.title ?? "", artist: model.track?.artist)
+                MetadataRow(analysis: analysis)
             }
-            .frame(maxHeight: .infinity)
             .padding(.horizontal, Spacing.md)
-            // Room for the panel's hard shadow above the transport.
-            .padding(.bottom, Spacing.xs)
+            if fillsHeight {
+                GeometryReader { proxy in
+                    middle(analysis, height: proxy.size.height)
+                        .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
+                }
+            } else {
+                middle(analysis, height: Self.fallbackMiddleHeight)
+                    .frame(height: Self.fallbackMiddleHeight, alignment: .top)
+            }
         }
         .padding(.top, Spacing.xxs)
+    }
+
+    @ViewBuilder
+    private func middle(_ analysis: Analysis, height: CGFloat) -> some View {
+        switch viewMode {
+        case .timeline:
+            TimelineRegion(model: model, height: height) {
+                showMediaSheet = true
+            }
+        case .beatGrid:
+            CompactRegion(model: model) {
+                BeatGridView(model: model, analysis: analysis)
+            }
+        case .chordSheet:
+            CompactRegion(model: model) {
+                ChordSheetView(model: model, analysis: analysis)
+            }
+        case .pianoFocus:
+            PianoFocusView(model: model)
+        }
     }
 
     @ViewBuilder
@@ -233,15 +258,12 @@ struct PlayerView: View {
                 if dynamicTypeSize.isAccessibilitySize {
                     // Fallback at the largest text sizes: fixed sizes in a scroll view.
                     ScrollView {
-                        playerStack(analysis, timelineHeight: Self.fallbackTimelineHeight)
+                        playerStack(analysis, fillsHeight: false)
                     }
                 } else {
-                    // One screen, no scrolling (DESIGN.md §3.7): the panel takes what's left.
-                    GeometryReader { proxy in
-                        let middle = proxy.size.height - Self.metadataRowAllowance
-                        playerStack(analysis, timelineHeight: TimelineMath.timelineHeight(available: middle))
-                            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
-                    }
+                    // One screen, no scrolling (DESIGN.md §3.7): the middle takes what's left.
+                    playerStack(analysis, fillsHeight: true)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -262,51 +284,108 @@ struct PlayerView: View {
     }
 }
 
-/// Title (one line, ellipsized) and, only when it fits, the artist under it, centered in the
-/// navigation bar (DESIGN.md §3.7 item 1).
-struct PlayerTitle: View {
+/// Timeline view (DESIGN.md §3.7.1): timeline (edge to edge) · control row · piano panel ·
+/// media panel, sized to `height` with no scrolling. The media panel collapses to a strip
+/// (opening a sheet) when less than 120 points would be left for it.
+private struct TimelineRegion: View {
+    let model: PlayerModel
+    let height: CGFloat
+    let onOpenMedia: () -> Void
+
+    /// Below the 150 minimum only when the panels wouldn't fit otherwise (small phones).
+    private static let minTimelineHeight: CGFloat = 120
+
+    var body: some View {
+        let fixed = ComponentSize.minTouchTarget + Spacing.xs * 2
+        let panelsMinimum = PlayerLayout.minimumPanels(gap: Spacing.xxs)
+        let timeline = max(
+            min(TimelineMath.timelineHeight(available: height), height - fixed - panelsMinimum),
+            Self.minTimelineHeight
+        )
+        let split = PlayerLayout.split(available: height - timeline - fixed, gap: Spacing.xxs)
+        VStack(spacing: Spacing.xs) {
+            PlayerTimeline(model: model)
+                .frame(height: timeline)
+            ControlRow(model: model)
+                .padding(.horizontal, Spacing.md)
+            VStack(spacing: Spacing.xxs) {
+                PianoPanel(model: model, keysHeight: split.keyboard)
+                    .padding(.horizontal, Spacing.md)
+                if split.mediaCollapsed {
+                    MediaStrip(model: model, onOpen: onOpenMedia)
+                } else {
+                    MediaPanel(model: model)
+                        .frame(height: max(split.media, 0))
+                }
+            }
+        }
+    }
+}
+
+/// Beat grid and Chord sheet (DESIGN.md §3.7.1): the view's content fills the space, then the
+/// control row and a compact piano panel (keyboard 90).
+private struct CompactRegion<Content: View>: View {
+    let model: PlayerModel
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        VStack(spacing: Spacing.xs) {
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ControlRow(model: model)
+                .padding(.horizontal, Spacing.md)
+            PianoPanel(model: model, keysHeight: ComponentSize.fixedKeyboardCompact)
+                .padding(.horizontal, Spacing.md)
+                .padding(.bottom, Spacing.xxs)
+        }
+    }
+}
+
+/// The header's view switcher (DESIGN.md §3.7 "Owner revision 2"): Timeline · Beat grid ·
+/// Chord sheet · Piano focus as icon segments in a 3pt black frame; selected = lime, ink icon.
+struct PlayerViewSwitcher: View {
+    @Binding var selection: PlayerViewMode
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(PlayerViewMode.allCases, id: \.self) { mode in
+                let isSelected = mode == selection
+                Button {
+                    selection = mode
+                } label: {
+                    Image(systemName: mode.systemImage)
+                        .font(.footnote.weight(.bold))
+                        .foregroundStyle(isSelected ? Palette.onPrimary : Palette.text)
+                        .frame(width: ComponentSize.viewSwitcherSegmentWidth, height: ComponentSize.viewSwitcherHeight)
+                        .background(isSelected ? Palette.primary : Palette.surfaceRaised, in: .rect)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(mode.title)
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+        }
+        .padding(BorderWidth.thick)
+        .background(Palette.border, in: .rect)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Player view")
+    }
+}
+
+/// The song title on one compact line under the header (ellipsized), the artist after it.
+private struct PlayerTitleLine: View {
     let title: String
     let artist: String?
 
     var body: some View {
-        ViewThatFits(in: .vertical) {
-            VStack(spacing: 0) {
-                titleText
-                if let artist {
-                    Text(artist)
-                        .font(.detail)
-                        .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(1)
-                }
-            }
-            titleText
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
-    }
-
-    private var titleText: some View {
-        Text(title)
-            .font(.rowTitle)
-            .foregroundStyle(Palette.text)
+        let artistText = artist.map { Text(" · \($0)").foregroundStyle(Palette.textSecondary) } ?? Text(verbatim: "")
+        (Text(title).foregroundStyle(Palette.text) + artistText)
+            .font(.labelSmall)
             .lineLimit(1)
-    }
-}
-
-private struct FavoriteButton: View {
-    let model: PlayerModel
-
-    var body: some View {
-        Button {
-            model.toggleFavorite()
-        } label: {
-            Image(systemName: model.favorite ? "heart.fill" : "heart")
-                .fontWeight(.bold)
-                .foregroundStyle(model.favorite ? Palette.pink : Palette.text)
-                .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
-                .contentShape(.rect)
-        }
-        .accessibilityLabel(model.favorite ? "Remove from favorites" : "Add to favorites")
+            .truncationMode(.tail)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -318,7 +397,7 @@ struct PlayerTrackActions {
     let delete: @MainActor () -> Void
 }
 
-/// The header ⋯ menu (DESIGN.md §3.7 item 1): Favorite, Re-analyze, Delete.
+/// The header ⋯ menu (DESIGN.md §3.7 "Owner revision 2"): Favorite, Re-analyze, Delete.
 private struct PlayerMoreMenu: View {
     let model: PlayerModel
     let actions: PlayerTrackActions?
@@ -421,8 +500,8 @@ private struct PlayerTimeline: View {
     }
 }
 
-/// Chords (Basic/Full) · Voicing (Simple) · Transpose, label and value on one line where they fit
-/// (DESIGN.md §3.7 item 4).
+/// Chords (Basic/Full) · Voicing (inversion) · Transpose, label and value on one line where they
+/// fit (DESIGN.md §3.7 item 4).
 private struct ControlRow: View {
     let model: PlayerModel
 
@@ -431,113 +510,9 @@ private struct ControlRow: View {
             ControlChip(title: "Chords", value: model.chordsMode == .basic ? "Basic" : "Full", inline: true) {
                 model.toggleChordsMode()
             }
-            // Only Simple exists in v1 (DESIGN.md §5).
-            ControlChip(title: "Voicing", value: "Simple", inline: true) {}
-                .disabled(true)
+            VoicingChip(model: model, inline: true)
             TransposeChip(model: model, inline: true)
         }
-    }
-}
-
-/// Piano | Video (DESIGN.md §3.7 item 5), taking all the height it's given. Video is disabled
-/// unless the source is youtube.
-private struct VisualizerPanel: View {
-    @Bindable var model: PlayerModel
-    let onExpand: () -> Void
-
-    var body: some View {
-        VStack(spacing: Spacing.xs) {
-            HStack(spacing: Spacing.xs) {
-                SegmentedToggle(
-                    options: Visualizer.allCases,
-                    selection: $model.visualizerChoice,
-                    isEnabled: { option in option == .piano || model.videoAvailable },
-                    label: { $0.title }
-                )
-                IconButton(title: "Open piano view", systemImage: "arrow.up.left.and.arrow.down.right", size: .small) {
-                    onExpand()
-                }
-            }
-
-            if model.visualizer == .piano {
-                PanelPiano(model: model)
-                    .frame(maxHeight: .infinity)
-            }
-            // Always in the hierarchy when there's a video (it may be the clock), shown only on
-            // the Video tab, so switching tabs never reloads the embed. Letterboxed 16:9.
-            if let controller = model.videoPlayer as? YouTubePlayerController {
-                let visible = model.visualizer == .video
-                VideoPanel(controller: controller, isVisible: visible)
-                    .frame(maxWidth: .infinity, maxHeight: visible ? CGFloat.infinity : nil)
-                    .background(visible ? Palette.black : Color.clear)
-            } else if model.visualizer == .video {
-                Text("The video isn't available for this song.")
-                    .font(.detail)
-                    .foregroundStyle(Palette.textSecondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .padding(Spacing.sm)
-        .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.violet)
-    }
-}
-
-/// The active chord name (lime) and its Roman numeral above a keyboard that fills the rest of
-/// the panel: as many octaves as fit the width, centered on the active notes, with the note names
-/// under the highlighted keys. Replaces the old Now Playing card.
-private struct PanelPiano: View {
-    let model: PlayerModel
-
-    /// The keyboard's minimum (96) plus its note-name row.
-    private static let minKeyboardHeight: CGFloat = ComponentSize.pianoCompactHeight + Spacing.md
-
-    var body: some View {
-        let chords = model.chords
-        let label = model.currentLabel
-        let name = label.map(chords.name) ?? ""
-        let numeral = label.flatMap(chords.numeral)
-        VStack(spacing: Spacing.xs) {
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                Text(name.isEmpty ? "—" : name)
-                    .font(.sectionHeader)
-                    .foregroundStyle(Palette.chord)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                if let numeral {
-                    Text(numeral)
-                        .font(.rowTitle)
-                        .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(1)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Current chord")
-            .accessibilityValue(Self.summary(chords, label: label, numeral: numeral))
-            .accessibilityAddTraits(.updatesFrequently)
-
-            GeometryReader { proxy in
-                PianoKeyboard(
-                    notes: label.map(chords.notes) ?? [],
-                    bassNote: label.flatMap(chords.bassNote),
-                    octaves: PianoLayout.octavesThatFit(width: Double(proxy.size.width)),
-                    height: max(proxy.size.height, Self.minKeyboardHeight),
-                    centersNotes: true,
-                    namesBelow: { chords.noteName($0) },
-                    notesDescription: chords.accessibilitySummary(label)
-                )
-                .clipShape(.rect)
-            }
-            .frame(minHeight: Self.minKeyboardHeight)
-        }
-    }
-
-    /// "E major, three: E, G sharp, B".
-    private static func summary(_ chords: ChordDisplay, label: String?, numeral: String?) -> String {
-        guard let label, let numeral else { return chords.accessibilitySummary(label) }
-        let notes = chords.spokenNoteNames(label)
-        let head = "\(chords.spokenName(label)), \(spokenRomanNumeral(numeral))"
-        return notes.isEmpty ? head : "\(head): \(notes)"
     }
 }
 

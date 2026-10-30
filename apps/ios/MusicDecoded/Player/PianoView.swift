@@ -1,58 +1,35 @@
 import MusicDecodedCore
 import SwiftUI
 
-/// Piano learning view (DESIGN.md §3.8). Pushed from the player's visualizer card and shares its
-/// `PlayerModel`, so playback, loop and settings carry over both ways.
-struct PianoView: View {
+/// Piano focus (DESIGN.md §3.7.1): the Piano learning view (§3.8) inline in the player's middle
+/// region. Shares the player's `PlayerModel` and transport: head card, the large fixed keyboard
+/// (same voicing, inversion and fingering rules as the piano panel), the progression strip and
+/// the learning controls.
+struct PianoFocusView: View {
     let model: PlayerModel
 
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @Environment(\.scenePhase) private var scenePhase
-
-    /// Octaves on the large keyboard: 2 in portrait, wider in landscape.
-    private static let portraitOctaves = 2
-    private static let landscapeOctaves = 4
-
     var body: some View {
-        let isLandscape = verticalSizeClass == .compact
         ScrollView {
-            VStack(spacing: Spacing.lg) {
+            VStack(spacing: Spacing.md) {
                 PianoHeadCard(model: model)
                     .padding(.horizontal, Spacing.md)
-                PlayerSeekBar(model: model)
-                    .padding(.horizontal, Spacing.md)
                 // Inset by the gutter so the frame's hard shadow shows (DESIGN.md §1: lime shadowLg).
-                LearningKeyboard(model: model, octaves: isLandscape ? Self.landscapeOctaves : Self.portraitOctaves)
-                    .squareBorder(Palette.border)
-                    .hardShadow(HardShadow.lg, color: Palette.lime)
-                    .padding(.horizontal, Spacing.md)
-                    .padding(.trailing, HardShadow.lg)
+                PianoPanel(
+                    model: model,
+                    keysHeight: ComponentSize.pianoLargeHeight,
+                    showsChordName: false,
+                    showsNoteNames: model.showNoteNames,
+                    shadow: HardShadow.lg
+                )
+                .padding(.horizontal, Spacing.md)
+                .padding(.trailing, HardShadow.lg)
                 ProgressionStrip(model: model)
                 LearningControls(model: model)
                     .padding(.horizontal, Spacing.md)
-                LearningTransport(model: model)
-                if isLandscape == false {
-                    Text("Rotate your device for a wider keyboard")
-                        .font(.detail)
-                        .foregroundStyle(Palette.textMuted)
-                }
             }
             .padding(.vertical, Spacing.md)
         }
-        .background(Palette.canvas)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Palette.canvas, for: .navigationBar)
-        .toolbar(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                PlayerTitle(title: model.track?.title ?? "", artist: model.track?.artist)
-            }
-        }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background {
-                model.pause()
-            }
-        }
+        .scrollIndicators(.hidden)
     }
 }
 
@@ -120,31 +97,6 @@ private struct PianoHeadCard: View {
         .padding(Spacing.md)
         .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.pink)
         .padding(.trailing, HardShadow.lg)
-    }
-}
-
-/// The large keyboard, edge to edge, with optional note names.
-private struct LearningKeyboard: View {
-    let model: PlayerModel
-    let octaves: Int
-
-    var body: some View {
-        let chords = model.chords
-        let label = model.currentLabel
-        let noteName: ((Int) -> String)?
-        if model.showNoteNames {
-            noteName = { chords.noteName($0) }
-        } else {
-            noteName = nil
-        }
-        return PianoKeyboard(
-            notes: label.map(chords.notes) ?? [],
-            bassNote: label.flatMap(chords.bassNote),
-            octaves: octaves,
-            height: ComponentSize.pianoLargeHeight,
-            noteName: noteName,
-            notesDescription: chords.accessibilitySummary(label)
-        )
     }
 }
 
@@ -268,38 +220,3 @@ private struct LearningControls: View {
         }
     }
 }
-
-/// Previous chord · play/pause · next chord.
-private struct LearningTransport: View {
-    let model: PlayerModel
-
-    var body: some View {
-        HStack(spacing: Spacing.xl) {
-            IconButton(title: "Previous chord", systemImage: "backward.end.fill") { model.previousChord() }
-            PlayButton(isPlaying: model.isPlaying, diameter: ComponentSize.learningPlayButton) { model.togglePlay() }
-            IconButton(title: "Next chord", systemImage: "forward.end.fill") { model.nextChord() }
-        }
-    }
-}
-
-#if DEBUG
-#Preview {
-    let model = PlayerModel(
-        loadTrack: {
-            DebugFixtures.load(trackId: DebugFixtures.sunnyDays).map {
-                PlayerTrack(analysis: $0, title: "Sunny Days", artist: "Fixture", favorite: false, audioURL: nil)
-            }
-        },
-        voicings: BundledContracts.voicings,
-        makeEngine: { SilentPlaybackEngine(durationSec: $0.analysis.meta.durationSec) }
-    )
-    return NavigationStack {
-        PianoView(model: model)
-            .task {
-                await model.load()
-                model.seek(to: 16)
-            }
-    }
-    .preferredColorScheme(.dark)
-}
-#endif

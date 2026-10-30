@@ -95,5 +95,6 @@ enum Palette {
     static let pianoBlackKey = ink
     static let pianoActiveWhiteKey = lime
     static let pianoActiveBlackKey = Color(hex: Hex.pianoBlackActive)
-    static let pianoBass = pink
+    /// The left-hand bass note (DESIGN.md §3.7 "Owner revision 2": blue; right hand stays lime).
+    static let pianoBass = blue
 }

@@ -38,6 +38,26 @@ enum PlayerFormat {
         beats == 1 ? "in 1 beat" : "in \(beats) beats"
     }
 
+    /// Voicing chip value: `Root`, `1st inv`, `2nd inv`, `3rd inv`.
+    static func inversion(_ inversion: Int) -> String {
+        switch inversion {
+        case 1: "1st inv"
+        case 2: "2nd inv"
+        case 3: "3rd inv"
+        default: "Root"
+        }
+    }
+
+    /// Spoken inversion: `Root position`, `First inversion`…
+    static func spokenInversion(_ inversion: Int) -> String {
+        switch inversion {
+        case 1: "First inversion"
+        case 2: "Second inversion"
+        case 3: "Third inversion"
+        default: "Root position"
+        }
+    }
+
     /// `1 beat`, `4 beats`.
     static func beats(_ beats: Int) -> String {
         beats == 1 ? "1 beat" : "\(beats) beats"

@@ -9,6 +9,31 @@ struct PlayerTrack: Sendable {
     let artist: String?
     let favorite: Bool
     let audioURL: URL?
+    /// The library thumbnail (media panel artwork); `nil` = the initial-letter art.
+    var artworkURL: URL? = nil
+}
+
+/// The four player views (DESIGN.md §3.7.1), picked in the header's view switcher.
+enum PlayerViewMode: String, CaseIterable, Hashable, Sendable {
+    case timeline, beatGrid, chordSheet, pianoFocus
+
+    var title: String {
+        switch self {
+        case .timeline: "Timeline"
+        case .beatGrid: "Beat grid"
+        case .chordSheet: "Chord sheet"
+        case .pianoFocus: "Piano focus"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .timeline: "waveform"
+        case .beatGrid: "square.grid.2x2"
+        case .chordSheet: "rectangle.grid.1x2"
+        case .pianoFocus: "pianokeys"
+        }
+    }
 }
 
 enum ChordsMode: String, CaseIterable, Hashable, Sendable {
@@ -48,6 +73,8 @@ final class PlayerModel {
     static let maxSpeed = 1.25
     static let practiceSpeed = 0.75
     static let maxTranspose = 6
+    /// Root position … 3rd inversion (DESIGN.md §3.7 "Inversions").
+    static let maxInversion = 3
     /// Long-press speed choices: 0.50…1.25 in 0.05 steps.
     static let speedSteps: [Double] = (10...25).map { Double($0) / 20 }
 
@@ -67,6 +94,9 @@ final class PlayerModel {
     /// Semitones, −6…+6. Display only in v1 (not audio pitch).
     private(set) var transpose = 0
     private(set) var showNoteNames = true
+    /// The inversion setting (0 = root position), applied to every chord and clamped to each
+    /// chord's own number of inversions.
+    private(set) var inversion = 0
     private(set) var visualizer = Visualizer.piano
     /// Settings → Accidentals.
     private(set) var accidentals = Accidentals.auto
@@ -74,6 +104,8 @@ final class PlayerModel {
     private(set) var position = 0.0
     /// Index into `analysis.chords` of the chord under the playhead. Changes only at chord boundaries.
     private(set) var chordIndex: Int?
+    /// Index into `analysis.beats` of the last beat at or before the playhead. Changes only on beats.
+    private(set) var beatIndex: Int?
     /// The next real chord and the beats until it. Changes only on beats and chord boundaries.
     private(set) var upcoming: UpNext?
 
@@ -137,6 +169,11 @@ final class PlayerModel {
         return analysis.chords[chordIndex].label
     }
 
+    /// The current chord's fixed-keyboard voicing, with the inversion clamped to this chord.
+    var currentVoicing: PianoVoicing? {
+        currentLabel.flatMap { chords.pianoVoicing($0, inversion: inversion) }
+    }
+
     /// The engine clock right now. Not observed: the timeline reads it every frame while playing.
     var livePosition: Double {
         engine?.position ?? position
@@ -158,6 +195,11 @@ final class PlayerModel {
     var transposeChoice: Int {
         get { transpose }
         set { setTranspose(newValue) }
+    }
+
+    var inversionChoice: Int {
+        get { inversion }
+        set { setInversion(newValue) }
     }
 
     var visualizerChoice: Visualizer {
@@ -331,6 +373,21 @@ final class PlayerModel {
         transpose = min(max(semitones, -Self.maxTranspose), Self.maxTranspose)
     }
 
+    func setInversion(_ value: Int) {
+        inversion = min(max(value, 0), Self.maxInversion)
+    }
+
+    /// Swipe on the piano panel: the next (`+1`) or previous (`-1`) inversion of the current chord,
+    /// clamped to it. `false` when nothing changed (no chord, or already at the end).
+    @discardableResult
+    func shiftInversion(by delta: Int) -> Bool {
+        guard let voicing = currentVoicing else { return false }
+        let next = min(max(voicing.inversion + delta, 0), voicing.inversions - 1)
+        guard next != voicing.inversion else { return false }
+        inversion = next
+        return true
+    }
+
     func toggleNoteNames() {
         showNoteNames.toggle()
     }
@@ -358,9 +415,12 @@ final class PlayerModel {
     /// redraw on every tick.
     private func updateDerived() {
         guard let analysis else { return }
-        let index = currentState(at: position, in: analysis).chordIndex
-        if index != chordIndex {
-            chordIndex = index
+        let state = currentState(at: position, in: analysis)
+        if state.chordIndex != chordIndex {
+            chordIndex = state.chordIndex
+        }
+        if state.beatIndex != beatIndex {
+            beatIndex = state.beatIndex
         }
         let next = upNext(at: position, in: analysis)
         if next != upcoming {

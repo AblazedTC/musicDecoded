@@ -46,6 +46,17 @@ public struct ChordDisplay: Sendable, Equatable {
         return notes(label).first
     }
 
+    /// The fixed-keyboard voicing (DESIGN.md §4) with these settings. The player's inversion
+    /// setting applies to every chord, so here it's clamped to this chord's inversions (no wrap).
+    public func pianoVoicing(_ label: String, inversion: Int) -> PianoVoicing? {
+        guard let root = voicings?.pianoVoicing(label: voicedLabel(label), inversion: 0, transpose: transpose) else {
+            return nil
+        }
+        let clamped = min(max(inversion, 0), root.inversions - 1)
+        guard clamped > 0 else { return root }
+        return voicings?.pianoVoicing(label: voicedLabel(label), inversion: clamped, transpose: transpose)
+    }
+
     /// `C`, `F♯`, `B♭`… spelled for the (transposed) key.
     public func noteName(_ midi: Int) -> String {
         spelling.name(of: midi)
