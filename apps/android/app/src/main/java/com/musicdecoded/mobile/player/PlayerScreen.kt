@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -136,16 +138,16 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                         loop = state.loop,
                         onLoopSelected = viewModel::setLoop,
                     )
-                    Row(Modifier.padding(horizontal = Spacing.gutter), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Row(Modifier.padding(horizontal = Spacing.gutter).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         ControlChip(
                             "Chords",
                             if (state.chordsMode == ChordsMode.BASIC) "Basic" else "Full",
                             onClick = viewModel::toggleChordsMode,
-                            Modifier.weight(1f),
+                            Modifier.weight(1f).fillMaxHeight(),
                             compact = true,
                         )
-                        ControlChip("Voicing", "Simple", onClick = {}, Modifier.weight(1f), compact = true)
-                        TransposeChip(state.transpose, viewModel::setTranspose, Modifier.weight(1f), compact = true)
+                        ControlChip("Voicing", "Simple", onClick = {}, Modifier.weight(1f).fillMaxHeight(), compact = true)
+                        TransposeChip(state.transpose, viewModel::setTranspose, Modifier.weight(1f).fillMaxHeight(), compact = true)
                     }
                     VisualizerPanel(
                         state,
@@ -278,7 +280,8 @@ private fun VisualizerPanel(
         modifier
             .fillMaxWidth()
             .padding(start = Spacing.gutter, end = Spacing.gutter, bottom = Spacing.xs)
-            .block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet)
+            // block() re-applies its receiver chain, so start it from a fresh Modifier (else the padding doubles).
+            .then(Modifier.block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet))
             .padding(Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {

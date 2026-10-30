@@ -137,6 +137,13 @@ class TimelineMathTest {
         assertEquals(listOf(0f, 80f, 160f, 240f), zoomedIn.map { it.left })
     }
 
+    @Test fun currentLabelSticksToTheLeftEdgeUntilPushedOff() {
+        assertEquals(120f, stickyLabelLeft(left = 120f, width = 50f, nextLeft = 300f, gap = 4f)) // on screen: anchored
+        assertEquals(0f, stickyLabelLeft(left = -200f, width = 50f, nextLeft = 300f, gap = 4f)) // scrolled off: held
+        assertEquals(-24f, stickyLabelLeft(left = -200f, width = 50f, nextLeft = 30f, gap = 4f)) // pushed by the next
+        assertEquals(0f, stickyLabelLeft(left = -200f, width = 50f, nextLeft = null, gap = 4f))
+    }
+
     @Test fun labelStepKeepsLabelsApart() {
         assertEquals(1, timeLabelStep(pxPerSec = 120f, minSpacingPx = 56f))
         assertEquals(2, timeLabelStep(pxPerSec = 40f, minSpacingPx = 56f))

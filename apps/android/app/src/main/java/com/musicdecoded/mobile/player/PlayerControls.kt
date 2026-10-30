@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -150,7 +151,7 @@ internal fun SpeedButton(speed: Float, onToggle: () -> Unit, onSelect: (Float) -
 internal fun TransposeChip(transpose: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
     var menu by remember { mutableStateOf(false) }
     Box(modifier) {
-        ControlChip("Transpose", formatTranspose(transpose), onClick = { menu = true }, Modifier.fillMaxWidth(), compact = compact)
+        ControlChip("Transpose", formatTranspose(transpose), onClick = { menu = true }, Modifier.fillMaxWidth().then(if (compact) Modifier.fillMaxHeight() else Modifier), compact = compact)
         val range = -PlayerViewModel.MAX_TRANSPOSE..PlayerViewModel.MAX_TRANSPOSE
         ChoiceMenu(menu, onDismiss = { menu = false }, choices = range.toList(), label = ::formatTranspose) {
             onSelect(it)

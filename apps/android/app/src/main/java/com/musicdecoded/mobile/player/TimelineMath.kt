@@ -4,6 +4,8 @@ import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.isNoChord
 import com.musicdecoded.mobile.core.upperBound
 import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 
 // Pure timeline geometry (DESIGN.md §3.7 item 3): the playhead is fixed at the horizontal center
 // and content scrolls under it, so x = center + (t − playhead) × pxPerSec.
@@ -76,6 +78,17 @@ fun timeLabelStep(pxPerSec: Float, minSpacingPx: Float): Int =
     LABEL_STEPS.firstOrNull { it * pxPerSec >= minSpacingPx } ?: LABEL_STEPS.last()
 
 private val LABEL_STEPS = listOf(1, 2, 5, 10, 15, 30, 60)
+
+/**
+ * Screen x of the current chord's label: anchored at its change time, but held at the left edge
+ * once that scrolls off (so the current label stays visible), and pushed off by [nextLeft], the
+ * next label in its row, so it never overlaps it.
+ */
+fun stickyLabelLeft(left: Float, width: Float, nextLeft: Float?, gap: Float): Float {
+    var x = max(left, 0f)
+    if (nextLeft != null) x = min(x, nextLeft - gap - width)
+    return max(x, left)
+}
 
 /** Chord labels are stacked in at most this many staggered rows (DESIGN.md §3.7). */
 const val CHORD_LABEL_ROWS = 2

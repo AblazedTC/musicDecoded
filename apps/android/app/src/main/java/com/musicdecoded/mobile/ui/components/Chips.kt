@@ -41,6 +41,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.musicdecoded.mobile.core.chordDisplayName
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.Shadows
@@ -155,12 +156,18 @@ fun ControlChip(label: String, value: String, onClick: () -> Unit, modifier: Mod
         modifier
             .defaultMinSize(minHeight = if (compact) Sizes.compactControl else Sizes.minTouchTarget)
             .block(MusicDecodedColors.Surface, border = MusicDecodedColors.BorderOnInk, onClick = onClick)
-            .padding(horizontal = if (compact) Spacing.xs else Spacing.sm, vertical = if (compact) Spacing.xxs else Spacing.xs),
+            .padding(horizontal = if (compact) Spacing.xxs else Spacing.sm, vertical = if (compact) Spacing.xxs else Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (compact) {
+            // Value wraps under the label when the line is full; the label itself never breaks mid-word.
             FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                Text(label.uppercase(), style = TextStyles.chipLabel, modifier = Modifier.align(Alignment.CenterVertically))
+                Text(
+                    label.uppercase(),
+                    style = TextStyles.chipLabel.copy(letterSpacing = 0.04.em),
+                    softWrap = false,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
                 Text(value, style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Text, modifier = Modifier.align(Alignment.CenterVertically))
             }
         } else {

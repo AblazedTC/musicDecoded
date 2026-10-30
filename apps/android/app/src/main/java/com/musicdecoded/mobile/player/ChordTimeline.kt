@@ -132,6 +132,7 @@ fun ChordTimeline(
     }
     val currentLabels by rememberUpdatedState(labels)
     val currentBoxes by rememberUpdatedState(boxes)
+    val latestIndex by rememberUpdatedState(currentIndex)
 
     Canvas(
         modifier
@@ -195,11 +196,14 @@ fun ChordTimeline(
                         Gesture.NONE -> if (onLabels) {
                             // Tap a label → seek to its chord.
                             val offset = startViewport.center - (startViewport.playhead * pps).toFloat()
-                            currentLabels.lastOrNull { label ->
+                            val gap = Spacing.xxs.toPx()
+                            currentLabels.indices.lastOrNull { i ->
+                                val label = currentLabels[i]
+                                val left = labelScreenLeft(currentLabels, i, offset, latestIndex, gap)
                                 val top = bands.rowTop(label.row)
-                                down.position.x in (label.left + offset)..(label.right + offset) &&
+                                down.position.x in left..(left + label.width) &&
                                     down.position.y in top..(top + currentBoxes.height)
-                            }?.let { seek(currentAnalysis.chords[it.index].start) }
+                            }?.let { seek(currentAnalysis.chords[currentLabels[it].index].start) }
                         }
                         Gesture.LOOP -> loopDraft?.let(selectLoop)
                         else -> Unit
@@ -224,6 +228,15 @@ private class LabelText(val name: TextLayoutResult, val numeral: TextLayoutResul
 
 /** Every chord's label (`null` for `N`/`X`), with the shared box [height] and inner [pad] (px). */
 private class LabelBoxes(val height: Float, val pad: Float, val items: List<LabelText?>)
+
+/** Screen x of `labels[i]` given the content→screen [offset]; the current label sticks (see [stickyLabelLeft]). */
+private fun labelScreenLeft(labels: List<PlacedLabel>, i: Int, offset: Float, currentIndex: Int?, gap: Float): Float {
+    val label = labels[i]
+    val left = label.left + offset
+    if (label.index != currentIndex) return left
+    val next = (i + 1 until labels.size).firstOrNull { labels[it].row == label.row }?.let { labels[it].left + offset }
+    return stickyLabelLeft(left, label.width, next, gap)
+}
 
 /** "Current chord E, III. Next A, VI." for TalkBack. */
 private fun timelineSummary(analysis: Analysis, chords: ChordDisplay, currentIndex: Int?): String {
@@ -349,9 +362,11 @@ private fun DrawScope.drawChordLabels(
     val offset = viewport.center - (viewport.playhead * viewport.pxPerSec).toFloat()
     val border = Borders.separator.toPx()
     val shadow = Shadows.sm.toPx()
-    for (label in labels) {
-        val left = label.left + offset
-        if (left > size.width || label.right + offset + shadow < 0f) continue
+    val gap = Spacing.xxs.toPx()
+    for (i in labels.indices) {
+        val label = labels[i]
+        val left = labelScreenLeft(labels, i, offset, currentIndex, gap)
+        if (left > size.width || left + label.width + shadow < 0f) continue
         val text = boxes.items[label.index] ?: continue
         val current = label.index == currentIndex
         val top = bands.rowTop(label.row)
