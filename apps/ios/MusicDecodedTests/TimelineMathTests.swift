@@ -93,6 +93,12 @@ struct TimelineMathTests {
         #expect(TimelineMath.timeLabelStep(pointsPerSecond: 0.1, minSpacing: 56) == 60)
     }
 
+    @Test func timelineTakesAThirdOfTheMiddleClamped() {
+        #expect(abs(TimelineMath.timelineHeight(available: 500) - 160) < 0.001)
+        #expect(TimelineMath.timelineHeight(available: 300) == 150)
+        #expect(TimelineMath.timelineHeight(available: 1000) == 220)
+    }
+
     @Test func formatsTimes() {
         #expect(PlayerFormat.time(0) == "0:00")
         #expect(PlayerFormat.time(64.9) == "1:04")

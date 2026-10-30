@@ -91,6 +91,12 @@ enum TimelineMath {
 
     private static let labelSteps = [1, 2, 5, 10, 15, 30, 60]
 
+    /// Timeline height (DESIGN.md §3.7 item 3): 32% of the space between the metadata row and the
+    /// transport, clamped to 150–220.
+    static func timelineHeight(available: CGFloat) -> CGFloat {
+        min(max(available * 0.32, 150), 220)
+    }
+
     private static func clamp(_ value: Double, _ low: Double, _ high: Double) -> Double {
         min(max(value, low), high)
     }

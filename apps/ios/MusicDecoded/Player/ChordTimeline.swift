@@ -1,10 +1,12 @@
 import MusicDecodedCore
 import SwiftUI
 
-/// The player timeline (DESIGN.md §3.7 item 3): time labels, a chord track over the waveform,
-/// downbeat gridlines and a fixed center playhead. Content scrolls under the playhead. Drag the
-/// waveform to scrub, drag the chord track to select a loop (snapped to beats), tap a chord block
-/// to seek to its start, pinch to zoom (60–400 pt/s). Only the visible window is drawn.
+/// The player timeline (DESIGN.md §3.7 item 3), edge to edge with no card: a time-label row,
+/// compact chord labels (name + Roman numeral) at each chord change with a tick down to the
+/// waveform, downbeat gridlines and a fixed center playhead. Content scrolls under the playhead.
+/// Drag the waveform to scrub, drag the first label row to select a loop (snapped to beats), tap
+/// a label to seek to its chord, pinch to zoom (60–400 pt/s). Only the visible window is drawn.
+/// It fills the height its parent gives it.
 ///
 /// While playing, a `TimelineView(.animation)` redraws every frame from `livePosition` (the
 /// engine clock, not observed); while paused it draws `pausedPosition`, so seeks still redraw.
@@ -20,79 +22,74 @@ struct ChordTimeline: View {
     var loop: Range<Double>?
     let onSeek: (Double) -> Void
     var onLoopSelected: (Range<Double>) -> Void = { _ in }
-    /// VoiceOver actions: the chord blocks are drawn, so these stand in for tapping one.
+    /// VoiceOver actions: the chord labels are drawn, so these stand in for tapping one.
     var onPreviousChord: () -> Void = {}
     var onNextChord: () -> Void = {}
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var zoom = TimelineZoom.standard
     @State private var zoomAtGestureStart: CGFloat?
     @State private var dragMode: DragMode?
     @State private var loopDraft: Range<Double>?
+    /// Label sizes, the label layout and the last drawn label frames. Not observed.
+    @State private var labels = TimelineLabelCache()
 
     private enum DragMode: Equatable {
         /// Content follows the finger; `startPlayhead` is the position when the drag began.
         case scrub(startPlayhead: Double)
-        /// Selecting a loop on the chord track, measured against the viewport at the start.
+        /// Selecting a loop on the label row, measured against the viewport at the start.
         case loop(startPlayhead: Double)
         /// Mostly vertical, or a pinch started: ignore the rest of this drag.
         case ignore
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            GeometryReader { proxy in
-                let width = proxy.size.width
-                TimelineView(.animation(minimumInterval: nil, paused: !isPlaying)) { _ in
-                    let renderer = TimelineRenderer(
-                        analysis: analysis,
-                        chords: chords,
-                        viewport: TimelineViewport(
-                            width: width,
-                            playhead: isPlaying ? livePosition() : pausedPosition,
-                            pointsPerSecond: zoom
-                        ),
-                        loop: loopDraft ?? loop
-                    )
-                    Canvas { context, _ in
-                        renderer.draw(in: &context)
-                    }
+        GeometryReader { proxy in
+            let size = proxy.size
+            TimelineView(.animation(minimumInterval: nil, paused: !isPlaying)) { _ in
+                let renderer = TimelineRenderer(
+                    analysis: analysis,
+                    chords: chords,
+                    viewport: TimelineViewport(
+                        width: size.width,
+                        playhead: isPlaying ? livePosition() : pausedPosition,
+                        pointsPerSecond: zoom
+                    ),
+                    height: size.height,
+                    loop: loopDraft ?? loop,
+                    labels: labels,
+                    typeSize: dynamicTypeSize
+                )
+                Canvas { context, _ in
+                    renderer.draw(in: &context)
                 }
-                .contentShape(.rect)
-                .gesture(dragGesture(width: width).exclusively(before: tapGesture(width: width)))
-                .simultaneousGesture(zoomGesture)
             }
-            .frame(height: TimelineMetrics.height)
-            .clipped()
-            .accessibilityElement()
-            .accessibilityLabel("Chord timeline")
-            .accessibilityValue(accessibilityValue)
-            .accessibilityAdjustableAction { direction in
-                let step = direction == .increment ? Self.accessibilityStep : -Self.accessibilityStep
-                seek(livePosition() + step)
-            }
-            .accessibilityHint("Swipe up or down to move 5 seconds.")
-            .accessibilityAction(named: "Previous chord") {
-                onPreviousChord()
-            }
-            .accessibilityAction(named: "Next chord") {
-                onNextChord()
-            }
-            .accessibilityAction(named: "Zoom in") {
-                zoom = TimelineZoom.clamp(zoom * Self.zoomStep)
-            }
-            .accessibilityAction(named: "Zoom out") {
-                zoom = TimelineZoom.clamp(zoom / Self.zoomStep)
-            }
-
-            Text("Pinch to zoom · drag to scrub")
-                .font(.detail)
-                .foregroundStyle(Palette.textMuted)
-                .padding(.horizontal, Spacing.md)
-                .accessibilityHidden(true)
+            .contentShape(.rect)
+            .gesture(dragGesture(width: size.width).exclusively(before: tapGesture(width: size.width)))
+            .simultaneousGesture(zoomGesture)
         }
-        .padding(.vertical, Spacing.sm)
-        // Decoration only: the timeline is never tilted (DESIGN.md §1).
-        .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.violet)
+        .clipped()
+        .accessibilityElement()
+        .accessibilityLabel("Chord timeline")
+        .accessibilityValue(accessibilityValue)
+        .accessibilityAdjustableAction { direction in
+            let step = direction == .increment ? Self.accessibilityStep : -Self.accessibilityStep
+            seek(livePosition() + step)
+        }
+        // The visible hint row is gone (DESIGN.md §3.7); its text lives here.
+        .accessibilityHint("Pinch to zoom, drag to scrub. Swipe up or down to move 5 seconds.")
+        .accessibilityAction(named: "Previous chord") {
+            onPreviousChord()
+        }
+        .accessibilityAction(named: "Next chord") {
+            onNextChord()
+        }
+        .accessibilityAction(named: "Zoom in") {
+            zoom = TimelineZoom.clamp(zoom * Self.zoomStep)
+        }
+        .accessibilityAction(named: "Zoom out") {
+            zoom = TimelineZoom.clamp(zoom / Self.zoomStep)
+        }
     }
 
     /// VoiceOver swipes up/down move by this many seconds.
@@ -100,11 +97,24 @@ struct ChordTimeline: View {
     /// One VoiceOver "Zoom in" / "Zoom out" step.
     private static let zoomStep: CGFloat = 1.5
 
+    /// "Current chord E major, three. Next A major, six. 0:17"
     private var accessibilityValue: String {
         let t = isPlaying ? livePosition() : pausedPosition
-        let name = currentState(at: t, in: analysis).chordIndex.map { chords.spokenName(analysis.chords[$0].label) } ?? ""
-        let time = PlayerFormat.time(t)
-        return name.isEmpty ? time : "\(name), \(time)"
+        var parts: [String] = []
+        if let index = currentState(at: t, in: analysis).chordIndex, isNoChord(analysis.chords[index].label) == false {
+            parts.append("Current chord \(spokenChord(analysis.chords[index].label))")
+        }
+        if let next = upNext(at: t, in: analysis) {
+            parts.append("Next \(spokenChord(analysis.chords[next.chordIndex].label))")
+        }
+        parts.append(PlayerFormat.time(t))
+        return parts.joined(separator: ". ")
+    }
+
+    private func spokenChord(_ label: String) -> String {
+        let name = chords.spokenName(label)
+        guard let numeral = chords.numeral(label) else { return name }
+        return "\(name), \(spokenRomanNumeral(numeral))"
     }
 
     // MARK: - Gestures
@@ -133,7 +143,7 @@ struct ChordTimeline: View {
             let dy = value.translation.height
             if abs(dy) > abs(dx) {
                 dragMode = .ignore
-            } else if TimelineMetrics.chordTrackRange.contains(value.startLocation.y) {
+            } else if labels.loopBand.contains(value.startLocation.y) {
                 dragMode = .loop(startPlayhead: livePosition())
             } else {
                 dragMode = .scrub(startPlayhead: livePosition())
@@ -154,14 +164,12 @@ struct ChordTimeline: View {
         }
     }
 
+    /// Tapping a label seeks to its chord (the frames drawn last, i.e. what's on screen).
     private func tapGesture(width: CGFloat) -> some Gesture {
         SpatialTapGesture()
             .onEnded { value in
-                guard TimelineMetrics.chordTrackRange.contains(value.location.y) else { return }
-                let viewport = TimelineViewport(width: width, playhead: livePosition(), pointsPerSecond: zoom)
-                let t = viewport.time(value.location.x)
-                if let chord = analysis.chords.first(where: { t >= $0.start && t < $0.end && isNoChord($0.label) == false }) {
-                    onSeek(chord.start)
+                if let index = labels.chordIndex(at: value.location) {
+                    onSeek(analysis.chords[index].start)
                 }
             }
     }
@@ -185,23 +193,71 @@ struct ChordTimeline: View {
 
 /// Fixed drawing sizes of the timeline (component sizes, not spacing).
 private enum TimelineMetrics {
-    static let labels: CGFloat = 16
-    static let chordTrack: CGFloat = 32
-    static let waveform: CGFloat = 72
+    static let timeRow: CGFloat = 16
     static let labelSpacing: CGFloat = 56
     static let barMaxWidth: CGFloat = 3
     static let hairline: CGFloat = 1
-    static let playhead: CGFloat = 1.5
-    static let playheadGlow: CGFloat = 6
-    static let playheadDot: CGFloat = 4
-    static let minLabelWidth: CGFloat = 16
+    static let playhead: CGFloat = 2
+    /// Chord label box: 2pt black border, padding 4 vertical / 6 horizontal (DESIGN.md §3.7).
+    static let labelBorder: CGFloat = 2
+    static let labelPaddingV: CGFloat = 4
+    static let labelPaddingH: CGFloat = 6
+    static let minWaveform: CGFloat = 32
+    /// Labels can start this far left of the viewport and still show.
+    static let labelLookBehind: CGFloat = 160
 
-    static let chordTop: CGFloat = labels + Spacing.xxs
-    static let chordBottom: CGFloat = chordTop + chordTrack
-    static let waveTop: CGFloat = chordBottom + Spacing.xs
-    static let waveBottom: CGFloat = waveTop + waveform
-    static let height: CGFloat = waveBottom
-    static let chordTrackRange: ClosedRange<CGFloat> = chordTop...chordBottom
+    static var nameFont: Font { .display(20, relativeTo: .title3) }
+    static var numeralFont: Font { .label }
+
+    static let labelTop: CGFloat = timeRow + Spacing.xxs
+}
+
+/// Label sizes and layout, reused across frames: sizes are measured once per text, the layout is
+/// re-run only when the zoom, current chord or chord display changes. Also keeps the label frames
+/// of the last frame for tap hit-testing.
+@MainActor
+final class TimelineLabelCache {
+    struct LayoutKey: Equatable {
+        var pointsPerSecond: CGFloat
+        var current: Int?
+        var transpose: Int
+        var basic: Bool
+        var accidentals: Accidentals
+        var chordCount: Int
+        var typeSize: DynamicTypeSize
+    }
+
+    private var sizes: [String: CGSize] = [:]
+    private var sizesTypeSize: DynamicTypeSize?
+    private var layoutKey: LayoutKey?
+    private var rows: [Int: Int] = [:]
+    /// Label frames drawn last, by chord index.
+    var frames: [Int: CGRect] = [:]
+    /// The first label row, where a drag selects a loop.
+    var loopBand: ClosedRange<CGFloat> = TimelineMetrics.labelTop...(TimelineMetrics.labelTop + 48)
+
+    func size(of key: String, typeSize: DynamicTypeSize, measure: () -> CGSize) -> CGSize {
+        if sizesTypeSize != typeSize {
+            sizes = [:]
+            sizesTypeSize = typeSize
+        }
+        if let size = sizes[key] { return size }
+        let size = measure()
+        sizes[key] = size
+        return size
+    }
+
+    func layout(for key: LayoutKey, compute: () -> [Int: Int]) -> [Int: Int] {
+        if layoutKey == key { return rows }
+        rows = compute()
+        layoutKey = key
+        return rows
+    }
+
+    func chordIndex(at point: CGPoint) -> Int? {
+        // Later labels are drawn on top.
+        frames.filter { $0.value.contains(point) }.max { $0.key < $1.key }?.key
+    }
 }
 
 /// Draws one frame of the timeline. Only what's inside the viewport is drawn.
@@ -210,24 +266,37 @@ private struct TimelineRenderer {
     let analysis: Analysis
     let chords: ChordDisplay
     let viewport: TimelineViewport
+    let height: CGFloat
     let loop: Range<Double>?
+    let labels: TimelineLabelCache
+    let typeSize: DynamicTypeSize
+
+    private var showsNumerals: Bool { chords.key != nil }
 
     func draw(in context: inout GraphicsContext) {
+        let boxHeight = labelBoxHeight(context)
+        let waveTop = min(TimelineMetrics.labelTop + boxHeight + Spacing.xs, height - TimelineMetrics.minWaveform)
+        let waveBottom = height - Spacing.xxs
+        labels.loopBand = TimelineMetrics.labelTop...(TimelineMetrics.labelTop + boxHeight)
+
         drawTimeLabels(&context)
-        drawDownbeats(&context)
-        drawWaveform(&context)
-        drawChordBlocks(&context)
+        drawDownbeats(&context, top: TimelineMetrics.labelTop, bottom: waveBottom)
+        drawWaveform(&context, top: waveTop, bottom: waveBottom)
         if let loop {
-            drawLoop(loop, in: &context)
+            drawLoop(loop, in: &context, bottom: waveBottom)
         }
-        drawPlayhead(&context)
+        drawChordLabels(&context, boxHeight: boxHeight, waveTop: waveTop)
+        drawPlayhead(&context, bottom: waveBottom)
     }
+
+    // MARK: Time labels, gridlines, waveform
 
     private func drawTimeLabels(_ context: inout GraphicsContext) {
         let step = TimelineMath.timeLabelStep(pointsPerSecond: viewport.pointsPerSecond, minSpacing: TimelineMetrics.labelSpacing)
         let last = min(viewport.endTime, analysis.meta.durationSec)
         var second = Int((max(0, viewport.startTime) / Double(step)).rounded(.up)) * step
         var ticks = Path()
+        let row = TimelineMetrics.timeRow
         while Double(second) <= last {
             let x = viewport.x(Double(second))
             let label = context.resolve(
@@ -236,29 +305,29 @@ private struct TimelineRenderer {
                     .monospacedDigit()
                     .foregroundStyle(Palette.textMuted)
             )
-            context.draw(label, at: CGPoint(x: x, y: (TimelineMetrics.labels - Spacing.xxs) / 2), anchor: .center)
-            ticks.move(to: CGPoint(x: x, y: TimelineMetrics.labels - Spacing.xxs / 2))
-            ticks.addLine(to: CGPoint(x: x, y: TimelineMetrics.labels))
+            context.draw(label, at: CGPoint(x: x + Spacing.xxs, y: (row - Spacing.xxs) / 2), anchor: .leading)
+            ticks.move(to: CGPoint(x: x, y: 0))
+            ticks.addLine(to: CGPoint(x: x, y: row))
             second += step
         }
-        context.stroke(ticks, with: .color(Palette.line), lineWidth: TimelineMetrics.hairline)
+        context.stroke(ticks, with: .color(Palette.textMuted), lineWidth: TimelineMetrics.hairline)
     }
 
-    private func drawDownbeats(_ context: inout GraphicsContext) {
+    private func drawDownbeats(_ context: inout GraphicsContext, top: CGFloat, bottom: CGFloat) {
         var lines = Path()
         let beats = analysis.beats
         for index in TimelineMath.visibleBeatIndices(beats, from: viewport.startTime, to: viewport.endTime) where beats[index].downbeat {
             let x = viewport.x(beats[index].t)
-            lines.move(to: CGPoint(x: x, y: TimelineMetrics.chordTop))
-            lines.addLine(to: CGPoint(x: x, y: TimelineMetrics.waveBottom))
+            lines.move(to: CGPoint(x: x, y: top))
+            lines.addLine(to: CGPoint(x: x, y: bottom))
         }
         context.stroke(lines, with: .color(Palette.line.opacity(0.5)), lineWidth: TimelineMetrics.hairline)
     }
 
-    /// Waveform bars from `waveformPeaks` (played = primary), or beat ticks when there are no peaks.
-    private func drawWaveform(_ context: inout GraphicsContext) {
-        let middle = (TimelineMetrics.waveTop + TimelineMetrics.waveBottom) / 2
-        let height = TimelineMetrics.waveform
+    /// Waveform bars from `waveformPeaks` (played = lime), or beat ticks when there are no peaks.
+    private func drawWaveform(_ context: inout GraphicsContext, top: CGFloat, bottom: CGFloat) {
+        let middle = (top + bottom) / 2
+        let height = max(bottom - top, 0)
         let minBar = TimelineMetrics.hairline
         var played = Path()
         var idle = Path()
@@ -300,48 +369,136 @@ private struct TimelineRenderer {
         context.stroke(idle, with: .color(Palette.waveIdle), style: style)
     }
 
-    private func drawChordBlocks(_ context: inout GraphicsContext) {
-        let inset = Spacing.xxs / 2
-        let padding = Spacing.xs
+    // MARK: Chord labels
+
+    private func nameText(_ name: String, current: Bool) -> Text {
+        Text(name)
+            .font(TimelineMetrics.nameFont)
+            .foregroundStyle(current ? Palette.onChord : Palette.text)
+    }
+
+    private func numeralText(_ numeral: String, current: Bool) -> Text {
+        Text(numeral)
+            .font(TimelineMetrics.numeralFont)
+            .foregroundStyle(current ? Palette.onChord : Palette.text)
+    }
+
+    private func measure(_ text: Text, _ context: GraphicsContext) -> CGSize {
+        context.resolve(text).measure(in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude))
+    }
+
+    private func nameSize(_ name: String, _ context: GraphicsContext) -> CGSize {
+        labels.size(of: "n:" + name, typeSize: typeSize) { measure(nameText(name, current: false), context) }
+    }
+
+    private func numeralSize(_ numeral: String, _ context: GraphicsContext) -> CGSize {
+        labels.size(of: "r:" + numeral, typeSize: typeSize) { measure(numeralText(numeral, current: false), context) }
+    }
+
+    /// Every box has the same height: one name line, plus one numeral line when there's a key.
+    private func labelBoxHeight(_ context: GraphicsContext) -> CGFloat {
+        var textHeight = nameSize("A♯", context).height
+        if showsNumerals {
+            textHeight += numeralSize("vii°", context).height
+        }
+        return textHeight + TimelineMetrics.labelPaddingV * 2 + TimelineMetrics.labelBorder * 2
+    }
+
+    private func labelWidth(_ index: Int, _ context: GraphicsContext) -> CGFloat {
+        let label = analysis.chords[index].label
+        var textWidth = nameSize(chords.name(label), context).width
+        if let numeral = chords.numeral(label) {
+            textWidth = max(textWidth, numeralSize(numeral, context).width)
+        }
+        return textWidth + TimelineMetrics.labelPaddingH * 2 + TimelineMetrics.labelBorder * 2
+    }
+
+    private func drawChordLabels(_ context: inout GraphicsContext, boxHeight: CGFloat, waveTop: CGFloat) {
         let chordList = analysis.chords
-        for index in TimelineMath.visibleChordIndices(chordList, from: viewport.startTime, to: viewport.endTime) {
+        let current: Int? = currentState(at: viewport.playhead, in: analysis).chordIndex.flatMap { index in
+            isNoChord(chordList[index].label) ? nil : index
+        }
+
+        let measuring = context
+        let key = TimelineLabelCache.LayoutKey(
+            pointsPerSecond: viewport.pointsPerSecond,
+            current: current,
+            transpose: chords.transpose,
+            basic: chords.basic,
+            accidentals: chords.accidentals,
+            chordCount: chordList.count,
+            typeSize: typeSize
+        )
+        let rows = labels.layout(for: key) {
+            let boxes = ChordLabelLayout.boxes(for: chordList, pointsPerSecond: Double(viewport.pointsPerSecond)) { index in
+                Double(labelWidth(index, measuring))
+            }
+            return ChordLabelLayout.layout(boxes, current: current)
+        }
+
+        let lookBehind = Double(TimelineMetrics.labelLookBehind / viewport.pointsPerSecond)
+        var frames: [Int: CGRect] = [:]
+        var ticks = Path()
+        var boxes: [(index: Int, rect: CGRect)] = []
+        for index in TimelineMath.visibleChordIndices(chordList, from: viewport.startTime - lookBehind, to: viewport.endTime) {
             let chord = chordList[index]
             if isNoChord(chord.label) { continue }
-            let left = viewport.x(chord.start) + inset
-            let width = viewport.x(chord.end) - inset - left
-            if width <= 0 { continue }
-            let isCurrent = viewport.playhead >= chord.start && viewport.playhead < chord.end
-            let rect = CGRect(x: left, y: TimelineMetrics.chordTop, width: width, height: TimelineMetrics.chordTrack)
-            let block = Path(rect)
-            if isCurrent {
-                context.fill(block, with: .color(Palette.chord))
-            } else {
-                context.fill(block, with: .color(Palette.chordMuted))
-                context.stroke(block, with: .color(Palette.chordMutedBorder), lineWidth: TimelineMetrics.hairline)
+            let x = viewport.x(chord.start)
+            guard let row = rows[index] else {
+                // Dropped at this zoom: the tick stays.
+                ticks.move(to: CGPoint(x: x, y: TimelineMetrics.labelTop))
+                ticks.addLine(to: CGPoint(x: x, y: waveTop))
+                continue
             }
+            let top = TimelineMetrics.labelTop + CGFloat(row) * (boxHeight + CGFloat(ChordLabelLayout.gap))
+            let rect = CGRect(x: x, y: top, width: labelWidth(index, measuring), height: boxHeight)
+            guard rect.maxX >= 0, rect.minX <= viewport.width else { continue }
+            ticks.move(to: CGPoint(x: x, y: rect.maxY))
+            ticks.addLine(to: CGPoint(x: x, y: max(waveTop, rect.maxY + Spacing.xs)))
+            boxes.append((index: index, rect: rect))
+            frames[index] = rect
+        }
+        context.stroke(ticks, with: .color(Palette.textMuted), lineWidth: TimelineMetrics.hairline)
 
-            let labelRect = rect.insetBy(dx: padding, dy: 0)
-            guard labelRect.width >= TimelineMetrics.minLabelWidth else { continue }
-            let label = context.resolve(
-                Text(chords.name(chord.label))
-                    .font(.labelSmall)
-                    .foregroundStyle(isCurrent ? Palette.onChord : Palette.chord)
+        // The current box last, so its shadow sits over its neighbors.
+        boxes.sort { a, b in
+            (a.index == current ? 1 : 0, a.index) < (b.index == current ? 1 : 0, b.index)
+        }
+        for box in boxes {
+            drawLabel(index: box.index, in: box.rect, current: box.index == current, context: &context)
+        }
+        labels.frames = frames
+    }
+
+    /// Square box, 2pt black border; current = lime + ink text + `shadowSm`, others `cardRaised`.
+    private func drawLabel(index: Int, in rect: CGRect, current: Bool, context: inout GraphicsContext) {
+        let label = analysis.chords[index].label
+        if current {
+            context.fill(
+                Path(rect.offsetBy(dx: HardShadow.sm, dy: HardShadow.sm)),
+                with: .color(Palette.violet)
             )
-            // Keep the name readable while a long block scrolls off the left edge.
-            let labelX = max(labelRect.minX, padding)
-            context.drawLayer { layer in
-                layer.clip(to: Path(labelRect))
-                layer.draw(label, at: CGPoint(x: labelX, y: labelRect.midY), anchor: .leading)
-            }
+        }
+        context.fill(Path(rect), with: .color(current ? Palette.chord : Palette.cardRaised))
+        let half = TimelineMetrics.labelBorder / 2
+        context.stroke(Path(rect.insetBy(dx: half, dy: half)), with: .color(Palette.border), lineWidth: TimelineMetrics.labelBorder)
+
+        let inner = rect.insetBy(dx: 0, dy: TimelineMetrics.labelBorder + TimelineMetrics.labelPaddingV)
+        let name = context.resolve(nameText(chords.name(label), current: current))
+        context.draw(name, at: CGPoint(x: rect.midX, y: inner.minY), anchor: .top)
+        if let numeral = chords.numeral(label) {
+            let resolved = context.resolve(numeralText(numeral, current: current))
+            context.draw(resolved, at: CGPoint(x: rect.midX, y: inner.maxY), anchor: .bottom)
         }
     }
 
-    private func drawLoop(_ loop: Range<Double>, in context: inout GraphicsContext) {
+    // MARK: Loop, playhead
+
+    private func drawLoop(_ loop: Range<Double>, in context: inout GraphicsContext, bottom: CGFloat) {
         let left = viewport.x(loop.lowerBound)
         let right = viewport.x(loop.upperBound)
         guard right >= 0, left <= viewport.width else { return }
-        let top = TimelineMetrics.chordTop
-        let bottom = TimelineMetrics.waveBottom
+        let top = TimelineMetrics.labelTop
         context.fill(
             Path(CGRect(x: left, y: top, width: right - left, height: bottom - top)),
             with: .color(Palette.chord.opacity(0.14))
@@ -354,24 +511,12 @@ private struct TimelineRenderer {
         context.stroke(edges, with: .color(Palette.chord), lineWidth: TimelineMetrics.hairline * 2)
     }
 
-    /// A 1.5pt primary line with a dot on top and a soft glow (DESIGN.md §3.7).
-    private func drawPlayhead(_ context: inout GraphicsContext) {
-        let x = viewport.center
-        let top = TimelineMetrics.chordTop - TimelineMetrics.playheadDot
+    /// A 2pt lime line at the center, through the labels and the waveform (DESIGN.md §3.7).
+    private func drawPlayhead(_ context: inout GraphicsContext, bottom: CGFloat) {
         var line = Path()
-        line.move(to: CGPoint(x: x, y: top))
-        line.addLine(to: CGPoint(x: x, y: TimelineMetrics.waveBottom))
-        context.stroke(
-            line,
-            with: .color(Palette.primary.opacity(0.22)),
-            style: StrokeStyle(lineWidth: TimelineMetrics.playheadGlow, lineCap: .butt)
-        )
+        line.move(to: CGPoint(x: viewport.center, y: TimelineMetrics.timeRow))
+        line.addLine(to: CGPoint(x: viewport.center, y: bottom))
         context.stroke(line, with: .color(Palette.primary), lineWidth: TimelineMetrics.playhead)
-        let dot = TimelineMetrics.playheadDot
-        context.fill(
-            Path(CGRect(x: x - dot, y: top - dot, width: dot * 2, height: dot * 2)),
-            with: .color(Palette.primary)
-        )
     }
 }
 
@@ -393,7 +538,7 @@ private struct ChordTimelinePreview: View {
                 onSeek: { position = $0 },
                 onLoopSelected: { loop = $0 }
             )
-            .padding(Spacing.md)
+            .frame(height: 180)
         } else {
             Text("Fixture not bundled")
         }

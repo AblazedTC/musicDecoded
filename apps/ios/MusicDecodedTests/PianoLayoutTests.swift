@@ -4,6 +4,22 @@ import Testing
 
 /// Ports apps/android/.../player/PianoKeyboardTest.kt.
 struct PianoLayoutTests {
+    @Test func panelShowsAtLeastTwoOctaves() {
+        #expect(PianoLayout.octavesThatFit(width: 390) == 2)
+        #expect(PianoLayout.octavesThatFit(width: 100) == 2)
+        #expect(PianoLayout.octavesThatFit(width: 820) == 4)
+    }
+
+    @Test func panelKeyboardCentersOnTheActiveNotes() {
+        // E3 G♯3 B3: white keys 30…34 (G♯ reaches 33), so 14 keys start at 25 (G2).
+        #expect(PianoLayout.centeredFirstWhite([52, 56, 59], octaves: 2) == 25)
+        #expect(PianoLayout.midiOfWhiteKey(25) == 43)
+        #expect(PianoLayout.centeredFirstWhite([], octaves: 2) == nil)
+        // Stays inside the 88 keys.
+        #expect(PianoLayout.centeredFirstWhite([21], octaves: 2) == PianoLayout.whiteKeyIndex(21))
+        #expect(PianoLayout.centeredFirstWhite([108], octaves: 2) == PianoLayout.whiteKeyIndex(108) - 13)
+    }
+
     @Test func blackKeys() {
         #expect((0...11).filter(PianoLayout.isBlackKey) == [1, 3, 6, 8, 10])
         #expect(PianoLayout.isBlackKey(61))
