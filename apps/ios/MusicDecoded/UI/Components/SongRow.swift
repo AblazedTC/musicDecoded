@@ -152,20 +152,25 @@ struct SongRow<Actions: View>: View {
         }
     }
 
+    /// The thumbnail, or the title's initial (as in the mini player) when there's none or it
+    /// hasn't loaded.
+    @ViewBuilder
     private var artwork: some View {
-        AsyncImage(url: artworkURL) { image in
-            image
-                .resizable()
-                .scaledToFill()
-        } placeholder: {
-            Image(systemName: "music.note")
-                .font(.title3)
-                .foregroundStyle(Palette.textMuted)
+        if let artworkURL {
+            AsyncImage(url: artworkURL) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                InitialArt(title: title)
+            }
+            .frame(width: ComponentSize.songArt, height: ComponentSize.songArt)
+            .background(Palette.surfaceSoft)
+            .clipShape(.rect(cornerRadius: Radius.art))
+            .accessibilityHidden(true)
+        } else {
+            InitialArt(title: title)
         }
-        .frame(width: ComponentSize.songArt, height: ComponentSize.songArt)
-        .background(Palette.surfaceSoft)
-        .clipShape(.rect(cornerRadius: Radius.art))
-        .accessibilityHidden(true)
     }
 
     private var offlineBadge: some View {

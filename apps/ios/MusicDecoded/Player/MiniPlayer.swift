@@ -23,12 +23,7 @@ struct MiniPlayer: View {
                         onOpen(track.trackId)
                     } label: {
                         HStack(spacing: Spacing.sm) {
-                            Text(track.title.trimmingCharacters(in: .whitespaces).prefix(1).uppercased())
-                                .font(.rowTitle)
-                                .foregroundStyle(Palette.secondary)
-                                .frame(width: ComponentSize.iconButton, height: ComponentSize.iconButton)
-                                .background(Palette.surfaceSoft, in: .rect(cornerRadius: Radius.art))
-                                .accessibilityHidden(true)
+                            InitialArt(title: track.title, size: ComponentSize.iconButton, font: .rowTitle)
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(track.title)
                                     .font(.rowTitle)

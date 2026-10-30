@@ -17,7 +17,7 @@ struct PlayerScreen: View {
     var body: some View {
         Group {
             if let model {
-                PlayerView(model: model)
+                PlayerView(model: model, actions: trackActions)
             } else {
                 Palette.canvas
             }
@@ -29,6 +29,24 @@ struct PlayerScreen: View {
             model = created
             await created.load()
         }
+    }
+
+    /// The ⋯ menu's Re-analyze and Delete, for a track in the library.
+    private var trackActions: PlayerTrackActions? {
+        guard let item = try? modelContext.fetch(LibraryItem.withTrackId(trackId)).first else { return nil }
+        let trackId = trackId
+        let transcription = transcription
+        let nowPlaying = nowPlaying
+        let context = modelContext
+        return PlayerTrackActions(
+            canReanalyze: item.status != .analyzing,
+            reanalyze: {
+                try await transcription.retry(trackId: trackId)
+            },
+            delete: {
+                LibraryActions.delete(item, nowPlaying: nowPlaying, context: context)
+            }
+        )
     }
 
     private func makeModel() -> PlayerModel {
@@ -60,8 +78,7 @@ struct PlayerScreen: View {
             },
             saveFavorite: { favorite in
                 guard let item else { return }
-                item.setFavorite(favorite)
-                try? context.save()
+                LibraryActions.setFavorite(item, favorite, context: context)
             },
             preferences: preferences
         )
@@ -92,9 +109,15 @@ struct PlayerScreen: View {
 /// redraws just the timeline and the seek bar.
 struct PlayerView: View {
     let model: PlayerModel
+    /// The ⋯ menu's library actions; `nil` hides Re-analyze and Delete (previews, fixtures).
+    var actions: PlayerTrackActions?
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dismiss) private var dismiss
     @State private var showPiano = false
+    @State private var confirmDelete = false
+    @State private var actionError: String?
+    @State private var showActionError = false
 
     var body: some View {
         content
@@ -107,9 +130,35 @@ struct PlayerView: View {
                     PlayerTitle(title: model.track?.title ?? "", artist: model.track?.artist)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    FavoriteButton(model: model)
-                        .disabled(model.track == nil)
+                    HStack(spacing: 0) {
+                        FavoriteButton(model: model)
+                            .disabled(model.track == nil)
+                        PlayerMoreMenu(
+                            model: model,
+                            actions: actions,
+                            onReanalyze: reanalyze,
+                            onDelete: { confirmDelete = true }
+                        )
+                    }
                 }
+            }
+            .confirmationDialog(
+                "Delete “\(model.track?.title ?? "this song")”?",
+                isPresented: $confirmDelete,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    model.pause()
+                    actions?.delete()
+                    dismiss()
+                }
+            } message: {
+                Text("It's removed from your library and its chord timeline won't show up here anymore.")
+            }
+            .alert("Couldn't re-analyze", isPresented: $showActionError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(actionError ?? Transcription.genericMessage)
             }
             .onChange(of: scenePhase) { _, phase in
                 // No background audio in v1: stop with the app.
@@ -121,6 +170,23 @@ struct PlayerView: View {
                 // Shares this model, so playback carries on in the learning view.
                 PianoView(model: model)
             }
+    }
+
+    /// Re-analyze: starts a new job and leaves the Player; the song's row shows the progress.
+    private func reanalyze() {
+        guard let actions else { return }
+        Task {
+            do {
+                try await actions.reanalyze()
+                model.pause()
+                dismiss()
+            } catch is CancellationError {
+                return
+            } catch {
+                actionError = Transcription.userMessage(for: error)
+                showActionError = true
+            }
+        }
     }
 
     @ViewBuilder
@@ -199,6 +265,46 @@ private struct FavoriteButton: View {
                 .foregroundStyle(model.favorite ? Palette.primary : Palette.text)
         }
         .accessibilityLabel(model.favorite ? "Remove from favorites" : "Add to favorites")
+    }
+}
+
+/// Re-analyze and Delete for a library track, run by `PlayerScreen`.
+struct PlayerTrackActions {
+    /// `false` while a job is already running.
+    var canReanalyze: Bool
+    let reanalyze: @MainActor () async throws -> Void
+    let delete: @MainActor () -> Void
+}
+
+/// The header ⋯ menu (DESIGN.md §3.7 item 1): Favorite, Re-analyze, Delete.
+private struct PlayerMoreMenu: View {
+    let model: PlayerModel
+    let actions: PlayerTrackActions?
+    let onReanalyze: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        Menu {
+            Button(
+                model.favorite ? "Remove from favorites" : "Favorite",
+                systemImage: model.favorite ? "heart.slash" : "heart"
+            ) {
+                model.toggleFavorite()
+            }
+            .disabled(model.track == nil)
+            if let actions {
+                Button("Re-analyze", systemImage: "arrow.clockwise", action: onReanalyze)
+                    .disabled(actions.canReanalyze == false)
+                Button("Delete", systemImage: "trash", role: .destructive, action: onDelete)
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.text)
+                .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
+                .contentShape(.rect)
+        }
+        .accessibilityLabel("More actions")
     }
 }
 

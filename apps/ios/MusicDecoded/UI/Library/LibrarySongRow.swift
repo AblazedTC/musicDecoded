@@ -74,16 +74,11 @@ struct LibrarySongRow: View {
     }
 
     private func setFavorite(_ favorite: Bool) {
-        item.setFavorite(favorite)
-        try? modelContext.save()
+        LibraryActions.setFavorite(item, favorite, context: modelContext)
     }
 
-    /// Delete is a tombstone (it syncs); the row disappears from every list, and the track stops
-    /// if it's the one playing.
     private func delete() {
-        nowPlaying.stop(trackId: item.trackId)
-        item.markDeleted()
-        try? modelContext.save()
+        LibraryActions.delete(item, nowPlaying: nowPlaying, context: modelContext)
     }
 
     /// Retry on a failed row, or Re-analyze from the menu. A failure to start is shown once.

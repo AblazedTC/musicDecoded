@@ -25,4 +25,8 @@ enum ComponentSize {
     static let videoHeroHeight: CGFloat = 202
     /// The big play button in the Piano learning view.
     static let learningPlayButton: CGFloat = 72
+    /// Seek bar (DESIGN.md §3.7 item 7): a thin track and a round thumb that grows while dragged.
+    static let seekTrackHeight: CGFloat = 4
+    static let seekThumb: CGFloat = 14
+    static let seekThumbActive: CGFloat = 20
 }
