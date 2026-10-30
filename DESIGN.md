@@ -179,6 +179,21 @@ Mic state dot ("Microphone ready" / red "Recording"), a large timer `00:MM:SS` (
 ### 3.7 Player (`PlayerScreen`): main screen
 **Owner revision (T-214, 2026-10-30).** Layout reference: a single-screen chord player (compact header, edge-to-edge waveform with chord-name + Roman-numeral boxes, compact control row, piano filling the rest, transport at the bottom). Keep the §1 Wrapped colors, type, icons and borders; this section only changes **placement, sizing and hierarchy**.
 
+**Owner revision 2 (T-215, 2026-10-30)** supersedes items 1, 5 and 6 below where they conflict:
+- **Header**: back · **view switcher** (centered segmented icon bar, replaces the expand/fullscreen button) · ⋯ (favorite moves into the ⋯ menu). The song title becomes a single compact line under the header (ellipsized).
+- **View switcher** (4 views, §3.7.1): **Timeline** (default, waveform icon) · **Beat grid** (grid icon) · **Chord sheet** (stacked-boxes icon) · **Piano focus** (piano-keys icon). Selected = lime fill, ink icon; others ink on `cardRaised`; 3pt black border around the bar; each segment ≥ 44pt wide. The choice persists per app (Settings "Default view" not required in v1).
+- **Piano and media are separate stacked panels** (no Piano | Video tabs): the **piano panel** first, the **media panel** under it. Both visible together in the Timeline view.
+- **Piano panel**: a **fixed keyboard** from **C3 to B5** (3 octaves) spanning the full width; the layout **never scrolls or re-centers**: when the chord changes only the highlighted keys change. Above it: the active chord name (+ numeral). Highlights follow §4 "Piano voicing & inversions": **bass note** (left hand, octave 3) in `blue`, **right-hand** notes in `lime`; **finger numbers** printed on each highlighted key (ink, Space Grotesk Bold, near the key's bottom); note names under the keys in the same colors. Under the keyboard, **page dots** show the current inversion (one dot per inversion of the current chord).
+- **Inversions**: **swipe left/right on the piano panel** = next/previous inversion (clamped, with a light haptic); the selection is a player setting that applies to every chord (clamped to that chord's number of inversions) and is shown in the **Voicing** chip ("Root", "1st inv", "2nd inv", "3rd inv"), which also opens a picker. Default Root. Accessibility: the panel exposes adjustable actions "Next inversion" / "Previous inversion".
+- **Media panel**: YouTube sources show the video (16:9); every other source shows the **artwork** (thumbnail, else the initial-letter art) centered on ink, letterboxed. It takes the space left after the piano panel (piano panel ~ chord name 32 + keyboard 110–150 + dots 12); if less than 120 remains, the media panel collapses to a 56-tall strip (artwork thumbnail + title + "Show video"/"Show artwork" that opens it as a sheet).
+
+#### 3.7.1 Views
+All views share the header, title line, metadata row and the transport; they swap the middle region.
+- **Timeline**: timeline · control row · piano panel · media panel (as above).
+- **Beat grid**: rows of bars (one cell per beat, `timeSignature.numerator` cells, default 4), bar numbers on the left. A cell shows the chord name (+ numeral) where a chord starts in that beat; continuation cells show a thin lime underline. Current beat = lime fill, current bar = 3pt lime outline; the grid auto-scrolls to keep the current bar in the upper third; tap a cell to seek to that beat. Under the grid: the control row and a compact piano panel (keyboard 90 tall). Missing beats → a "No beat grid for this song" state.
+- **Chord sheet**: the whole progression as a wrapping sheet of chord boxes (name + numeral, same box style as timeline labels), 4 bars per line with bar lines between bars, repeated chords within a bar shown once; current chord = lime fill; auto-scroll; tap to seek. Under it: control row + compact piano panel.
+- **Piano focus**: the Piano learning view (§3.8) inline in the middle region (current/up-next card, large fixed keyboard with the same voicing/inversion/fingering rules, progression strip, learning controls).
+
 **The whole player fits on one screen with no vertical scrolling** (target: 640pt/dp tall viewports and up, after safe areas). Top to bottom:
 
 1. **Header** (one row, ~48): back · title (one line, ellipsized; artist under it only if it fits, else omitted) · favorite · ⋯. No extra vertical padding.
@@ -241,6 +256,16 @@ Not in the Figma prototype; built from the existing tokens and components so it 
 ---
 
 ## 4. Player behavior (both apps)
+
+### Piano voicing & inversions (piano panel, piano focus)
+Replaces the old `chord-voicings.json` octave placement for the player; the quality table (`qualities`, `pitchClass`, `degreeSemitones`) in `chord-voicings.json` is still the source of intervals. Shared test cases: `contracts/fixtures/piano-voicings.json` (both apps must reproduce them exactly).
+1. Parse `root:quality[/bass]`; apply transpose to the root. Intervals from `qualities` (unknown → text before `(`, else `maj`); Chords **Basic** mode uses the simplified chord first.
+2. **Right hand ≤ 4 tones**: if more than 4 intervals, drop the perfect fifth (7) first, then keep the first 4 in table order. Tones = root + interval, as pitch classes, in table order.
+3. **Inversion k** (wraps modulo the tone count n): rotate the tone list left by k.
+4. **Placement**: first tone at the lowest MIDI ≥ 60 (C4) with its pitch class; each next tone at the smallest MIDI above the previous one with its pitch class. If the top note > 83 (B5), move the whole right hand down 12.
+5. **Bass** (left hand): the slash-bass degree if present, else the root; MIDI 48 + pitch class (octave C3–B3).
+6. **Fingering**: right hand n=2 → 1,5; n=3 → root position 1,3,5 · 1st inversion 1,2,5 · 2nd inversion 1,3,5; n=4 → 1,2,3,5. Bass finger 5.
+7. Keyboard range is fixed C3 (48) to B5 (83); everything above always fits.
 
 ### Roman numerals (timeline labels, piano panel)
 Computed from the analysis `key` and each chord label (never hard-coded); identical on both apps (shared test cases).

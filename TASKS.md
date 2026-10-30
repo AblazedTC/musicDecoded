@@ -360,6 +360,17 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
   - [ ] Owner's concerns written into DESIGN.md §3.7
   - [ ] Both apps updated and screenshotted
 
+### T-215a / T-215i Player revision 2: view switcher, separate piano/media panels, fixed keyboard, inversions, fingering
+- Lane: android / ios · Status: todo · Owner: — · Deps: T-214
+- Goal: DESIGN.md §3.7 "Owner revision 2" + §3.7.1 Views + §4 "Piano voicing & inversions".
+- Acceptance:
+  - [ ] Header view switcher with Timeline / Beat grid / Chord sheet / Piano focus; expand button removed
+  - [ ] Piano and media as separate stacked panels; media = YouTube video or artwork; collapses to a strip on short screens
+  - [ ] Fixed C3–B5 keyboard that never scrolls; bass in blue, right hand in lime; finger numbers; note names; page dots
+  - [ ] Swipe left/right changes inversion (also via the Voicing chip); every case in `contracts/fixtures/piano-voicings.json` passes
+  - [ ] Beat grid and chord sheet views with current-beat/chord highlight, auto-scroll and tap-to-seek
+  - [ ] Single screen without scrolling (Timeline view) at default text size
+
 ---
 
 ## M3 — YouTube sandbox
