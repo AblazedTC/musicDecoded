@@ -435,6 +435,9 @@ components:
           enum: [fetching_media, normalizing_audio, detecting_beats, detecting_chords, detecting_key, rendering_spectrogram, saving_results, null]
         progress: { type: integer, minimum: 0, maximum: 100 }
         error: { type: [string, "null"] }
+        title: { type: [string, "null"], description: "Track metadata once known (e.g. from yt-dlp for streaming sources). Apps replace placeholder titles with it." }
+        thumbnailUrl: { type: [string, "null"] }
+        durationSec: { type: [number, "null"] }
 
     VideoSummary:
       type: object
@@ -458,7 +461,7 @@ components:
         sourceRef: { type: [string, "null"] }
         durationSec: { type: [number, "null"] }
         thumbnailUrl: { type: [string, "null"] }
-        audioUploadId: { type: [string, "null"], description: "For file/recording: lets another device download the user's own audio" }
+        audioUploadId: { type: [string, "null"], description: "For file/recording: lets another device download the user's own audio. **Pro only** (PLAN.md §9): for free accounts the server stores and returns null, so only chord timelines sync." }
         favorite: { type: boolean, default: false }
         lastPlayedAt: { type: [string, "null"], format: date-time }
         createdAt: { type: string, format: date-time }

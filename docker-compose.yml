@@ -77,7 +77,10 @@ services:
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       OFFLINE_STREAM_AUDIO: "false"
-      SOUNDCLOUD_ENABLED: "false"
+      SOUNDCLOUD_ENABLED: ${SOUNDCLOUD_ENABLED:-false}
+      LIMIT_GUEST: ${LIMIT_GUEST:-10}
+      LIMIT_FREE: ${LIMIT_FREE:-50}
+      LIMIT_PRO: ${LIMIT_PRO:-}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-} # empty = search returns 403 feature_disabled
       REVENUECAT_WEBHOOK_SECRET: ${REVENUECAT_WEBHOOK_SECRET:-} # empty = POST /billing/revenuecat returns 404
     depends_on:
