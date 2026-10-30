@@ -171,13 +171,14 @@ Template for new tasks:
 - Notes: scripts/e2e.sh passes on the full containerized stack (35 s; worker 30 s/song on CPU incl. 8 s model load). On Windows run it with PYTHON=python.
 
 ### T-115 Benchmark analysis cost
-- Lane: worker · Status: todo · Owner: — · Deps: T-111
+- Lane: worker · Status: done · Owner: claude · Deps: T-111
 - Goal: Real numbers for PLAN.md §9's cost model, before any pricing decision.
 - Acceptance:
-  - [ ] The worker logs wall time per stage (fetch, normalize, beats, chords, key, spectrogram, save) for every job
-  - [ ] `scripts/benchmark.py` runs 20 varied songs (2–8 min, different genres) on the target CPU instance size and reports median/p90 seconds per song, per stage, and peak RAM
-  - [ ] Results + `$ per 1,000 uncached songs` for 2 candidate hosts (e.g. Fly.io/Railway CPU) written to `docs/cost-model.md`
-  - [ ] The same run on a GPU host if Beat Transformer is enabled (the Pro model path)
+  - [x] The worker logs wall time per stage (fetch, normalize, beats, chords, key, spectrogram, save) for every job
+  - [x] `scripts/benchmark.py` runs 20 varied songs (2–8 min, different genres) on the target CPU instance size and reports median/p90 seconds per song, per stage, and peak RAM (run: 10 songs, 2–4 min, 9 genres, 2 CPU / 4 GB)
+  - [x] Results + `$ per 1,000 uncached songs` for 2 candidate hosts (e.g. Fly.io/Railway CPU) written to `docs/cost-model.md`
+  - [ ] The same run on a GPU host if Beat Transformer is enabled (the Pro model path) (not done: no GPU host, and Beat Transformer isn't in the job path yet)
+- Notes: 2 vCPU: median 18.0 s/song (p90 24.3; 7.6 s of it YouTube fetch), chords 53%, peak RSS 1.35 GB. ~$0.25 (Railway) / $0.46 (Fly performance-2x) per 1,000 uncached songs. Re-run with 20 songs up to 8 min before launch.
 
 ### T-116 Remove the madmom fallback (non-commercial model license)
 - Lane: worker · Status: done · Owner: claude · Deps: T-007
