@@ -41,7 +41,7 @@ def test_file_job_is_queued(client, guest, redis_fake):
     assert r.status_code == 202
     job = r.json()
     assert job == {"jobId": job["jobId"], "trackId": job["trackId"], "status": "queued", "stage": None,
-                   "progress": 0, "error": None}
+                   "progress": 0, "error": None, "title": "Song", "thumbnailUrl": None, "durationSec": None}
     assert queued(redis_fake) == [{"jobId": job["jobId"], "trackId": job["trackId"], "source": "file",
                                    "uploadKey": f"uploads/{upload_id}", "videoId": None, "soundcloudUrl": None,
                                    "storeExtractedAudio": False}]
@@ -152,3 +152,20 @@ def test_get_job_of_another_user_is_404(client, guest):
     for headers, job_id in ((other_guest(client), job["jobId"]), (guest[0], str(uuid.uuid4())), (guest[0], "x")):
         r = client.get(f"/jobs/{job_id}", headers=headers)
         assert r.status_code == 404 and r.json()["code"] == "not_found"
+
+
+def test_job_responses_include_track_metadata(client, guest):
+    job = client.post("/jobs", headers=guest[0], json={"source": "youtube", "videoId": VIDEO, "title": "x"}).json()
+    assert (job["title"], job["thumbnailUrl"], job["durationSec"]) == (None, None, None)  # unknown until the worker runs
+    with SessionLocal() as db:  # the worker writes metadata to tracks
+        track = db.get(Track, uuid.UUID(job["trackId"]))
+        track.title, track.thumbnail_url, track.duration_sec = "Never Gonna", "https://i.test/t.jpg", 212.5
+        db.commit()
+    expected = ("Never Gonna", "https://i.test/t.jpg", 212.5)
+    body = client.get(f"/jobs/{job['jobId']}", headers=guest[0]).json()
+    assert (body["title"], body["thumbnailUrl"], body["durationSec"]) == expected
+    again = client.post("/jobs", headers=guest[0], json={"source": "youtube", "videoId": VIDEO}).json()  # in flight
+    assert (again["title"], again["thumbnailUrl"], again["durationSec"]) == expected
+    mark_analyzed(job["trackId"])
+    hit = client.post("/jobs", headers=other_guest(client), json={"source": "youtube", "videoId": VIDEO}).json()
+    assert (hit["title"], hit["thumbnailUrl"], hit["durationSec"]) == expected

@@ -46,19 +46,23 @@ class JobOut(BaseModel):
     stage: str | None
     progress: int
     error: str | None
+    title: str | None = None  # track metadata, null until known (the worker fills it in)
+    thumbnailUrl: str | None = None
+    durationSec: float | None = None
 
 
 def job_key(job_id) -> str:
     return f"job:{job_id}"
 
 
-def _job_out(job: Job, live: dict | None = None) -> JobOut:
-    """Postgres row overlaid with the live Redis hash (empty string = null there)."""
+def _job_out(job: Job, track: Track, live: dict | None = None) -> JobOut:
+    """Postgres row overlaid with the live Redis hash (empty string = null there), plus track metadata."""
     live = live or {}
     return JobOut(jobId=str(job.id), trackId=str(job.track_id), status=live.get("status") or job.status,
                   stage=live.get("stage") or job.stage or None,
                   progress=int(live.get("progress") or job.progress),
-                  error=live.get("error") or job.error or None)
+                  error=live.get("error") or job.error or None,
+                  title=track.title, thumbnailUrl=track.thumbnail_url, durationSec=track.duration_sec)
 
 
 def _dedupe_key(body: JobRequest, user: User, db: Session) -> tuple[str, str | None]:
@@ -102,13 +106,13 @@ def create_job(body: JobRequest, response: Response, user: Annotated[User, Depen
         db.add(job)
         db.commit()
         response.status_code = status.HTTP_200_OK
-        return _job_out(job)
+        return _job_out(job, track)
 
     if track is not None:  # the caller already has this track in flight: return that job
         active = db.scalar(select(Job).where(Job.track_id == track.id, Job.user_id == user.id,
                                              Job.status.in_(ACTIVE)).order_by(Job.created_at.desc()))
         if active is not None:
-            return _job_out(active, r.hgetall(job_key(active.id)))
+            return _job_out(active, track, r.hgetall(job_key(active.id)))
 
     _take_quota(r, user)
     if track is None:
@@ -139,7 +143,7 @@ def create_job(body: JobRequest, response: Response, user: Annotated[User, Depen
         job.status, job.error = "failed", "Could not queue the analysis"
         db.commit()
         raise
-    return _job_out(job)
+    return _job_out(job, track)
 
 
 @router.get("/{jobId}")
@@ -148,4 +152,4 @@ def get_job(jobId: str, user: Annotated[User, Depends(current_user)],
     job = db.scalar(select(Job).where(Job.id == parse_id(jobId, "Job"), Job.user_id == user.id))
     if job is None:
         raise not_found("Job")
-    return _job_out(job, r.hgetall(job_key(job.id)))
+    return _job_out(job, db.get(Track, job.track_id), r.hgetall(job_key(job.id)))
