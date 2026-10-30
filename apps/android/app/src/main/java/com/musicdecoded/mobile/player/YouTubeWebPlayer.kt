@@ -89,6 +89,7 @@ class WebViewYouTubeBridge(
         const val BASE_URL = "https://www.youtube-nocookie.com"
         private const val JS_NAME = "MusicDecodedBridge"
         private const val REPORT_INTERVAL_MS = 200
+        private const val CUE_DELAY_MS = 300
         private val VIDEO_ID = Regex("[A-Za-z0-9_-]{11}")
 
         private fun number(value: Double) = String.format(Locale.US, "%.3f", value)
@@ -101,15 +102,26 @@ class WebViewYouTubeBridge(
             </head><body>
             <div id="player"></div>
             <script>
-            var bridge = window.$JS_NAME, player = null, videoId = '$videoId';
+            var bridge = window.$JS_NAME, player = null, videoId = '$videoId', cuedAt = null, cueTimer = null;
             function report() { if (player && player.getCurrentTime) bridge.onTime(player.getCurrentTime() || 0); }
             var md = {
-              play: function () { player.playVideo(); },
+              play: function () {
+                // A cue landing after playVideo() stops the video again, so a play right after an idle
+                // seek cancels the pending cue and loads the video at that time instead.
+                clearTimeout(cueTimer);
+                if (cuedAt !== null) player.loadVideoById({ videoId: videoId, startSeconds: cuedAt });
+                else player.playVideo();
+                cuedAt = null;
+              },
               pause: function () { player.pauseVideo(); },
               seek: function (t) {
                 var s = player.getPlayerState();
                 // seekTo() starts an unstarted/cued video, so cue it at t instead.
-                if (s === -1 || s === 5) player.cueVideoById({ videoId: videoId, startSeconds: t });
+                if (s === -1 || s === 5) {
+                  cuedAt = t;
+                  clearTimeout(cueTimer);
+                  cueTimer = setTimeout(function () { player.cueVideoById({ videoId: videoId, startSeconds: t }); }, $CUE_DELAY_MS);
+                }
                 else player.seekTo(t, true);
                 // seekTo() also restarts an ended video; keep it paused like any other seek.
                 if (s === 0) player.pauseVideo();
@@ -127,7 +139,7 @@ class WebViewYouTubeBridge(
                               autoplay: ${if (autoplay) 1 else 0}, origin: '$BASE_URL' },
                 events: {
                   onReady: function () { bridge.onReady(); setInterval(report, $REPORT_INTERVAL_MS); },
-                  onStateChange: function (e) { report(); bridge.onState(e.data); },
+                  onStateChange: function (e) { if (e.data === 1) cuedAt = null; report(); bridge.onState(e.data); },
                   onPlaybackRateChange: function (e) { bridge.onRate(e.data); },
                   onError: function (e) { bridge.onError(e.data); }
                 }
