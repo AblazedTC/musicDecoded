@@ -314,6 +314,70 @@ struct TranscriptionServiceTests {
         }
     }
 
+    @Test func soundcloudJobSendsTheNormalizedURL() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let service = makeService(happyPath(log: log, jobStatuses: ["queued"]))
+
+        let started = try await service.startSoundCloud(
+            url: "Listen on #SoundCloud https://m.soundcloud.com/artist-name/my-song?si=abc"
+        )
+        #expect(started == trackId)
+        await service.pollingTask(for: started)?.value
+
+        #expect(log.routes.contains("POST /uploads") == false)
+        let jobBody = try #require(log.all.first?.body)
+        let jobRequest = try JSONDecoder().decode([String: String].self, from: jobBody)
+        #expect(jobRequest == ["source": "soundcloud", "soundcloudUrl": "https://soundcloud.com/artist-name/my-song"])
+
+        let saved = try #require(try item(trackId))
+        #expect(saved.status == .ready)
+        #expect(saved.source == .soundcloud)
+        #expect(saved.sourceRef == "https://soundcloud.com/artist-name/my-song")
+        #expect(saved.title == "My Song")
+        #expect(saved.artist == "Artist Name")
+        #expect(saved.localAudioPath == nil)
+    }
+
+    @Test func soundcloudFeatureDisabledShowsAFriendlyMessage() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let service = makeService { _ in
+            (403, json(#"{"code": "feature_disabled", "message": "SoundCloud is not enabled"}"#))
+        }
+        await #expect(throws: TranscriptionError(message: Transcription.soundcloudDisabledMessage)) {
+            try await service.startSoundCloud(url: "https://soundcloud.com/artist/song")
+        }
+        #expect(try item(trackId) == nil)
+    }
+
+    @Test func soundcloudRejectsOtherLinksWithoutCallingTheAPI() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let service = makeService(happyPath(log: log, jobStatuses: ["complete"]))
+        await #expect(throws: TranscriptionError(message: Transcription.soundcloudInvalidMessage)) {
+            try await service.startSoundCloud(url: "https://soundcloud.com/artist/sets/playlist")
+        }
+        #expect(log.routes.isEmpty)
+    }
+
+    @Test func soundcloudRetryAsksAgainByURL() async throws {
+        defer { try? FileManager.default.removeItem(at: root) }
+        let log = RequestLog()
+        let service = makeService(happyPath(log: log, jobStatuses: ["complete"]))
+        let url = "https://soundcloud.com/artist/song"
+        let failed = LibraryItem(trackId: trackId, title: "Song", source: .soundcloud, sourceRef: url, status: .failed)
+        container.mainContext.insert(failed)
+
+        try await service.retry(trackId: trackId)
+        await service.pollingTask(for: trackId)?.value
+
+        let jobBody = try #require(log.all.first?.body)
+        let jobRequest = try JSONDecoder().decode([String: String].self, from: jobBody)
+        #expect(jobRequest == ["source": "soundcloud", "soundcloudUrl": url])
+        #expect(log.routes.contains("POST /uploads") == false)
+        #expect(try item(trackId)?.status == .ready)
+    }
+
     @Test func contentTypes() {
         #expect(Transcription.contentType(forExtension: "M4A") == "audio/mp4")
         #expect(Transcription.contentType(forExtension: "mp3") == "audio/mpeg")

@@ -35,6 +35,11 @@ enum Transcription {
     static let missingAudioMessage = "The audio for this song is no longer on this device."
     /// Title for a pasted YouTube link, whose title isn't known on the device.
     static let youtubeFallbackTitle = "YouTube video"
+    /// Title for a SoundCloud short link, whose slug says nothing about the track.
+    static let soundcloudFallbackTitle = "SoundCloud track"
+    /// `403 feature_disabled` on a `soundcloud` job: the server turned the source off.
+    static let soundcloudDisabledMessage = "SoundCloud links aren't available right now. Try another source."
+    static let soundcloudInvalidMessage = "That doesn't look like a SoundCloud track link."
 
     /// The upload content type `POST /uploads` allows for a file extension, or `nil`.
     static func contentType(forExtension fileExtension: String) -> String? {

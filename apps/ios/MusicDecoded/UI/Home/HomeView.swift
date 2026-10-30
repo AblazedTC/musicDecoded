@@ -37,6 +37,9 @@ struct HomeView: View {
             .youtubeDestinations(path: $path, onDecodeStarted: { trackId in
                 openProcessing(trackId)
             })
+            .soundcloudDestinations(onDecodeStarted: { trackId in
+                openProcessing(trackId)
+            })
         }
     }
 
@@ -83,7 +86,9 @@ struct HomeView: View {
                         path.append(YouTubeRoute.search)
                     }
                     if session.config?.soundcloudEnabled == true {
-                        comingSoon(SourceCard(title: "SoundCloud", subtitle: "Coming soon", systemImage: "cloud", tint: .soundcloud) {})
+                        SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud", tint: .soundcloud) {
+                            path.append(SoundCloudRoute())
+                        }
                     } else {
                         Color.clear
                             .gridCellUnsizedAxes(.vertical)
@@ -94,12 +99,6 @@ struct HomeView: View {
                 sourceRoute = .record
             }
         }
-    }
-
-    private func comingSoon(_ card: SourceCard) -> some View {
-        card
-            .disabled(true)
-            .opacity(0.5)
     }
 
     private func openProcessing(_ trackId: String) {

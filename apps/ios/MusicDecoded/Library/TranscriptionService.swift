@@ -146,6 +146,36 @@ final class TranscriptionService {
         }
     }
 
+    /// Requests the analysis of a SoundCloud track (T-502i): like `startYouTube`, the worker
+    /// fetches the audio by URL and nothing is stored on the device (PLAN.md R-1). `url` is a
+    /// normalized link from `SoundCloudURL.parse`. A `403 feature_disabled` becomes a friendly
+    /// message. Returns the trackId once the job exists.
+    @discardableResult
+    func startSoundCloud(url: String) async throws -> String {
+        try await userFacing { () async throws -> String in
+            guard let normalized = SoundCloudURL.parse(url) else {
+                throw TranscriptionError(message: Transcription.soundcloudInvalidMessage)
+            }
+            let job = try await createSoundCloudJob(url: normalized)
+            guard Transcription.isSafeTrackId(job.trackId) else {
+                throw TranscriptionError(message: Transcription.genericMessage)
+            }
+            let item: LibraryItem
+            if let existing = fetch(job.trackId) {
+                item = existing
+            } else {
+                let title = SoundCloudURL.suggestedTitle(for: normalized) ?? Transcription.soundcloudFallbackTitle
+                item = LibraryItem(trackId: job.trackId, title: title, source: .soundcloud)
+                item.artist = SoundCloudURL.suggestedArtist(for: normalized)
+                context.insert(item)
+            }
+            item.sourceRef = normalized
+            item.tombstoned = false
+            begin(item, job)
+            return job.trackId
+        }
+    }
+
     /// Requests a new analysis for a failed (or re-analyzed) item. Reuses its upload, and uploads
     /// the local copy again only if `POST /jobs` says the upload is gone (404). YouTube items
     /// just ask again by videoId.
@@ -168,6 +198,22 @@ final class TranscriptionService {
                 } catch {
                     markFailed(trackId, message: Transcription.userMessage(for: error))
                     throw error
+                }
+                return
+            }
+            if item.source == .soundcloud {
+                do {
+                    guard let url = item.sourceRef else {
+                        throw TranscriptionError(message: Transcription.genericMessage)
+                    }
+                    let job = try await createSoundCloudJob(url: url)
+                    begin(item, job)
+                } catch let error as CancellationError {
+                    throw error
+                } catch {
+                    let message = Transcription.userMessage(for: error)
+                    markFailed(trackId, message: message)
+                    throw TranscriptionError(message: message)
                 }
                 return
             }
@@ -348,6 +394,18 @@ final class TranscriptionService {
         let body = JobRequest(source: .youtube, videoId: videoId)
         return try await session.authorized { api, token in
             try await api.createJob(body, token: token)
+        }
+    }
+
+    /// `POST /jobs` for a SoundCloud URL. `403 feature_disabled` → the friendly message.
+    private func createSoundCloudJob(url: String) async throws -> Job {
+        let body = JobRequest(source: .soundcloud, soundcloudUrl: url)
+        do {
+            return try await session.authorized { api, token in
+                try await api.createJob(body, token: token)
+            }
+        } catch let error as APIError where error.code == .featureDisabled || error.status == 403 {
+            throw TranscriptionError(message: Transcription.soundcloudDisabledMessage)
         }
     }
 
