@@ -194,6 +194,14 @@ Shown after signup/login on a device with guest data ("Move local music"): a clo
 - Note: "Nothing is removed from this device. Restricted third-party audio never uploads."
 - **Confirm & sync** → links the guest data and runs the first sync (PLAN §5.2).
 
+### 3.11 Paywall (Pro, M6)
+Not in the Figma prototype; built from the existing tokens and components so it matches the rest of the app.
+- **Entry points**: the daily-limit error from `POST /jobs` (429 `rate_limited`, "You've used today's N transcriptions"), a "Go Pro" row in Settings (accounts only), and later any Pro-only feature (403 `pro_required`). **Never** from the YouTube search quota 429.
+- **Layout** (sheet, dark): sparkle icon on `primarySoft`, title "MusicDecoded Pro", one-line subtitle "Decode more, practice deeper."; a comparison list of 3–4 rows from PLAN.md §9 (Free vs Pro: daily transcriptions "N / day" vs "Unlimited*", premium analysis models, sync of your own audio files); plan options from the store as selectable cards (monthly / yearly; yearly shows the saving), using the store's localized price strings, never hard-coded prices; **Subscribe** (PrimaryButton); "Restore purchases" (SecondaryButton/text); fine print: auto-renewal terms + links to Terms and Privacy (T-504 URLs; hidden until they exist) and "* fair-use limit applies".
+- **Guests**: the Subscribe button reads "Create an account to subscribe" and opens sign-up first; the purchase continues after sign-up.
+- **States**: loading offerings (skeleton cards), purchase in progress (button spinner, sheet not dismissible), success (checkmark, "You're Pro", dismiss → app re-fetches `/config`), cancelled (silent), error (inline PolicyNote-style message with Retry), purchases unavailable (no RevenueCat key in this build → "Purchases aren't available in this build").
+- **Pro state elsewhere**: Settings profile card shows a "Pro" chip; the daily-limit message is never shown when `limits.dailyJobs` is null.
+
 ---
 
 ## 4. Player behavior (both apps)
