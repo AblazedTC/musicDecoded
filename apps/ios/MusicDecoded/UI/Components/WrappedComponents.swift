@@ -3,7 +3,7 @@ import SwiftUI
 
 // DESIGN.md §1 "Wrapped" signature elements: stickers, eyebrows, display headlines, big numerals,
 // waveform bars and textures. The shadow, border, tilt and pressed-state modifiers live in
-// DesignSystem/Wrapped.swift.
+// DesignSystem/WrappedStyle.swift.
 
 /// Sticker (portfolio `Sticker.tsx`): accent fill, 3pt black border, `shadowMd`, uppercase heavy
 /// label, tilted -3°. For eyebrows, status badges and "PRO".
