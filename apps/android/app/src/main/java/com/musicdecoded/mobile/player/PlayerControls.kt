@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -44,7 +46,7 @@ import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
 import com.musicdecoded.mobile.ui.theme.tabular
 
-/** Back · title/artist (centered) · favorite. [onFavorite] `null` hides the heart. */
+/** Back · title/artist (centered) · favorite · [menu] (⋯). [onFavorite] `null` hides the heart. */
 @Composable
 internal fun PlayerHeader(
     title: String,
@@ -53,10 +55,11 @@ internal fun PlayerHeader(
     modifier: Modifier = Modifier,
     favorite: Boolean = false,
     onFavorite: (() -> Unit)? = null,
+    menu: (@Composable () -> Unit)? = null,
 ) {
     Row(modifier.fillMaxWidth().padding(horizontal = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
         MdIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = onBack)
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }, horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 title,
                 style = MaterialTheme.typography.titleSmall,
@@ -66,7 +69,7 @@ internal fun PlayerHeader(
                 textAlign = TextAlign.Center,
             )
             if (artist != null) {
-                Text(artist, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1)
+                Text(artist, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         if (onFavorite != null) {
@@ -79,6 +82,7 @@ internal fun PlayerHeader(
         } else {
             Box(Modifier.size(Sizes.minTouchTarget))
         }
+        menu?.invoke()
     }
 }
 

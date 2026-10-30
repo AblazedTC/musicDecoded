@@ -55,6 +55,8 @@ data class SongRowState(
     /** The audio is on this device. */
     val offline: Boolean,
     val favorite: Boolean,
+    /** YouTube thumbnail; `null` shows the initial-letter art. */
+    val thumbnailUrl: String? = null,
 )
 
 fun LibraryItem.toRowState(job: Job?): SongRowState = SongRowState(
@@ -70,6 +72,7 @@ fun LibraryItem.toRowState(job: Job?): SongRowState = SongRowState(
     progress = job?.progress?.coerceIn(0, 100),
     offline = localAudioPath != null,
     favorite = favorite,
+    thumbnailUrl = thumbnailUrl,
 )
 
 /** `4:23 · F♯ minor · 136 BPM` from the list columns, skipping unknown parts. */
@@ -180,6 +183,7 @@ fun LibrarySongRow(
             progress = row.progress,
             offline = row.offline,
             onRetry = { viewModel.reanalyze(row.trackId) },
+            thumbnailUrl = row.thumbnailUrl,
         )
         // Anchored to the row's end, under the ⋯ button.
         Box(Modifier.align(Alignment.TopEnd)) {

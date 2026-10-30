@@ -251,4 +251,41 @@ class PlayerViewModelTest {
         // Video isn't available for a file source, so the piano stays.
         assertEquals(Visualizer.PIANO, vm.state.value.visualizer)
     }
+
+    private fun menuViewModel(delete: suspend () -> Unit = {}, reanalyze: suspend () -> Unit = {}) = PlayerViewModel(
+        loadTrack = { PlayerTrack(SyntheticAnalysis.make(), "Song", "Artist", favorite = false, audio = null) },
+        voicings = null,
+        createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) { now }.also { engine = it } },
+        deleteTrack = delete,
+        reanalyzeTrack = reanalyze,
+    )
+
+    @Test fun menuDeletePausesDeletesAndLeaves() {
+        var deleted = false
+        val vm = menuViewModel(delete = { deleted = true })
+        vm.togglePlay()
+        vm.delete()
+        assertTrue(deleted)
+        assertFalse(vm.state.value.isPlaying)
+        assertEquals(PlayerExit.DELETED, vm.state.value.exit)
+        vm.exitHandled()
+        assertNull(vm.state.value.exit)
+    }
+
+    @Test fun menuReanalyzeLeavesForProcessing() {
+        var requested = false
+        val vm = menuViewModel(reanalyze = { requested = true })
+        vm.reanalyze()
+        assertTrue(requested)
+        assertEquals(PlayerExit.REANALYZING, vm.state.value.exit)
+    }
+
+    @Test fun aFailedMenuActionStaysAndShowsTheMessage() {
+        val vm = menuViewModel(reanalyze = { throw java.io.IOException("offline") })
+        vm.reanalyze()
+        assertNull(vm.state.value.exit)
+        assertEquals(com.musicdecoded.mobile.library.TranscriptionRepository.OFFLINE, vm.state.value.message)
+        vm.messageShown()
+        assertNull(vm.state.value.message)
+    }
 }

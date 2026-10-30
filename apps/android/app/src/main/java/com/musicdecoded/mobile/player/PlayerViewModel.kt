@@ -14,7 +14,10 @@ import com.musicdecoded.mobile.core.Source
 import com.musicdecoded.mobile.core.barRange
 import com.musicdecoded.mobile.core.nextChordStart
 import com.musicdecoded.mobile.core.previousChordStart
+import com.musicdecoded.mobile.library.TranscriptionRepository
 import com.musicdecoded.mobile.settings.PlayerPreferences
+import com.musicdecoded.mobile.ui.library.SongActions
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +41,9 @@ data class PlayerTrack(
 )
 
 enum class ChordsMode { BASIC, FULL }
+
+/** Why the player screen should close (header ⋯ menu). */
+enum class PlayerExit { DELETED, REANALYZING }
 enum class Visualizer { PIANO, VIDEO }
 
 data class PlayerUiState(
@@ -56,6 +62,10 @@ data class PlayerUiState(
     val voicings: ChordVoicings? = null,
     /** Settings → Accidentals. */
     val accidentals: Accidentals = Accidentals.AUTO,
+    /** One-shot: leave the player (after Delete / Re-analyze from the ⋯ menu). */
+    val exit: PlayerExit? = null,
+    /** One-shot user-facing error from a menu action. */
+    val message: String? = null,
 ) {
     val analysis: Analysis? get() = track?.analysis
 
@@ -82,6 +92,10 @@ class PlayerViewModel(
     private val ownsEngine: Boolean = true,
     /** Settings defaults (chords, accidentals, visualizer); default speed is applied by [createEngine]. */
     private val preferences: suspend () -> PlayerPreferences = { PlayerPreferences() },
+    /** ⋯ Delete: removes the library item (and clears the mini player). */
+    private val deleteTrack: suspend () -> Unit = {},
+    /** ⋯ Re-analyze: requests a new analysis (TranscriptionRepository.retry). */
+    private val reanalyzeTrack: suspend () -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow(PlayerUiState(voicings = voicings))
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
@@ -212,6 +226,30 @@ class PlayerViewModel(
         viewModelScope.launch { runCatching { saveFavorite(favorite) } }
     }
 
+    fun delete() = menuAction(PlayerExit.DELETED) {
+        pause()
+        deleteTrack()
+    }
+
+    fun reanalyze() = menuAction(PlayerExit.REANALYZING) { reanalyzeTrack() }
+
+    fun exitHandled() = _state.update { it.copy(exit = null) }
+
+    fun messageShown() = _state.update { it.copy(message = null) }
+
+    private fun menuAction(exit: PlayerExit, block: suspend () -> Unit) {
+        viewModelScope.launch {
+            try {
+                block()
+                _state.update { it.copy(exit = exit) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(message = TranscriptionRepository.userMessage(e)) }
+            }
+        }
+    }
+
     override fun onCleared() {
         if (ownsEngine) engine?.release()
         engine = null
@@ -270,6 +308,8 @@ class PlayerViewModel(
                     },
                     ownsEngine = false,
                     preferences = { app.settingsStore.current().also { defaultSpeed = it.defaultSpeed } },
+                    deleteTrack = { SongActions.from(app).delete(trackId) },
+                    reanalyzeTrack = { app.transcriptionRepository.retry(trackId) },
                 )
             }
         }

@@ -1,5 +1,6 @@
 package com.musicdecoded.mobile.player
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,29 +12,51 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.MoreHoriz
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.OpenInFull
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +68,7 @@ import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.SegmentedToggle
 import com.musicdecoded.mobile.ui.components.formatDuration
 import com.musicdecoded.mobile.ui.components.keyName
+import com.musicdecoded.mobile.ui.library.SongListMessages
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.MusicDecodedTheme
 import com.musicdecoded.mobile.ui.theme.Shapes
@@ -54,12 +78,19 @@ import com.musicdecoded.mobile.ui.theme.TextStyles
 import com.musicdecoded.mobile.ui.theme.tabular
 import kotlin.math.roundToInt
 
-/** The Player (DESIGN.md §3.7). */
+/** The Player (DESIGN.md §3.7). [onExit] leaves after a ⋯ menu Delete / Re-analyze. */
 @Composable
-fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: () -> Unit) {
+fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: () -> Unit, onExit: (PlayerExit) -> Unit = { onBack() }) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val position = viewModel.position.collectAsStateWithLifecycle()
     PlaybackClock(viewModel, state.isPlaying)
+    SongListMessages(state.message, viewModel::messageShown)
+    LaunchedEffect(state.exit) {
+        state.exit?.let {
+            viewModel.exitHandled()
+            onExit(it)
+        }
+    }
 
     Column(Modifier.fillMaxSize().background(MusicDecodedColors.Canvas)) {
         val track = state.track
@@ -69,6 +100,9 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
             onBack = onBack,
             favorite = state.favorite,
             onFavorite = viewModel::toggleFavorite.takeIf { track != null },
+            menu = if (track != null) {
+                { PlayerMenu(track.title, state.favorite, viewModel::toggleFavorite, viewModel::reanalyze, viewModel::delete) }
+            } else null,
         )
         if (track == null) {
             PlayerPlaceholder(state.loading, Modifier.weight(1f))
@@ -94,6 +128,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                 onSeek = viewModel::seekTo,
                 loop = state.loop,
                 onLoopSelected = viewModel::setLoop,
+                currentChord = currentLabel?.let(chords::name)?.ifEmpty { null },
             )
             NowPlaying(currentLabel, chords)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -119,6 +154,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                         notes = currentLabel?.let(chords::notes).orEmpty(),
                         bassNote = currentLabel?.let(chords::bassNote),
                         modifier = Modifier.clip(Shapes.chip),
+                        description = currentLabel?.let(chords::noteNames),
                     )
                 },
             )
@@ -128,6 +164,65 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
             state.loop?.let { LoopPill(it, onClear = viewModel::clearLoop, Modifier.padding(bottom = Spacing.xs)) }
             TransportSheet(state, position, analysis.meta.durationSec, viewModel)
         }
+    }
+}
+
+/** Header ⋯: Favorite · Re-analyze · Delete (with confirmation), like the song rows. */
+@Composable
+private fun PlayerMenu(title: String, favorite: Boolean, onFavorite: () -> Unit, onReanalyze: () -> Unit, onDelete: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    Box {
+        MdIconButton(Icons.Rounded.MoreHoriz, contentDescription = "More options", onClick = { open = true })
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = MusicDecodedColors.SurfaceRaised) {
+            DropdownMenuItem(
+                text = { Text(if (favorite) "Remove from favorites" else "Favorite") },
+                leadingIcon = { Icon(if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder, null) },
+                onClick = {
+                    open = false
+                    onFavorite()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Re-analyze") },
+                leadingIcon = { Icon(Icons.Rounded.Refresh, null) },
+                onClick = {
+                    open = false
+                    onReanalyze()
+                },
+            )
+            DropdownMenuItem(
+                text = { Text("Delete", color = MusicDecodedColors.Record) },
+                leadingIcon = { Icon(Icons.Rounded.Delete, null, tint = MusicDecodedColors.Record) },
+                onClick = {
+                    open = false
+                    confirmDelete = true
+                },
+            )
+        }
+    }
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            containerColor = MusicDecodedColors.Surface,
+            title = { Text("Delete “$title”?") },
+            text = {
+                Text(
+                    "It's removed from your library and its chord timeline won't show up here anymore.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MusicDecodedColors.TextSecondary,
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    onDelete()
+                }) { Text("Delete", color = MusicDecodedColors.Record) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("Cancel", color = MusicDecodedColors.TextSecondary) }
+            },
+        )
     }
 }
 
@@ -164,7 +259,7 @@ private fun MetadataRow(analysis: Analysis) {
 @Composable
 private fun NowPlaying(label: String?, chords: ChordDisplay) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-        Text("NOW PLAYING", style = TextStyles.overline)
+        Text("NOW PLAYING", style = TextStyles.overline, modifier = Modifier.semantics { heading() })
         Text(label?.let(chords::name)?.ifEmpty { null } ?: "—", style = TextStyles.currentChord)
         val notes = label?.let(chords::noteNames).orEmpty()
         if (notes.isNotEmpty()) {
@@ -251,19 +346,32 @@ private fun TransportSheet(state: PlayerUiState, position: State<Double>, durati
     }
 }
 
-/** Seek slider with current / total times. */
+/**
+ * Seek bar per DESIGN.md §3.7: a thin rounded track (played = `primary`, rest = `surfaceSoft`) with
+ * a small round thumb, plus current / total times. The touch target keeps the Slider's 48dp height.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double) -> Unit) {
+    val total = duration.toFloat().coerceAtLeast(1f)
+    val value = position.value.toFloat().coerceIn(0f, total)
     Column {
         Slider(
-            value = position.value.toFloat().coerceIn(0f, duration.toFloat()),
+            value = value,
             onValueChange = { onSeek(it.toDouble()) },
-            valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
-            colors = SliderDefaults.colors(
-                thumbColor = MusicDecodedColors.Primary,
-                activeTrackColor = MusicDecodedColors.Primary,
-                inactiveTrackColor = MusicDecodedColors.SurfaceSoft,
-            ),
+            valueRange = 0f..total,
+            modifier = Modifier.semantics {
+                contentDescription = "Seek"
+                stateDescription = "${formatDuration(position.value)} of ${formatDuration(duration)}"
+            },
+            thumb = { Box(Modifier.size(SeekThumb).background(MusicDecodedColors.Primary, CircleShape)) },
+            track = {
+                Canvas(Modifier.fillMaxWidth().height(Sizes.progressTrack)) {
+                    val radius = CornerRadius(size.height / 2)
+                    drawRoundRect(MusicDecodedColors.SurfaceSoft, cornerRadius = radius)
+                    drawRoundRect(MusicDecodedColors.Primary, size = Size(size.width * (value / total), size.height), cornerRadius = radius)
+                }
+            },
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             val style = MaterialTheme.typography.labelSmall.tabular()
@@ -272,6 +380,9 @@ internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double)
         }
     }
 }
+
+/** The seek bar's round thumb (a component size, not spacing). */
+private val SeekThumb = 14.dp
 
 @Preview(heightDp = 1100)
 @Composable

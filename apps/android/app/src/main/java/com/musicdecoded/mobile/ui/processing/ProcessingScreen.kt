@@ -30,6 +30,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,10 +43,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.musicdecoded.mobile.MusicDecodedApplication
 import com.musicdecoded.mobile.player.PlayerRoutes
+import com.musicdecoded.mobile.library.TranscriptionRepository
+import com.musicdecoded.mobile.ui.components.ErrorState
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.SecondaryButton
+import com.musicdecoded.mobile.ui.components.SongArt
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
@@ -119,6 +124,7 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
                     style = MaterialTheme.typography.headlineMedium,
                     color = MusicDecodedColors.Text,
                     textAlign = TextAlign.Center,
+                    modifier = Modifier.semantics { heading() },
                 )
                 val subtitle = listOfNotNull(state.title.takeIf { it.isNotBlank() }, state.artist).joinToString(" · ")
                 if (subtitle.isNotEmpty()) {
@@ -127,12 +133,7 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
             }
 
             if (state.phase == ProcessingPhase.FAILED) {
-                Text(
-                    state.error ?: "Something went wrong. Try again.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MusicDecodedColors.Record,
-                    textAlign = TextAlign.Center,
-                )
+                ErrorState(state.error ?: TranscriptionRepository.GENERIC, onRetry = onRetry)
             } else {
                 OverallProgress(state)
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -143,10 +144,7 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
         Column(Modifier.fillMaxWidth().padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             when (state.phase) {
                 ProcessingPhase.COMPLETE -> PrimaryButton("Open transcription", onClick = onOpen)
-                ProcessingPhase.FAILED -> {
-                    PrimaryButton("Try again", onClick = onRetry)
-                    SecondaryButton("Back", onClick = onBackground)
-                }
+                ProcessingPhase.FAILED -> SecondaryButton("Back", onClick = onBackground)
                 else -> SecondaryButton("Continue in background", onClick = onBackground)
             }
         }
@@ -163,13 +161,7 @@ private fun OrbitArt(title: String) {
     Box(Modifier.size(OrbitOuter), contentAlignment = Alignment.Center) {
         Box(Modifier.size(OrbitOuter).border(Sizes.hairline, MusicDecodedColors.Line, CircleShape))
         Box(Modifier.size(OrbitInner).border(Sizes.hairline, MusicDecodedColors.PrimarySoft, CircleShape))
-        Box(Modifier.size(ArtSize).background(MusicDecodedColors.SurfaceSoft, Shapes.card), contentAlignment = Alignment.Center) {
-            Text(
-                title.trim().firstOrNull()?.uppercase() ?: "",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MusicDecodedColors.Secondary,
-            )
-        }
+        SongArt(title, Modifier.size(ArtSize), shape = Shapes.card, style = MaterialTheme.typography.headlineMedium)
         Box(
             Modifier
                 .align(Alignment.BottomEnd)

@@ -21,7 +21,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MoreHoriz
-import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Cloud
 import androidx.compose.material3.Icon
@@ -35,6 +34,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,7 +54,7 @@ import com.musicdecoded.mobile.ui.theme.TextStyles
 fun PageHeader(title: String, modifier: Modifier = Modifier, overline: String? = null) {
     Column(modifier.fillMaxWidth()) {
         if (overline != null) Text(overline.uppercase(), style = TextStyles.overline)
-        Text(title, style = MaterialTheme.typography.headlineMedium, color = MusicDecodedColors.Text)
+        Text(title, style = MaterialTheme.typography.headlineMedium, color = MusicDecodedColors.Text, modifier = Modifier.semantics { heading() })
     }
 }
 
@@ -66,7 +70,7 @@ fun SectionHeader(
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             if (overline != null) Text(overline.uppercase(), style = TextStyles.overline)
-            Text(title, style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text, modifier = Modifier.semantics { heading() })
         }
         if (actionLabel != null && onAction != null) {
             TextButton(onClick = onAction) {
@@ -75,6 +79,30 @@ fun SectionHeader(
         }
     }
 }
+
+/**
+ * Song art: the thumbnail when there is one (YouTube), else the title's initial on `surfaceSoft`
+ * (the same art in song rows, the mini player and Processing). Decorative for screen readers.
+ */
+@Composable
+fun SongArt(
+    title: String,
+    modifier: Modifier = Modifier,
+    thumbnailUrl: String? = null,
+    shape: Shape = Shapes.art,
+    style: TextStyle = MaterialTheme.typography.titleMedium,
+) {
+    Box(modifier.clip(shape).background(MusicDecodedColors.SurfaceSoft), contentAlignment = Alignment.Center) {
+        if (thumbnailUrl != null) {
+            RemoteImage(thumbnailUrl, Modifier.matchParentSize())
+        } else {
+            Text(titleInitial(title), style = style, color = MusicDecodedColors.Secondary, modifier = Modifier.clearAndSetSemantics {})
+        }
+    }
+}
+
+/** The first letter or digit of [title], uppercased ("" when there's none). */
+fun titleInitial(title: String): String = title.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: ""
 
 /** Row state shown by [SongRow] (mirrors the local LibraryItem status). */
 enum class SongRowStatus { ANALYZING, READY, FAILED }
@@ -95,6 +123,7 @@ fun SongRow(
     progress: Int? = null,
     offline: Boolean = false,
     onRetry: (() -> Unit)? = null,
+    thumbnailUrl: String? = null,
 ) {
     Row(
         modifier
@@ -102,17 +131,20 @@ fun SongRow(
             .clip(Shapes.row)
             .background(MusicDecodedColors.Surface)
             .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.row)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = when (status) {
+                    SongRowStatus.READY -> "Open player"
+                    SongRowStatus.ANALYZING -> "View progress"
+                    SongRowStatus.FAILED -> null
+                },
+                onClick = onClick,
+            )
             .padding(Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(Sizes.songArt).background(MusicDecodedColors.SurfaceSoft, Shapes.art),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Rounded.MusicNote, contentDescription = null, tint = MusicDecodedColors.Secondary)
-        }
+        SongArt(title, Modifier.size(Sizes.songArt), thumbnailUrl)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
             Text(
                 title,
@@ -122,7 +154,7 @@ fun SongRow(
                 overflow = TextOverflow.Ellipsis,
             )
             if (artist != null) {
-                Text(artist, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1)
+                Text(artist, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             when (status) {
                 SongRowStatus.READY -> Row(
@@ -130,7 +162,7 @@ fun SongRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (offline) OfflineBadge()
-                    Text(meta, style = MaterialTheme.typography.labelSmall, color = MusicDecodedColors.TextMuted, maxLines = 1)
+                    Text(meta, style = MaterialTheme.typography.labelSmall, color = MusicDecodedColors.TextMuted)
                 }
                 SongRowStatus.ANALYZING -> Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                     Text(
@@ -164,7 +196,7 @@ fun SongRow(
                 }
             }
         }
-        MdIconButton(Icons.Rounded.MoreHoriz, contentDescription = "More", onClick = onMore, small = true)
+        MdIconButton(Icons.Rounded.MoreHoriz, contentDescription = "More options for $title", onClick = onMore, small = true)
     }
 }
 

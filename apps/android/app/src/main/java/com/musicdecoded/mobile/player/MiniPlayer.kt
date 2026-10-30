@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.PreviewFixture
 import com.musicdecoded.mobile.ui.components.PreviewSurface
+import com.musicdecoded.mobile.ui.components.SongArt
 import com.musicdecoded.mobile.ui.components.keyName
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.Shapes
@@ -87,9 +88,7 @@ fun MiniPlayer(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(Modifier.size(Sizes.iconButton).background(MusicDecodedColors.SurfaceSoft, Shapes.art), contentAlignment = Alignment.Center) {
-                Text(state.title.trim().firstOrNull()?.uppercase() ?: "", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Secondary)
-            }
+            SongArt(state.title, Modifier.size(Sizes.iconButton), style = MaterialTheme.typography.titleSmall)
             Column(Modifier.weight(1f)) {
                 Text(state.title, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val subtitle = listOfNotNull(state.artist, state.key?.let(::keyName)).joinToString(" · ")

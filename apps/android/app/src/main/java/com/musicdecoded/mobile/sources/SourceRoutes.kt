@@ -3,7 +3,9 @@ package com.musicdecoded.mobile.sources
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.navArgument
 
 /**
@@ -27,7 +29,17 @@ fun NavGraphBuilder.sourceRoutes(
     navController: NavController,
     onDecodeStarted: (trackId: String) -> Unit = { navController.popBackStack() },
 ) {
-    composable(SourceRoutes.IMPORT, arguments = listOf(navArgument("from") { type = NavType.StringType })) { entry ->
+    // A full-screen dialog destination: the Import sheet slides up over Home (dimmed) instead of an empty screen.
+    dialog(
+        SourceRoutes.IMPORT,
+        arguments = listOf(navArgument("from") { type = NavType.StringType }),
+        dialogProperties = DialogProperties(
+            dismissOnBackPress = false, // handled by ImportScreen, which won't drop an upload in flight
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+        ),
+    ) { entry ->
         val from = ImportFrom.valueOf(entry.arguments?.getString("from") ?: ImportFrom.FILES.name)
         ImportScreen(from) { trackId ->
             if (trackId != null) onDecodeStarted(trackId) else navController.popBackStack()

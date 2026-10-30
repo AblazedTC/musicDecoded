@@ -17,6 +17,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
 import com.musicdecoded.mobile.MusicDecodedApplication
+import com.musicdecoded.mobile.ui.processing.ProcessingRoutes
 import kotlinx.coroutines.isActive
 
 /** Pushed player routes (DESIGN.md §2: no tab bar). */
@@ -36,6 +37,15 @@ fun NavGraphBuilder.playerDestinations(navController: NavHostController) {
             viewModel,
             onBack = { navController.popBackStack() },
             onOpenPiano = { navController.navigate(PlayerRoutes.piano(trackId)) },
+            onExit = { exit ->
+                when (exit) {
+                    PlayerExit.DELETED -> navController.popBackStack()
+                    // Re-analyze: follow the new job on Processing, which opens the player again when done.
+                    PlayerExit.REANALYZING -> navController.navigate(ProcessingRoutes.processing(trackId)) {
+                        popUpTo(PlayerRoutes.PLAYER) { inclusive = true }
+                    }
+                }
+            },
         )
     }
     composable(PlayerRoutes.PIANO) { entry ->
