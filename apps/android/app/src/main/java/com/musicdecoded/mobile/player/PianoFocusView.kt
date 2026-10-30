@@ -1,6 +1,5 @@
 package com.musicdecoded.mobile.player
 
-import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,30 +21,24 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.currentState
 import com.musicdecoded.mobile.core.isNoChord
 import com.musicdecoded.mobile.core.upNext
 import com.musicdecoded.mobile.ui.components.ChipRow
 import com.musicdecoded.mobile.ui.components.ControlChip
-import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.formatDuration
 import androidx.compose.ui.unit.dp
 import com.musicdecoded.mobile.ui.components.Eyebrow
@@ -53,94 +46,59 @@ import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.Shadows
-import com.musicdecoded.mobile.ui.theme.MusicDecodedTheme
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
 import com.musicdecoded.mobile.ui.theme.TextStyles
 
-/** Octaves on the large keyboard: 2 in portrait, wider in landscape (DESIGN.md §3.8). */
-private const val PORTRAIT_OCTAVES = 2
-private const val LANDSCAPE_OCTAVES = 4
-
 /** A chord in the progression strip: its index in `analysis.chords` and length in beats. */
 private data class StripChord(val index: Int, val beats: Int)
 
-/** Piano learning view (DESIGN.md §3.8). Shares the player's [PlayerViewModel]. */
+/**
+ * Piano focus (DESIGN.md §3.7.1): the Piano learning view (§3.8) inline in the player's middle
+ * region: current / up-next card, the large fixed keyboard (same voicing, inversion and fingering
+ * rules; swipe for inversions), progression strip and learning controls. Scrolls if it must.
+ */
 @Composable
-fun PianoScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val position = viewModel.position.collectAsStateWithLifecycle()
-    PlaybackClock(viewModel, state.isPlaying)
-    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+internal fun PianoFocusView(state: PlayerUiState, analysis: Analysis, position: State<Double>, viewModel: PlayerViewModel, modifier: Modifier = Modifier) {
+    val chords = state.chords
+    val chordIndex by remember(analysis) { derivedStateOf { currentState(position.value, analysis).chordIndex } }
+    val next by remember(analysis) { derivedStateOf { upNext(position.value, analysis) } }
+    val currentLabel = chordIndex?.let { analysis.chords[it].label }
+    val voicing = currentLabel?.let { chords.voicing(it, state.inversion) }
 
-    Column(Modifier.fillMaxSize().background(MusicDecodedColors.Canvas)) {
-        val track = state.track
-        PlayerHeader(track?.title.orEmpty(), track?.artist, onBack = onBack)
-        if (track == null) return@Column
-        val analysis = track.analysis
-        val chords = state.chords
-        val chordIndex by remember(analysis) { derivedStateOf { currentState(position.value, analysis).chordIndex } }
-        val next by remember(analysis) { derivedStateOf { upNext(position.value, analysis) } }
-        val currentLabel = chordIndex?.let { analysis.chords[it].label }
-
-        Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            HeadCard(
-                current = currentLabel,
-                next = next?.let { analysis.chords[it.chordIndex].label },
-                inBeats = next?.inBeats,
-                chords = chords,
-                modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.xs),
-            )
-            // The video is the clock for youtube tracks without local audio, so it comes along.
-            if (state.videoIsClock) {
-                track.videoId?.let {
-                    PlayerVideoPanel(viewModel, it, analysis.meta.durationSec, Modifier.padding(horizontal = Spacing.gutter))
-                }
-            }
-            Box(Modifier.padding(horizontal = Spacing.gutter)) {
-                SeekBar(position, analysis.meta.durationSec, viewModel::seekTo)
-            }
-            PianoKeyboard(
-                notes = currentLabel?.let(chords::notes).orEmpty(),
-                bassNote = currentLabel?.let(chords::bassNote),
-                octaves = if (landscape) LANDSCAPE_OCTAVES else PORTRAIT_OCTAVES,
-                height = PianoKeyboardDefaults.LargeHeight,
-                noteName = chords::noteName.takeIf { state.showNoteNames },
-                description = currentLabel?.let(chords::noteNames),
-                // Inset by the gutter so the frame's lime shadowLg stays on screen (DESIGN.md §1).
-                modifier = Modifier.padding(horizontal = Spacing.gutter),
-                frameShadow = Shadows.lg,
-            )
-            ProgressionStrip(analysis, chordIndex, chords, onSeek = viewModel::seekTo)
-            LearningControls(state, viewModel, Modifier.padding(horizontal = Spacing.gutter))
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xl, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                MdIconButton(Icons.Rounded.SkipPrevious, contentDescription = "Previous chord", onClick = viewModel::previousChord)
-                PlayButton(state.isPlaying, onClick = viewModel::togglePlay)
-                MdIconButton(Icons.Rounded.SkipNext, contentDescription = "Next chord", onClick = viewModel::nextChord)
-            }
-            if (!landscape) {
-                Text(
-                    "Rotate your device for a wider keyboard",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MusicDecodedColors.TextMuted,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md),
-                )
-            }
-        }
+    Column(
+        modifier.verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        HeadCard(
+            current = currentLabel,
+            next = next?.let { analysis.chords[it.chordIndex].label },
+            inBeats = next?.inBeats,
+            chords = chords,
+            inversion = state.inversion,
+            modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.xs),
+        )
+        FixedPianoKeyboard(
+            voicing = voicing,
+            noteName = chords::noteName,
+            keysHeight = PianoKeyboardDefaults.LargeHeight,
+            onStepInversion = viewModel::stepInversion,
+            inversion = voicing?.let { state.inversion.coerceAtMost(it.inversions - 1) } ?: 0,
+            showNoteNames = state.showNoteNames,
+            description = currentLabel?.let { chords.noteNames(it, state.inversion) },
+            // Inset by the gutter so the frame's lime shadowLg stays on screen (DESIGN.md §1).
+            modifier = Modifier.padding(horizontal = Spacing.gutter),
+            frameShadow = Shadows.lg,
+        )
+        ProgressionStrip(analysis, chordIndex, chords, onSeek = viewModel::seekTo)
+        LearningControls(state, viewModel, voicing?.inversions ?: 0, Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.md))
     }
 }
 
 /** CURRENT CHORD (name + notes) | UP NEXT (name + "in N beats"). */
 @Composable
-private fun HeadCard(current: String?, next: String?, inBeats: Int?, chords: ChordDisplay, modifier: Modifier = Modifier) {
+private fun HeadCard(current: String?, next: String?, inBeats: Int?, chords: ChordDisplay, inversion: Int, modifier: Modifier = Modifier) {
     Row(
         modifier
             .fillMaxWidth()
@@ -156,7 +114,7 @@ private fun HeadCard(current: String?, next: String?, inBeats: Int?, chords: Cho
                 style = MaterialTheme.typography.displaySmall,
                 color = MusicDecodedColors.Chord,
             )
-            Text(current?.let(chords::noteNames).orEmpty(), style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
+            Text(current?.let { chords.noteNames(it, inversion) }.orEmpty(), style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
         }
         Box(Modifier.fillMaxHeight().width(Borders.separator).background(MusicDecodedColors.Line))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
@@ -221,9 +179,9 @@ private fun ProgressionStrip(analysis: Analysis, chordIndex: Int?, chords: Chord
     }
 }
 
-/** Speed · Loop · Note names · Transpose (2×2). */
+/** Speed · Loop · Note names · Transpose, then Voicing. */
 @Composable
-private fun LearningControls(state: PlayerUiState, viewModel: PlayerViewModel, modifier: Modifier = Modifier) {
+private fun LearningControls(state: PlayerUiState, viewModel: PlayerViewModel, inversions: Int, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         ChipRow {
             SpeedChip(state.speed, viewModel::setSpeed, Modifier.weight(1f))
@@ -238,20 +196,6 @@ private fun LearningControls(state: PlayerUiState, viewModel: PlayerViewModel, m
             ControlChip("Note names", if (state.showNoteNames) "On" else "Off", onClick = viewModel::toggleNoteNames, Modifier.weight(1f))
             TransposeChip(state.transpose, viewModel::setTranspose, Modifier.weight(1f))
         }
+        VoicingChip(state.inversion, inversions, viewModel::setInversion, Modifier.fillMaxWidth())
     }
-}
-
-@Preview(heightDp = 900)
-@Composable
-private fun PianoScreenPreview() = MusicDecodedTheme {
-    val analysis = rememberPreviewAnalysis() ?: return@MusicDecodedTheme
-    val context = LocalContext.current
-    val viewModel = remember {
-        PlayerViewModel(
-            loadTrack = { PlayerTrack(analysis, "Sunny Days", "Fixture", favorite = false, audio = null) },
-            voicings = runCatching { loadChordVoicings(context) }.getOrNull(),
-            createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) },
-        )
-    }
-    PianoScreen(viewModel, onBack = {})
 }

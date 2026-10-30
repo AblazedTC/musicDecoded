@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Piano
+import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.DropdownMenu
@@ -32,7 +34,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.Layout
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import com.musicdecoded.mobile.ui.theme.Borders
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -50,57 +60,85 @@ import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
 import com.musicdecoded.mobile.ui.theme.tabular
 
-/** Back · title/artist (centered) · favorite · [menu] (⋯). [onFavorite] `null` hides the heart. */
+/** Back · [center] (the view switcher) · [menu] (⋯) (DESIGN.md §3.7 owner revision 2). */
 @Composable
-internal fun PlayerHeader(
-    title: String,
-    artist: String?,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    favorite: Boolean = false,
-    onFavorite: (() -> Unit)? = null,
-    menu: (@Composable () -> Unit)? = null,
-) {
+internal fun PlayerHeader(onBack: () -> Unit, modifier: Modifier = Modifier, menu: (@Composable () -> Unit)? = null, center: @Composable () -> Unit = {}) {
     Row(modifier.fillMaxWidth().padding(horizontal = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
         MdIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = onBack)
-        // Title on one line; the artist goes under it only if both fit the row's touch-target height.
-        Layout(
-            content = {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MusicDecodedColors.Text,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { center() }
+        if (menu != null) menu() else Box(Modifier.size(Sizes.minTouchTarget))
+    }
+}
+
+/** Header view switcher: one icon segment per [PlayerView]; selected = lime fill + ink icon, 3pt black frame. */
+@Composable
+internal fun ViewSwitcher(selected: PlayerView, onSelect: (PlayerView) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.border(Borders.thick, MusicDecodedColors.Border).background(MusicDecodedColors.SurfaceRaised).selectableGroup()) {
+        PlayerView.entries.forEach { view ->
+            val isSelected = view == selected
+            Box(
+                Modifier
+                    .size(width = Sizes.minTouchTarget, height = Sizes.compactControl)
+                    .background(if (isSelected) MusicDecodedColors.Primary else MusicDecodedColors.SurfaceRaised)
+                    .selectable(selected = isSelected, role = Role.Tab) { onSelect(view) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    view.icon,
+                    contentDescription = view.label,
+                    tint = if (isSelected) MusicDecodedColors.OnPrimary else MusicDecodedColors.Text,
+                    modifier = Modifier.size(Sizes.icon),
                 )
-                if (artist != null) {
-                    Text(artist, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            },
-            modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { heading() },
-        ) { measurables, constraints ->
-            val loose = constraints.copy(minWidth = 0, minHeight = 0)
-            val titlePlaceable = measurables[0].measure(loose)
-            val artistPlaceable = measurables.getOrNull(1)?.measure(loose)
-                ?.takeIf { titlePlaceable.height + it.height <= Sizes.minTouchTarget.roundToPx() }
-            val width = constraints.maxWidth
-            layout(width, titlePlaceable.height + (artistPlaceable?.height ?: 0)) {
-                titlePlaceable.place((width - titlePlaceable.width) / 2, 0)
-                artistPlaceable?.place((width - artistPlaceable.width) / 2, titlePlaceable.height)
             }
         }
-        if (onFavorite != null) {
-            MdIconButton(
-                if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                contentDescription = if (favorite) "Remove from favorites" else "Add to favorites",
-                onClick = onFavorite,
-                active = favorite,
-            )
-        } else {
-            Box(Modifier.size(Sizes.minTouchTarget))
+    }
+}
+
+private val PlayerView.label: String
+    get() = when (this) {
+        PlayerView.TIMELINE -> "Timeline"
+        PlayerView.BEAT_GRID -> "Beat grid"
+        PlayerView.CHORD_SHEET -> "Chord sheet"
+        PlayerView.PIANO_FOCUS -> "Piano focus"
+    }
+
+private val PlayerView.icon: ImageVector
+    get() = when (this) {
+        PlayerView.TIMELINE -> Icons.Rounded.GraphicEq
+        PlayerView.BEAT_GRID -> Icons.Rounded.GridView
+        PlayerView.CHORD_SHEET -> Icons.Rounded.ViewAgenda
+        PlayerView.PIANO_FOCUS -> Icons.Rounded.Piano
+    }
+
+/** One compact line under the header: title · artist, ellipsized. */
+@Composable
+internal fun PlayerTitleLine(title: String, artist: String?, modifier: Modifier = Modifier) {
+    Text(
+        buildAnnotatedString {
+            append(title)
+            if (artist != null) withStyle(SpanStyle(color = MusicDecodedColors.TextSecondary, fontWeight = FontWeight.Medium)) { append(" · $artist") }
+        },
+        style = MaterialTheme.typography.labelLarge,
+        color = MusicDecodedColors.Text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        textAlign = TextAlign.Center,
+        modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.gutter).semantics { heading() },
+    )
+}
+
+/** Voicing chip: shows the inversion (Root, 1st inv…) and opens a picker limited to the chord's [inversions] (all when no chord). */
+@Composable
+internal fun VoicingChip(inversion: Int, inversions: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
+    var menu by remember { mutableStateOf(false) }
+    val count = if (inversions > 0) inversions else PlayerViewModel.MAX_INVERSION + 1
+    val shown = inversion.coerceAtMost(count - 1)
+    Box(modifier) {
+        ControlChip("Voicing", inversionName(shown), onClick = { menu = true }, Modifier.fillMaxWidth().then(if (compact) Modifier.fillMaxHeight() else Modifier), compact = compact)
+        ChoiceMenu(menu, onDismiss = { menu = false }, choices = (0 until count).toList(), label = ::inversionName) {
+            onSelect(it)
+            menu = false
         }
-        menu?.invoke()
     }
 }
 

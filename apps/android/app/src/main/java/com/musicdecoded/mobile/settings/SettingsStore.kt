@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.musicdecoded.mobile.core.Accidentals
 import com.musicdecoded.mobile.player.ChordsMode
+import com.musicdecoded.mobile.player.PlayerView
 import com.musicdecoded.mobile.player.Visualizer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -20,6 +21,8 @@ data class PlayerPreferences(
     val chordsMode: ChordsMode = ChordsMode.FULL,
     val accidentals: Accidentals = Accidentals.AUTO,
     val visualizer: Visualizer = Visualizer.PIANO,
+    /** Last player view picked in the header switcher (DESIGN.md §3.7: persists per app). */
+    val playerView: PlayerView = PlayerView.TIMELINE,
 ) {
     companion object {
         /** Default speed choices (the player's long-press range is 0.50–1.25×). */
@@ -35,6 +38,7 @@ class SettingsStore(private val context: Context) {
     private val chordsKey = stringPreferencesKey("chords_mode")
     private val accidentalsKey = stringPreferencesKey("accidentals")
     private val visualizerKey = stringPreferencesKey("visualizer")
+    private val viewKey = stringPreferencesKey("player_view")
 
     val preferences: Flow<PlayerPreferences> = context.settingsDataStore.data.map { it.read() }
 
@@ -47,6 +51,7 @@ class SettingsStore(private val context: Context) {
             prefs[chordsKey] = next.chordsMode.name
             prefs[accidentalsKey] = next.accidentals.name
             prefs[visualizerKey] = next.visualizer.name
+            prefs[viewKey] = next.playerView.name
         }
     }
 
@@ -55,6 +60,7 @@ class SettingsStore(private val context: Context) {
         chordsMode = this[chordsKey].toEnum(ChordsMode.FULL),
         accidentals = this[accidentalsKey].toEnum(Accidentals.AUTO),
         visualizer = this[visualizerKey].toEnum(Visualizer.PIANO),
+        playerView = this[viewKey].toEnum(PlayerView.TIMELINE),
     )
 }
 

@@ -2,12 +2,11 @@ package com.musicdecoded.mobile.player
 
 import com.musicdecoded.mobile.core.Accidentals
 import com.musicdecoded.mobile.core.Analysis
-import com.musicdecoded.mobile.core.ChordLabel
 import com.musicdecoded.mobile.core.ChordVoicings
+import com.musicdecoded.mobile.core.PianoVoicing
 import com.musicdecoded.mobile.core.PitchSpelling
 import com.musicdecoded.mobile.core.chordDisplayName
 import com.musicdecoded.mobile.core.romanNumeral
-import com.musicdecoded.mobile.core.triadFamily
 
 /**
  * How chords are shown with the current Chords (Basic/Full) and Transpose settings, so the
@@ -29,26 +28,22 @@ data class ChordDisplay(
     /** Roman numeral in the detected key (`III`, `viiø`); `null` for `N`/`X` or no key. Unaffected by transpose. */
     fun numeral(label: String): String? = romanNumeral(label, key)
 
-    /** MIDI notes from `chord-voicings.json`; Basic voices the triad family without the slash bass. */
-    fun notes(label: String): List<Int> = voicings?.notes(voicedLabel(label), transpose).orEmpty()
-
-    /** The slash-chord bass (always the lowest voiced note), or `null`. */
-    fun bassNote(label: String): Int? {
-        val chord = ChordLabel.parse(voicedLabel(label)) ?: return null
-        return if (chord.bass != null) notes(label).firstOrNull() else null
+    /**
+     * The fixed-keyboard voicing (DESIGN.md §4 "Piano voicing & inversions") at [inversion], which
+     * is clamped to the chord's number of inversions; `null` for `N`/`X`.
+     */
+    fun voicing(label: String, inversion: Int = 0): PianoVoicing? {
+        val voicings = voicings ?: return null
+        val root = PianoVoicing.of(voicings, label, 0, transpose, basic) ?: return null
+        return if (inversion <= 0) root else PianoVoicing.of(voicings, label, inversion.coerceAtMost(root.inversions - 1), transpose, basic)
     }
 
     /** `C`, `F♯`, `B♭`… spelled for the (transposed) key. */
     fun noteName(midi: Int): String = spelling.name(midi)
 
-    /** `B · D · F♯` (each pitch class once, lowest first). */
-    fun noteNames(label: String): String = notes(label).map(::noteName).distinct().joinToString(" · ")
-
-    private fun voicedLabel(label: String): String {
-        if (!basic) return label
-        val chord = ChordLabel.parse(label) ?: return label
-        return "${chord.root}:${triadFamily(chord.quality)}"
-    }
+    /** `E · G♯ · B` (each pitch class once, bass first). */
+    fun noteNames(label: String, inversion: Int = 0): String =
+        voicing(label, inversion)?.let { listOf(it.bass) + it.rightHand }.orEmpty().map(::noteName).distinct().joinToString(" · ")
 }
 
 /** Transpose chip value: `0`, `+2`, `−3` (real minus sign). */

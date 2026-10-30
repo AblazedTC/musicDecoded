@@ -1,9 +1,7 @@
 package com.musicdecoded.mobile.player
 
-import com.musicdecoded.mobile.core.Contracts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -23,42 +21,18 @@ class PianoKeyboardTest {
         assertEquals(65, midiOfWhiteKey(38))
     }
 
-    @Test fun startsAtTheCBelowTheLowestNote() {
-        assertEquals(48, keyboardStart(listOf(50, 54, 57), octaves = 2)) // D3 F♯3 A3
-        assertEquals(36, keyboardStart(listOf(42, 50, 54, 57), octaves = 2)) // D/F♯ fits from C2
+    @Test fun fixedKeyboardIsC3ToB5() {
+        assertEquals(0, keyboardWhiteIndex(48))
+        assertEquals(0, keyboardWhiteIndex(49)) // C♯3 sits on C3
+        assertEquals(20, keyboardWhiteIndex(83))
     }
 
-    @Test fun dropsTheBassWhenTheChordWontFit() {
-        // Bass C2 + chord up to E4: 2 octaves can't hold both, so the chord tones win.
-        assertEquals(48, keyboardStart(listOf(36, 48, 52, 64), octaves = 2))
-        assertEquals(36, keyboardStart(listOf(36, 48, 52, 64), octaves = 3))
+    @Test fun inversionNames() {
+        assertEquals(listOf("Root", "1st inv", "2nd inv", "3rd inv"), (0..3).map(::inversionName))
     }
 
-    @Test fun noNotesHasNoStart() {
-        assertNull(keyboardStart(emptyList(), octaves = 2))
-        assertNull(centeredFirstWhite(emptyList(), octaves = 2))
-    }
-
-    @Test fun fittedKeyboardCentersTheActiveNotes() {
-        // C4 E4 G4 = white keys 35..39 → 14-key window 31..44 (4 left, 5 right).
-        assertEquals(31, centeredFirstWhite(listOf(60, 64, 67), octaves = 2))
-        assertEquals(27, centeredFirstWhite(listOf(60, 64, 67), octaves = 3))
-        // Clamped to the 88 keys.
-        assertEquals(whiteKeyIndex(21), centeredFirstWhite(listOf(21, 24), octaves = 3))
-    }
-
-    @Test fun fittedOctavesFollowTheWidthButNeverFewerThanTwo() {
-        assertEquals(2, fittedOctaves(width = 380f, height = 200f)) // 40-wide keys → 9 keys, min 2
-        assertEquals(2, fittedOctaves(width = 380f, height = 96f)) // 19.2-wide → 19 keys
-        assertEquals(4, fittedOctaves(width = 600f, height = 96f))
-    }
-
-    @Test fun everyVoicingExampleFitsTwoOctavesWithoutItsBass() {
-        val voicings = Contracts.voicings()
-        for ((label, notes) in voicings.examples.orEmpty().filterValues { it.isNotEmpty() }) {
-            val start = checkNotNull(keyboardStart(notes, octaves = 2)) { label }
-            val chordTones = if (label.contains('/')) notes.drop(1) else notes
-            assertTrue(label, chordTones.all { it in start until start + 24 })
-        }
+    @Test fun describesTheHighlightedKeys() {
+        assertEquals("Piano, no chord", pianoDescription(0, null))
+        assertEquals("Piano, keys E, G♯, B highlighted", pianoDescription(3, "E · G♯ · B"))
     }
 }

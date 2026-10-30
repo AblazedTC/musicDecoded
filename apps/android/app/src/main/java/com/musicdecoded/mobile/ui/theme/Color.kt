@@ -65,5 +65,6 @@ object MusicDecodedColors {
     val PianoBlack = Ink
     val PianoWhiteActive = Lime
     val PianoBlackActive = Color(0xFF9DBF2E)
-    val PianoBass = Pink
+    // Bass (left hand) = blue per DESIGN.md §3.7 owner revision 2.
+    val PianoBass = Blue
 }

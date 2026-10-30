@@ -24,7 +24,9 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.musicdecoded.mobile.library.TranscriptionRepository
-import com.musicdecoded.mobile.player.PianoKeyboard
+import com.musicdecoded.mobile.core.PianoVoicing
+import com.musicdecoded.mobile.player.FixedPianoKeyboard
+import com.musicdecoded.mobile.player.PianoKeyboardDefaults
 import com.musicdecoded.mobile.player.SeekBar
 import com.musicdecoded.mobile.ui.components.ControlChip
 import com.musicdecoded.mobile.ui.components.ErrorState
@@ -92,8 +94,18 @@ class AccessibilityTest {
     }
 
     @Test fun pianoReadsTheHighlightedNotes() {
-        setContent { PianoKeyboard(notes = listOf(59, 62, 66), description = "B · D · F♯") }
-        compose.onNodeWithContentDescription("Piano, keys B, D, F♯ highlighted").assertExists()
+        setContent {
+            FixedPianoKeyboard(
+                voicing = PianoVoicing(3, listOf(62, 66, 71), 59, listOf(1, 3, 5)),
+                noteName = { "" },
+                keysHeight = PianoKeyboardDefaults.CompactHeight,
+                onStepInversion = { true },
+                description = "B · D · F♯",
+            )
+        }
+        compose.onNodeWithContentDescription("Piano, keys B, D, F♯ highlighted")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Root"))
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
     }
 
     @Test fun seekBarSaysWhereItIs() {

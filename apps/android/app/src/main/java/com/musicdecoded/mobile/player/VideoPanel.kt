@@ -41,7 +41,7 @@ private const val PAUSED_SYNC_MS = 250L
  * with local audio a muted follower is kept within 150 ms of it ([VideoSync]).
  */
 @Composable
-internal fun PlayerVideoPanel(viewModel: PlayerViewModel, videoId: String, durationSec: Double, modifier: Modifier = Modifier) {
+internal fun PlayerVideoPanel(viewModel: PlayerViewModel, videoId: String, durationSec: Double, modifier: Modifier = Modifier, badge: Boolean = true) {
     val clock = viewModel.videoEngine
     if (clock != null) {
         DisposableEffect(clock, viewModel) {
@@ -49,7 +49,7 @@ internal fun PlayerVideoPanel(viewModel: PlayerViewModel, videoId: String, durat
             clock.onPlayStateChange = viewModel::tick
             onDispose { clock.onPlayStateChange = null }
         }
-        YouTubeVideo(videoId, clock, controls = true, modifier)
+        YouTubeVideo(videoId, clock, controls = true, badge, modifier)
     } else {
         val follower = remember(videoId) { YouTubePlaybackEngine(durationSec, muted = true) }
         val sync = remember(follower) { VideoSync(follower) }
@@ -62,12 +62,12 @@ internal fun PlayerVideoPanel(viewModel: PlayerViewModel, videoId: String, durat
             }
         }
         // The transport drives a follower; the embed's own controls would only fight it.
-        YouTubeVideo(videoId, follower, controls = false, modifier)
+        YouTubeVideo(videoId, follower, controls = false, badge, modifier)
     }
 }
 
 @Composable
-private fun YouTubeVideo(videoId: String, engine: YouTubePlaybackEngine, controls: Boolean, modifier: Modifier = Modifier) {
+private fun YouTubeVideo(videoId: String, engine: YouTubePlaybackEngine, controls: Boolean, badge: Boolean, modifier: Modifier = Modifier) {
     var error by remember(videoId) { mutableStateOf<String?>(null) }
     // Without fillMaxWidth the 16:9 box letterboxes when the height is the tighter bound (player panel).
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -90,7 +90,7 @@ private fun YouTubeVideo(videoId: String, engine: YouTubePlaybackEngine, control
                 )
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xxs), verticalAlignment = Alignment.CenterVertically) {
+        if (badge) Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xxs), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Rounded.VerifiedUser, contentDescription = null, tint = MusicDecodedColors.Primary, modifier = Modifier.size(Sizes.smallIcon))
             Text("Authorized embedded playback", style = MaterialTheme.typography.labelSmall, color = MusicDecodedColors.TextSecondary)
         }

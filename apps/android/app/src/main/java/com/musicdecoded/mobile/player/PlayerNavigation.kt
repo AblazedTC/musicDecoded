@@ -23,12 +23,10 @@ import kotlinx.coroutines.isActive
 /** Pushed player routes (DESIGN.md §2: no tab bar). */
 object PlayerRoutes {
     const val PLAYER = "player/{trackId}"
-    const val PIANO = "player/{trackId}/piano"
     fun player(trackId: String) = "player/$trackId"
-    fun piano(trackId: String) = "player/$trackId/piano"
 }
 
-/** `player/{trackId}` and `player/{trackId}/piano`. The piano view shares the player's ViewModel. */
+/** `player/{trackId}` (the Piano learning view is now the player's Piano focus view, DESIGN.md §3.7.1). */
 fun NavGraphBuilder.playerDestinations(navController: NavHostController) {
     composable(PlayerRoutes.PLAYER) { entry ->
         val trackId = entry.arguments?.getString("trackId").orEmpty()
@@ -36,7 +34,6 @@ fun NavGraphBuilder.playerDestinations(navController: NavHostController) {
         PlayerScreen(
             viewModel,
             onBack = { navController.popBackStack() },
-            onOpenPiano = { navController.navigate(PlayerRoutes.piano(trackId)) },
             onExit = { exit ->
                 when (exit) {
                     PlayerExit.DELETED -> navController.popBackStack()
@@ -47,14 +44,6 @@ fun NavGraphBuilder.playerDestinations(navController: NavHostController) {
                 }
             },
         )
-    }
-    composable(PlayerRoutes.PIANO) { entry ->
-        val trackId = entry.arguments?.getString("trackId").orEmpty()
-        // Same ViewModel (and playback) as the player underneath; falls back to its own if opened directly.
-        val playerEntry = remember(entry) {
-            runCatching { navController.getBackStackEntry(PlayerRoutes.PLAYER) }.getOrDefault(entry)
-        }
-        PianoScreen(playerViewModel(trackId, playerEntry), onBack = { navController.popBackStack() })
     }
 }
 

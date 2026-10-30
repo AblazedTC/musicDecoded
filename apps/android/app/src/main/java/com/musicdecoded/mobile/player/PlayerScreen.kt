@@ -11,6 +11,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.ui.draw.clipToBounds
+import com.musicdecoded.mobile.ui.components.SongArt
+import com.musicdecoded.mobile.ui.theme.ArchivoBlack
+import com.musicdecoded.mobile.ui.theme.Shapes
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,7 +57,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -83,13 +88,13 @@ import com.musicdecoded.mobile.ui.theme.tabular
 import kotlin.math.roundToInt
 
 /**
- * The Player (DESIGN.md §3.7), one screen with no vertical scrolling: header · metadata chips ·
- * edge-to-edge timeline (~32% of the middle space) · control row · visualizer panel (the rest) ·
- * transport at the bottom. At font scale ≥ [SCROLL_FONT_SCALE] it scrolls as a fallback.
+ * The Player (DESIGN.md §3.7 owner revision 2): header (back · view switcher · ⋯) · title line ·
+ * metadata chips · the selected view (§3.7.1) · transport. The Timeline view fits one screen with no
+ * vertical scrolling; at font scale ≥ [SCROLL_FONT_SCALE] it scrolls as a fallback.
  * [onExit] leaves after a ⋯ menu Delete / Re-analyze.
  */
 @Composable
-fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: () -> Unit, onExit: (PlayerExit) -> Unit = { onBack() }) {
+fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onExit: (PlayerExit) -> Unit = { onBack() }) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val position = viewModel.position.collectAsStateWithLifecycle()
     PlaybackClock(viewModel, state.isPlaying)
@@ -104,61 +109,46 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
     Column(Modifier.fillMaxSize().background(MusicDecodedColors.Canvas)) {
         val track = state.track
         PlayerHeader(
-            title = track?.title.orEmpty(),
-            artist = track?.artist,
             onBack = onBack,
-            favorite = state.favorite,
-            onFavorite = viewModel::toggleFavorite.takeIf { track != null },
             menu = if (track != null) {
                 { PlayerMenu(track.title, state.favorite, viewModel::toggleFavorite, viewModel::reanalyze, viewModel::delete) }
             } else null,
-        )
+        ) {
+            if (track != null) ViewSwitcher(state.view, viewModel::selectView)
+        }
         if (track == null) {
             PlayerPlaceholder(state.loading, Modifier.weight(1f))
             return@Column
         }
+        PlayerTitleLine(track.title, track.artist)
         val analysis = track.analysis
-        val chords = state.chords
         val chordIndex by remember(analysis) { derivedStateOf { currentState(position.value, analysis).chordIndex } }
         val currentLabel = chordIndex?.let { analysis.chords[it].label }
-        val scrolls = LocalDensity.current.fontScale >= SCROLL_FONT_SCALE
+        val scrolls = LocalDensity.current.fontScale >= SCROLL_FONT_SCALE && state.view == PlayerView.TIMELINE
 
-        Column(Modifier.weight(1f).then(if (scrolls) Modifier.verticalScroll(rememberScrollState()) else Modifier)) {
+        Column(
+            Modifier.weight(1f).then(if (scrolls) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
             MetadataRow(analysis, Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.xxs))
-            BoxWithConstraints(if (scrolls) Modifier else Modifier.weight(1f)) {
-                val timelineHeight = if (scrolls) TIMELINE_MAX else (maxHeight * TIMELINE_SHARE).coerceIn(TIMELINE_MIN, TIMELINE_MAX)
-                Column(if (scrolls) Modifier else Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    ChordTimeline(
-                        analysis = analysis,
-                        position = { position.value },
-                        chords = chords,
-                        currentIndex = chordIndex,
-                        onSeek = viewModel::seekTo,
-                        modifier = Modifier.height(timelineHeight),
-                        loop = state.loop,
-                        onLoopSelected = viewModel::setLoop,
-                    )
-                    Row(Modifier.padding(horizontal = Spacing.gutter).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        ControlChip(
-                            "Chords",
-                            if (state.chordsMode == ChordsMode.BASIC) "Basic" else "Full",
-                            onClick = viewModel::toggleChordsMode,
-                            Modifier.weight(1f).fillMaxHeight(),
-                            compact = true,
-                        )
-                        ControlChip("Voicing", "Simple", onClick = {}, Modifier.weight(1f).fillMaxHeight(), compact = true)
-                        TransposeChip(state.transpose, viewModel::setTranspose, Modifier.weight(1f).fillMaxHeight(), compact = true)
+            when (state.view) {
+                PlayerView.TIMELINE -> TimelineView(state, track, chordIndex, position, viewModel, scrolls, if (scrolls) Modifier else Modifier.weight(1f))
+                PlayerView.BEAT_GRID, PlayerView.CHORD_SHEET -> {
+                    val chords = state.chords
+                    val middle = Modifier.weight(1f)
+                    if (state.view == PlayerView.BEAT_GRID) {
+                        BeatGridView(analysis, chords, position, viewModel::seekTo, middle)
+                    } else {
+                        ChordSheetView(analysis, chords, position, viewModel::seekTo, middle)
                     }
-                    VisualizerPanel(
-                        state,
-                        currentLabel,
-                        onSelect = viewModel::selectVisualizer,
-                        modifier = if (scrolls) Modifier.height(SCROLL_PANEL_HEIGHT) else Modifier.weight(1f),
-                        video = { modifier ->
-                            track.videoId?.let { PlayerVideoPanel(viewModel, it, analysis.meta.durationSec, modifier) }
-                        },
-                        trailing = { MdIconButton(Icons.Rounded.OpenInFull, contentDescription = "Open piano view", onClick = onOpenPiano) },
-                    )
+                    ControlRow(state, currentLabel, viewModel)
+                    PianoPanel(state, currentLabel, viewModel, compact = true)
+                    // The video is the clock for youtube tracks without local audio, so it stays on screen.
+                    if (state.videoIsClock) MediaStrip(state, track, viewModel)
+                }
+                PlayerView.PIANO_FOCUS -> {
+                    PianoFocusView(state, analysis, position, viewModel, Modifier.weight(1f))
+                    if (state.videoIsClock) MediaStrip(state, track, viewModel)
                 }
             }
         }
@@ -169,14 +159,173 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
     }
 }
 
+/** Timeline view (§3.7.1): timeline (~32% of the middle) · control row · piano panel · media panel (the rest). */
+@Composable
+private fun TimelineView(
+    state: PlayerUiState,
+    track: PlayerTrack,
+    chordIndex: Int?,
+    position: State<Double>,
+    viewModel: PlayerViewModel,
+    scrolls: Boolean,
+    modifier: Modifier,
+) {
+    val analysis = track.analysis
+    val currentLabel = chordIndex?.let { analysis.chords[it].label }
+    BoxWithConstraints(modifier) {
+        val timelineHeight = if (scrolls) TIMELINE_MAX else (maxHeight * TIMELINE_SHARE).coerceIn(TIMELINE_MIN, TIMELINE_MAX)
+        Column(if (scrolls) Modifier else Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            ChordTimeline(
+                analysis = analysis,
+                position = { position.value },
+                chords = state.chords,
+                currentIndex = chordIndex,
+                onSeek = viewModel::seekTo,
+                modifier = Modifier.height(timelineHeight),
+                loop = state.loop,
+                onLoopSelected = viewModel::setLoop,
+            )
+            ControlRow(state, currentLabel, viewModel)
+            PianoPanel(state, currentLabel, viewModel)
+            BoxWithConstraints(if (scrolls) Modifier.height(SCROLL_MEDIA_HEIGHT) else Modifier.weight(1f).fillMaxWidth()) {
+                if (maxHeight < MEDIA_MIN) {
+                    MediaStrip(state, track, viewModel)
+                } else {
+                    MediaContent(state, track, viewModel, Modifier.fillMaxSize())
+                }
+            }
+        }
+    }
+}
+
+/** Chords · Voicing · Transpose (DESIGN.md §3.7 item 4). */
+@Composable
+private fun ControlRow(state: PlayerUiState, currentLabel: String?, viewModel: PlayerViewModel) {
+    Row(Modifier.padding(horizontal = Spacing.gutter).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        ControlChip(
+            "Chords",
+            if (state.chordsMode == ChordsMode.BASIC) "Basic" else "Full",
+            onClick = viewModel::toggleChordsMode,
+            Modifier.weight(1f).fillMaxHeight(),
+            compact = true,
+        )
+        val inversions = currentLabel?.let { state.chords.voicing(it)?.inversions } ?: 0
+        VoicingChip(state.inversion, inversions, viewModel::setInversion, Modifier.weight(1f).fillMaxHeight(), compact = true)
+        TransposeChip(state.transpose, viewModel::setTranspose, Modifier.weight(1f).fillMaxHeight(), compact = true)
+    }
+}
+
+/**
+ * Piano panel (§3.7): the active chord (name + numeral) over the fixed C3–B5 keyboard with fingering,
+ * note names and inversion dots; swipe for inversions. [compact] = the 90-tall keyboard of the
+ * Beat grid / Chord sheet views; otherwise 110–150 from the width.
+ */
+@Composable
+private fun PianoPanel(state: PlayerUiState, label: String?, viewModel: PlayerViewModel, compact: Boolean = false) {
+    val chords = state.chords
+    val voicing = label?.let { chords.voicing(it, state.inversion) }
+    BoxWithConstraints(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = Spacing.gutter, end = Spacing.gutter, bottom = Shadows.lg)
+            // block() re-applies its receiver chain, so start it from a fresh Modifier (else the padding doubles).
+            .then(Modifier.block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet))
+            .padding(Spacing.xs),
+    ) {
+        val keysHeight = if (compact) {
+            PianoKeyboardDefaults.CompactHeight
+        } else {
+            (maxWidth * PianoKeyboardDefaults.PANEL_HEIGHT_PER_WIDTH).coerceIn(PianoKeyboardDefaults.PanelMin, PianoKeyboardDefaults.PanelMax)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    label?.let(chords::name)?.ifEmpty { null } ?: "—",
+                    style = if (compact) MaterialTheme.typography.titleSmall.copy(fontFamily = ArchivoBlack) else MaterialTheme.typography.headlineSmall,
+                    color = MusicDecodedColors.Chord,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.alignByBaseline(),
+                )
+                label?.let(chords::numeral)?.let {
+                    Text(it, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.TextSecondary, modifier = Modifier.alignByBaseline())
+                }
+            }
+            FixedPianoKeyboard(
+                voicing = voicing,
+                noteName = chords::noteName,
+                keysHeight = keysHeight,
+                onStepInversion = viewModel::stepInversion,
+                inversion = voicing?.let { state.inversion.coerceAtMost(it.inversions - 1) } ?: 0,
+                showNoteNames = state.showNoteNames,
+                description = label?.let { chords.noteNames(it, state.inversion) },
+            )
+        }
+    }
+}
+
+/** Media panel content (§3.7): the YouTube video (16:9) or the artwork, letterboxed on ink. */
+@Composable
+private fun MediaContent(state: PlayerUiState, track: PlayerTrack, viewModel: PlayerViewModel, modifier: Modifier = Modifier) {
+    Box(modifier.background(MusicDecodedColors.Ink).clipToBounds(), contentAlignment = Alignment.Center) {
+        val videoId = track.videoId
+        if (state.videoAvailable && videoId != null) {
+            PlayerVideoPanel(viewModel, videoId, track.analysis.meta.durationSec)
+        } else {
+            SongArt(track.title, Modifier.fillMaxHeight().aspectRatio(1f, matchHeightConstraintsFirst = true), track.thumbnailUrl, style = MaterialTheme.typography.displayLarge)
+        }
+    }
+}
+
+/**
+ * Collapsed media panel (§3.7: less than [MEDIA_MIN] left): a 56-tall strip with the artwork (or the
+ * live video when it's the clock) + title + "Show video" / "Show artwork", which opens it as a sheet.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MediaStrip(state: PlayerUiState, track: PlayerTrack, viewModel: PlayerViewModel) {
+    var sheet by remember { mutableStateOf(false) }
+    val video = state.videoAvailable && track.videoId != null
+    Row(
+        Modifier.fillMaxWidth().height(Sizes.songArt).padding(horizontal = Spacing.gutter),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        val videoId = track.videoId
+        // One WebView per video at a time: while the sheet is open the strip shows the artwork.
+        if (video && state.videoIsClock && !sheet && videoId != null) {
+            Box(Modifier.fillMaxHeight().aspectRatio(VIDEO_ASPECT)) { PlayerVideoPanel(viewModel, videoId, track.analysis.meta.durationSec, badge = false) }
+        } else {
+            SongArt(track.title, Modifier.size(Sizes.songArt), track.thumbnailUrl)
+        }
+        Text(track.title, style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+        TextButton(onClick = { sheet = true }) {
+            Text(if (video) "Show video" else "Show artwork", color = MusicDecodedColors.Primary, style = MaterialTheme.typography.labelLarge)
+        }
+    }
+    if (sheet) {
+        ModalBottomSheet(onDismissRequest = { sheet = false }, containerColor = MusicDecodedColors.Surface, shape = Shapes.sheet) {
+            MediaContent(state, track, viewModel, Modifier.fillMaxWidth().aspectRatio(VIDEO_ASPECT).padding(bottom = Spacing.xl))
+        }
+    }
+}
+
 /** Timeline height: this share of the space between the metadata row and the transport, clamped (DESIGN.md §3.7). */
 private const val TIMELINE_SHARE = 0.32f
 private val TIMELINE_MIN = 150.dp
 private val TIMELINE_MAX = 220.dp
 
-/** At this font scale the player may scroll (DESIGN.md §3.7 accessibility); the panel then gets a fixed height. */
+/** Below this the media panel collapses to a strip (DESIGN.md §3.7). */
+private val MEDIA_MIN = 120.dp
+private const val VIDEO_ASPECT = 16f / 9f
+
+/** At this font scale the Timeline view may scroll (DESIGN.md §3.7 accessibility); the media panel then gets a fixed height. */
 private const val SCROLL_FONT_SCALE = 1.5f
-private val SCROLL_PANEL_HEIGHT = 280.dp
+private val SCROLL_MEDIA_HEIGHT = 200.dp
 
 /** Header ⋯: Favorite · Re-analyze · Delete (with confirmation), like the song rows. */
 @Composable
@@ -259,76 +408,6 @@ private fun MetadataRow(analysis: Analysis, modifier: Modifier = Modifier) {
         MetaChip(Icons.Rounded.MusicNote, "Key", analysis.key?.let(::keyName) ?: "—")
         MetaChip(Icons.Rounded.GraphicEq, "Time", analysis.timeSignature?.let { "${it.numerator}/${it.denominator}" } ?: "—")
         MetaChip(Icons.Rounded.Speed, "Tempo", analysis.bpm?.let { "${it.roundToInt()} BPM" } ?: "—")
-    }
-}
-
-/**
- * Visualizer panel (DESIGN.md §3.7 item 5), filling the height it's given: compact Piano | Video
- * tabs + expand, then the active chord (name + numeral) over a keyboard that fills the rest, or the
- * letterboxed video. Video is disabled unless the source is youtube.
- */
-@Composable
-private fun VisualizerPanel(
-    state: PlayerUiState,
-    label: String?,
-    onSelect: (Visualizer) -> Unit,
-    modifier: Modifier = Modifier,
-    trailing: @Composable () -> Unit = {},
-    video: @Composable (Modifier) -> Unit = {},
-) {
-    Column(
-        modifier
-            .fillMaxWidth()
-            .padding(start = Spacing.gutter, end = Spacing.gutter, bottom = Spacing.xs)
-            // block() re-applies its receiver chain, so start it from a fresh Modifier (else the padding doubles).
-            .then(Modifier.block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet))
-            .padding(Spacing.xs),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            SegmentedToggle(
-                options = listOf("Piano", "Video"),
-                selectedIndex = state.visualizer.ordinal,
-                onSelect = { onSelect(Visualizer.entries[it]) },
-                modifier = Modifier.weight(1f),
-                enabled = { it == Visualizer.PIANO.ordinal || state.videoAvailable },
-                segmentHeight = Sizes.compactTab - Spacing.xs,
-            )
-            trailing()
-        }
-        // When the video is the clock it stays on screen under Piano too (no hidden playback);
-        // one call site keeps the same WebView across the toggle.
-        val showVideo = state.visualizer == Visualizer.VIDEO || state.videoIsClock
-        if (showVideo) {
-            Box(Modifier.weight(1f).fillMaxWidth().clipToBounds(), contentAlignment = Alignment.Center) { video(Modifier) }
-        }
-        if (state.visualizer == Visualizer.PIANO) {
-            val chords = state.chords
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                Text(
-                    label?.let(chords::name)?.ifEmpty { null } ?: "—",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MusicDecodedColors.Chord,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.alignByBaseline(),
-                )
-                label?.let(chords::numeral)?.let {
-                    Text(it, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.TextSecondary, modifier = Modifier.alignByBaseline())
-                }
-            }
-            FittedPianoKeyboard(
-                notes = label?.let(chords::notes).orEmpty(),
-                noteName = chords::noteName,
-                bassNote = label?.let(chords::bassNote),
-                description = label?.let(chords::noteNames),
-                modifier = Modifier.weight(if (showVideo) 1.5f else 1f).fillMaxWidth(),
-            )
-        }
     }
 }
 
@@ -419,5 +498,5 @@ private fun PlayerScreenPreview() = MusicDecodedTheme {
             createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) },
         ).apply { seekTo(16.0) }
     }
-    PlayerScreen(viewModel, onBack = {}, onOpenPiano = {})
+    PlayerScreen(viewModel, onBack = {})
 }

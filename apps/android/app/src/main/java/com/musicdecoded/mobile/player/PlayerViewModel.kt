@@ -12,6 +12,7 @@ import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.ChordVoicings
 import com.musicdecoded.mobile.core.Source
 import com.musicdecoded.mobile.core.barRange
+import com.musicdecoded.mobile.core.currentState
 import com.musicdecoded.mobile.core.nextChordStart
 import com.musicdecoded.mobile.core.previousChordStart
 import com.musicdecoded.mobile.library.TranscriptionRepository
@@ -38,6 +39,8 @@ data class PlayerTrack(
     val audio: File?,
     /** YouTube videoId for youtube tracks (the embed in the Video panel). */
     val videoId: String? = null,
+    /** Artwork for the media panel (non-youtube sources, or the collapsed strip). */
+    val thumbnailUrl: String? = null,
 )
 
 enum class ChordsMode { BASIC, FULL }
@@ -45,6 +48,9 @@ enum class ChordsMode { BASIC, FULL }
 /** Why the player screen should close (header ⋯ menu). */
 enum class PlayerExit { DELETED, REANALYZING }
 enum class Visualizer { PIANO, VIDEO }
+
+/** The player's middle region (DESIGN.md §3.7.1), picked in the header view switcher. */
+enum class PlayerView { TIMELINE, BEAT_GRID, CHORD_SHEET, PIANO_FOCUS }
 
 data class PlayerUiState(
     val loading: Boolean = true,
@@ -58,7 +64,9 @@ data class PlayerUiState(
     /** Semitones, −6…+6. Display only in v1 (not audio pitch). */
     val transpose: Int = 0,
     val showNoteNames: Boolean = true,
-    val visualizer: Visualizer = Visualizer.PIANO,
+    /** Inversion picked by swipe / the Voicing chip; applies to every chord, clamped per chord (DESIGN.md §3.7). */
+    val inversion: Int = 0,
+    val view: PlayerView = PlayerView.TIMELINE,
     val voicings: ChordVoicings? = null,
     /** Settings → Accidentals. */
     val accidentals: Accidentals = Accidentals.AUTO,
@@ -69,7 +77,7 @@ data class PlayerUiState(
 ) {
     val analysis: Analysis? get() = track?.analysis
 
-    /** Video is only for youtube sources (DESIGN.md §3.7 item 6). */
+    /** Video is only for youtube sources (DESIGN.md §3.7 media panel). */
     val videoAvailable: Boolean get() = analysis?.meta?.source == Source.YOUTUBE && track?.videoId != null
 
     /** No local audio: the video's `currentTime` is the clock (DESIGN.md §4), so it stays on screen. */
@@ -98,6 +106,8 @@ class PlayerViewModel(
     private val reanalyzeTrack: suspend () -> Unit = {},
     /** Playback went from stopped to playing: stamps `LibraryItem.lastPlayedAt` (+ updatedAt). */
     private val markPlayed: suspend () -> Unit = {},
+    /** Persists the header view switcher choice (per app). */
+    private val saveView: suspend (PlayerView) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow(PlayerUiState(voicings = voicings))
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
@@ -118,11 +128,14 @@ class PlayerViewModel(
             val track = runCatching { loadTrack() }.getOrNull()
             if (track != null) engine = createEngine(track)
             _state.update {
-                val loaded = it.copy(loading = false, track = track, favorite = track?.favorite ?: false, speed = engine?.speed ?: it.speed)
-                loaded.copy(
+                it.copy(
+                    loading = false,
+                    track = track,
+                    favorite = track?.favorite ?: false,
+                    speed = engine?.speed ?: it.speed,
                     chordsMode = prefs.chordsMode,
                     accidentals = prefs.accidentals,
-                    visualizer = if (prefs.visualizer == Visualizer.VIDEO && loaded.videoAvailable) Visualizer.VIDEO else Visualizer.PIANO,
+                    view = prefs.playerView,
                 )
             }
             tick() // picks up a track that's still playing from an earlier visit (NowPlaying)
@@ -224,10 +237,36 @@ class PlayerViewModel(
 
     fun toggleNoteNames() = _state.update { it.copy(showNoteNames = !it.showNoteNames) }
 
-    fun selectVisualizer(visualizer: Visualizer) {
-        if (visualizer == Visualizer.VIDEO && !_state.value.videoAvailable) return
-        _state.update { it.copy(visualizer = visualizer) }
+    fun selectView(view: PlayerView) {
+        if (view == _state.value.view) return
+        _state.update { it.copy(view = view) }
+        viewModelScope.launch { runCatching { saveView(view) } }
     }
+
+    /** Inversions of the chord under the playhead (0 when there's no chord). */
+    fun currentInversions(): Int {
+        val state = _state.value
+        val analysis = state.analysis ?: return 0
+        val index = currentState(_position.value, analysis).chordIndex ?: return 0
+        return state.chords.voicing(analysis.chords[index].label)?.inversions ?: 0
+    }
+
+    /**
+     * Swipe on the piano panel: next (+1) / previous (−1) inversion of the current chord, clamped
+     * to its inversions. Returns `false` when nothing changed (no chord, or already at the end).
+     */
+    fun stepInversion(delta: Int): Boolean {
+        val count = currentInversions()
+        if (count == 0) return false
+        val current = _state.value.inversion.coerceAtMost(count - 1)
+        val next = (current + delta).coerceIn(0, count - 1)
+        if (next == current) return false
+        _state.update { it.copy(inversion = next) }
+        return true
+    }
+
+    /** Voicing chip picker: Root, 1st inv, 2nd inv, 3rd inv. */
+    fun setInversion(inversion: Int) = _state.update { it.copy(inversion = inversion.coerceIn(0, MAX_INVERSION)) }
 
     fun toggleFavorite() {
         val favorite = !_state.value.favorite
@@ -269,6 +308,7 @@ class PlayerViewModel(
         const val MAX_SPEED = 1.25f
         const val PRACTICE_SPEED = 0.75f
         const val MAX_TRANSPOSE = 6
+        const val MAX_INVERSION = 3
 
         /** Long-press speed choices: 0.50…1.25 in 0.05 steps. */
         val SPEED_STEPS: List<Float> = (10..25).map { it / 20f }
@@ -297,6 +337,7 @@ class PlayerViewModel(
                                     favorite = item?.favorite ?: false,
                                     audio = localAudio(app, trackId, item?.localAudioPath),
                                     videoId = (item?.sourceRef ?: it.meta.sourceRef).takeIf { _ -> it.meta.source == Source.YOUTUBE },
+                                    thumbnailUrl = item?.thumbnailUrl,
                                 )
                             }
                         }
@@ -320,6 +361,7 @@ class PlayerViewModel(
                     deleteTrack = { SongActions.from(app).delete(trackId) },
                     reanalyzeTrack = { app.transcriptionRepository.retry(trackId) },
                     markPlayed = { dao.setLastPlayed(trackId, Instant.now()) },
+                    saveView = { view -> app.settingsStore.update { it.copy(playerView = view) } },
                 )
             }
         }

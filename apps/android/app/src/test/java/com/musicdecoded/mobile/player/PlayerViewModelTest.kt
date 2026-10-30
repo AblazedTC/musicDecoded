@@ -198,7 +198,7 @@ class PlayerViewModelTest {
         vm.setTranspose(3)
         val chords = vm.state.value.chords
         assertEquals("C", chords.name("A:maj"))
-        assertEquals(Contracts.voicings().notes("C:maj"), chords.notes("A:maj"))
+        assertEquals(listOf(60, 64, 67), chords.voicing("A:maj")?.rightHand)
         assertEquals("C · E · G", chords.noteNames("A:maj"))
     }
 
@@ -222,16 +222,32 @@ class PlayerViewModelTest {
         assertEquals(ChordsMode.BASIC, vm.state.value.chordsMode)
         val chords = vm.state.value.chords
         assertEquals("F♯m", chords.name("F#:min7"))
-        assertEquals(Contracts.voicings().notes("F#:min"), chords.notes("F#:min7"))
-        assertNull(chords.bassNote("D:maj/3"))
+        assertEquals(listOf(66, 69, 73), chords.voicing("F#:min7")?.rightHand)
+        assertEquals(50, chords.voicing("D:maj/3")?.bass) // Basic drops the slash bass
     }
 
-    @Test fun slashBassIsTheLowestNote() {
+    @Test fun slashBassIsTheLeftHand() {
         val chords = viewModel().state.value.chords
-        val notes = chords.notes("D:maj/3")
-        assertEquals(notes.first(), chords.bassNote("D:maj/3"))
-        assertTrue(notes.first() < notes[1])
-        assertNull(chords.bassNote("D:maj"))
+        assertEquals(54, chords.voicing("D:maj/3")?.bass)
+        assertEquals(50, chords.voicing("D:maj")?.bass)
+        assertNull(chords.voicing("N"))
+    }
+
+    @Test fun swipesStepTheInversionClampedToTheCurrentChord() {
+        val vm = viewModel() // A:maj at 0 s: 3 inversions
+        assertFalse(vm.stepInversion(-1))
+        assertTrue(vm.stepInversion(1))
+        assertTrue(vm.stepInversion(1))
+        assertFalse(vm.stepInversion(1)) // 2nd inversion is the last for a triad
+        assertEquals(2, vm.state.value.inversion)
+        assertEquals(listOf(64, 69, 73), vm.state.value.chords.voicing("A:maj", vm.state.value.inversion)?.rightHand)
+        vm.setInversion(3) // picker: applies to every chord, clamped per chord
+        assertEquals(listOf(64, 69, 73), vm.state.value.chords.voicing("A:maj", vm.state.value.inversion)?.rightHand)
+        assertTrue(vm.stepInversion(-1)) // from the clamped 2nd inversion
+        assertEquals(1, vm.state.value.inversion)
+        vm.seekTo(3.0) // N: no chord, nothing to swipe
+        assertEquals(0, vm.currentInversions())
+        assertFalse(vm.stepInversion(1))
     }
 
     @Test fun favoriteTogglesAndSaves() {
@@ -243,15 +259,25 @@ class PlayerViewModelTest {
     }
 
     @Test fun videoOnlyForYoutubeSources() {
-        val vm = viewModel()
-        vm.selectVisualizer(Visualizer.VIDEO)
-        assertEquals(Visualizer.PIANO, vm.state.value.visualizer)
-
+        assertFalse(viewModel().state.value.videoAvailable)
         val youtube = SyntheticAnalysis.make().let { it.copy(meta = it.meta.copy(source = Source.YOUTUBE, sourceRef = "abc")) }
-        val ytVm = viewModel(youtube)
-        assertTrue(ytVm.state.value.videoAvailable)
-        ytVm.selectVisualizer(Visualizer.VIDEO)
-        assertEquals(Visualizer.VIDEO, ytVm.state.value.visualizer)
+        assertTrue(viewModel(youtube).state.value.videoAvailable)
+    }
+
+    @Test fun viewSwitcherPersists() {
+        val saved = mutableListOf<PlayerView>()
+        val vm = PlayerViewModel(
+            loadTrack = { PlayerTrack(SyntheticAnalysis.make(), "Song", null, favorite = false, audio = null) },
+            voicings = Contracts.voicings(),
+            createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) { now } },
+            preferences = { PlayerPreferences(playerView = PlayerView.CHORD_SHEET) },
+            saveView = { saved += it },
+        )
+        assertEquals(PlayerView.CHORD_SHEET, vm.state.value.view)
+        vm.selectView(PlayerView.BEAT_GRID)
+        vm.selectView(PlayerView.BEAT_GRID)
+        assertEquals(PlayerView.BEAT_GRID, vm.state.value.view)
+        assertEquals(listOf(PlayerView.BEAT_GRID), saved)
     }
 
     @Test fun noteNamesToggle() {
@@ -273,12 +299,10 @@ class PlayerViewModelTest {
             loadTrack = { PlayerTrack(SyntheticAnalysis.make(), "Song", null, favorite = false, audio = null) },
             voicings = Contracts.voicings(),
             createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) { now } },
-            preferences = { PlayerPreferences(chordsMode = ChordsMode.BASIC, accidentals = Accidentals.FLAT, visualizer = Visualizer.VIDEO) },
+            preferences = { PlayerPreferences(chordsMode = ChordsMode.BASIC, accidentals = Accidentals.FLAT) },
         )
         assertEquals(ChordsMode.BASIC, vm.state.value.chordsMode)
         assertEquals(Accidentals.FLAT, vm.state.value.chords.accidentals)
-        // Video isn't available for a file source, so the piano stays.
-        assertEquals(Visualizer.PIANO, vm.state.value.visualizer)
     }
 
     private fun menuViewModel(delete: suspend () -> Unit = {}, reanalyze: suspend () -> Unit = {}) = PlayerViewModel(
