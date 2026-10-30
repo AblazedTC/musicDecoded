@@ -83,7 +83,8 @@ data class PlayerUiState(
     /** No local audio: the video's `currentTime` is the clock (DESIGN.md §4), so it stays on screen. */
     val videoIsClock: Boolean get() = videoAvailable && track?.audio == null
 
-    val chords: ChordDisplay get() = ChordDisplay(analysis?.key, transpose, chordsMode == ChordsMode.BASIC, voicings, accidentals)
+    /** Built once per state (not per read), so composables taking it can skip while the state is unchanged. */
+    val chords: ChordDisplay = ChordDisplay(track?.analysis?.key, transpose, chordsMode == ChordsMode.BASIC, voicings, accidentals)
 }
 
 /**

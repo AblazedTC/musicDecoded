@@ -86,7 +86,9 @@ fun BeatGridView(analysis: Analysis, chords: ChordDisplay, position: State<Doubl
 
     LazyColumn(modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(Spacing.gutter, Spacing.xxs), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
         itemsIndexed(grid, key = { _, bar -> bar.number }) { index, bar ->
-            val isCurrentBar = index == currentBar
+            // The current beat if it's in this bar: only the bars whose highlight changes recompose on a beat.
+            val beatHere by remember(index) { derivedStateOf { currentBeat.takeIf { currentBar == index } } }
+            val isCurrentBar = beatHere != null
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     bar.number.toString(),
@@ -100,7 +102,7 @@ fun BeatGridView(analysis: Analysis, chords: ChordDisplay, position: State<Doubl
                         .border(Borders.thick, if (isCurrentBar) MusicDecodedColors.Primary else MusicDecodedColors.BorderOnInk)
                         .padding(Borders.thick),
                 ) {
-                    bar.cells.forEach { cell -> BeatCell(cell, analysis, chords, current = cell.beat >= 0 && cell.beat == currentBeat, onSeek, Modifier.weight(1f)) }
+                    bar.cells.forEach { cell -> BeatCell(cell, analysis, chords, current = cell.beat >= 0 && cell.beat == beatHere, onSeek, Modifier.weight(1f)) }
                 }
             }
         }
@@ -158,6 +160,8 @@ fun ChordSheetView(analysis: Analysis, chords: ChordDisplay, position: State<Dou
 
     LazyColumn(modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(Spacing.gutter, Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         itemsIndexed(lines) { _, line ->
+            // Only the line(s) gaining or losing the current chord recompose on a beat.
+            val current by remember(line) { derivedStateOf { line.flatMap { it.chords }.filter(::isCurrent) } }
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                 BarLine()
                 for (slot in 0 until SHEET_BARS_PER_LINE) {
@@ -168,7 +172,7 @@ fun ChordSheetView(analysis: Analysis, chords: ChordDisplay, position: State<Dou
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         bar?.chords?.forEach { entry ->
-                            SheetBox(analysis.chords[entry.chord].label, chords, isCurrent(entry), onClick = { onSeek(entry.seekTo) }, Modifier.weight(1f))
+                            SheetBox(analysis.chords[entry.chord].label, chords, entry in current, onClick = { onSeek(entry.seekTo) }, Modifier.weight(1f))
                         }
                         if (bar != null && bar.chords.isEmpty()) {
                             Text("—", style = MaterialTheme.typography.labelSmall, color = MusicDecodedColors.TextMuted, modifier = Modifier.heightIn(min = GridMetrics.cellHeight))

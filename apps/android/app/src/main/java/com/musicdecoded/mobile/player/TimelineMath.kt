@@ -129,3 +129,17 @@ fun layoutChordLabels(
     }
     return placed.flatten().sortedBy { it.index }
 }
+
+/**
+ * The labels with [current]'s label guaranteed: [base] (laid out with no current chord) when it
+ * already has it, which is what [layout] would return anyway, else a fresh [layout] for [current].
+ */
+fun withCurrentLabel(base: List<PlacedLabel>, current: Int?, layout: (current: Int?) -> List<PlacedLabel>): List<PlacedLabel> =
+    if (current == null || base.any { it.index == current }) base else layout(current)
+
+/** Row of each chord's placed label (`-1` = none), for constant-time lookups while drawing. */
+class LabelRows(labels: List<PlacedLabel>, chordCount: Int) {
+    private val rows = IntArray(chordCount) { -1 }.also { rows -> labels.forEach { if (it.index in rows.indices) rows[it.index] = it.row } }
+
+    fun rowOf(index: Int): Int = rows.getOrElse(index) { -1 }
+}

@@ -47,22 +47,60 @@ class ExoPlaybackEngine(context: Context, audio: File, private val durationSec: 
             prepare()
         }
 
-    override fun position(): Double =
-        if (player.playbackState == Player.STATE_ENDED) maxOf(durationSec, player.currentPosition / 1000.0)
-        else player.currentPosition / 1000.0
+    private val smoother = PositionSmoother()
+
+    override fun position(): Double {
+        val raw = player.currentPosition / 1000.0
+        return when {
+            player.playbackState == Player.STATE_ENDED -> maxOf(durationSec, raw)
+            // Between ExoPlayer's coarse position updates (~4 Hz on some devices) the clock is
+            // extrapolated, so the 60 Hz timeline moves every frame instead of in jumps.
+            player.isPlaying -> smoother.position(raw, System.nanoTime(), player.playbackParameters.speed)
+            else -> raw.also { smoother.reset() }
+        }
+    }
     override val isPlaying: Boolean get() = player.playWhenReady
-    override fun play() = player.play()
-    override fun pause() = player.pause()
-    override fun seekTo(seconds: Double) = player.seekTo((seconds * 1000).toLong())
+    override fun play() = player.play().also { smoother.reset() }
+    override fun pause() = player.pause().also { smoother.reset() }
+    override fun seekTo(seconds: Double) = player.seekTo((seconds * 1000).toLong()).also { smoother.reset() }
 
     override val speed: Float get() = player.playbackParameters.speed
 
     // Time-stretch without changing pitch (DESIGN.md §4).
     override fun setSpeed(speed: Float) {
         player.playbackParameters = PlaybackParameters(speed, 1f)
+        smoother.reset()
     }
 
     override fun release() = player.release()
+}
+
+/**
+ * Turns a position that only updates in steps (e.g. every ~250 ms) into a smooth clock: between
+ * steps it extrapolates in real time × speed (at most [maxLead] past the last step, in case playback
+ * stalls), and it never steps back by less than [backTolerance], because the next step often lands
+ * just behind the estimate. Bigger jumps (seeks) pass through. Call [reset] on play/pause/seek/speed.
+ */
+class PositionSmoother(private val maxLead: Double = 0.5, private val backTolerance: Double = 0.25) {
+    private var stepValue = Double.NaN
+    private var stepNanos = 0L
+    private var last = Double.NaN
+
+    fun reset() {
+        stepValue = Double.NaN
+        last = Double.NaN
+    }
+
+    fun position(raw: Double, nowNanos: Long, speed: Float): Double {
+        if (raw != stepValue) {
+            stepValue = raw
+            stepNanos = nowNanos
+        }
+        var t = raw + ((nowNanos - stepNanos) / 1e9 * speed).coerceIn(0.0, maxLead)
+        if (!last.isNaN() && t < last && last - t < backTolerance) t = last
+        last = t
+        return t
+    }
 }
 
 /**

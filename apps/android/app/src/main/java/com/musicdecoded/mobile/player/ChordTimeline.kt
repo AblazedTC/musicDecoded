@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -79,15 +80,16 @@ private enum class Gesture { NONE, SCRUB, LOOP, ZOOM, IGNORE }
  * the playhead. Drag the waveform to scrub, drag the label area to select a loop (snapped to beats),
  * tap a label to seek to its chord, pinch to zoom (60–400 dp/s). Fills the height it's given.
  *
- * [position] is read in the draw phase only, so a 60 Hz clock redraws without recomposing;
- * [currentIndex] (the current chord) only changes at chord changes and re-runs the label layout.
+ * [position] is read in the draw phase only, so a 60 Hz clock redraws (in its own layer) without
+ * recomposing; [currentIndex] (the current chord) is read here, so only the timeline recomposes at
+ * chord changes. The label layout is memoized per zoom.
  */
 @Composable
 fun ChordTimeline(
     analysis: Analysis,
     position: () -> Double,
     chords: ChordDisplay,
-    currentIndex: Int?,
+    currentIndex: () -> Int?,
     onSeek: (Double) -> Unit,
     modifier: Modifier = Modifier,
     loop: OpenEndRange<Double>? = null,
@@ -127,9 +129,17 @@ fun ChordTimeline(
         }
     }
     val pxPerSec = zoom * localDensity.density
-    val labels = remember(boxes, pxPerSec, currentIndex) {
-        layoutChordLabels(analysis.chords, pxPerSec, width = { boxes.items[it]?.width ?: 0f }, current = currentIndex, gap = with(localDensity) { Spacing.xxs.toPx() })
+    val gapPx = with(localDensity) { Spacing.xxs.toPx() }
+    // Laid out once per zoom; a chord change re-runs it only when that chord's label had been dropped.
+    val layout = remember(boxes, pxPerSec, gapPx) {
+        { current: Int? -> layoutChordLabels(analysis.chords, pxPerSec, width = { boxes.items[it]?.width ?: 0f }, current = current, gap = gapPx) }
     }
+    val baseLabels = remember(layout) { layout(null) }
+    val currentIndex = currentIndex()
+    val labels = remember(baseLabels, currentIndex) { withCurrentLabel(baseLabels, currentIndex, layout) }
+    val labelTops = remember(labels) { LabelRows(labels, analysis.chords.size) }
+    // Time labels repeat every few seconds: measure each once per style.
+    val timeTexts = remember(textMeasurer, timeStyle) { HashMap<Int, TextLayoutResult>() }
     val currentLabels by rememberUpdatedState(labels)
     val currentBoxes by rememberUpdatedState(boxes)
     val latestIndex by rememberUpdatedState(currentIndex)
@@ -137,6 +147,8 @@ fun ChordTimeline(
     Canvas(
         modifier
             .fillMaxWidth()
+            // Own layer: the per-frame redraw re-records only the timeline, not the whole screen.
+            .graphicsLayer()
             .background(MusicDecodedColors.Canvas)
             .clipToBounds()
             // Canvas content is invisible to TalkBack: describe it, and offer zoom as actions.
@@ -214,11 +226,11 @@ fun ChordTimeline(
     ) {
         val viewport = TimelineViewport(size.width, currentPosition(), pxPerSec)
         val bands = TimelineBands(this, size.height, boxes.height)
-        drawTimeLabels(viewport, analysis, bands, textMeasurer, timeStyle)
+        drawTimeLabels(viewport, analysis, bands) { second -> timeTexts.getOrPut(second) { textMeasurer.measure(formatDuration(second.toDouble()), timeStyle) } }
         drawDownbeats(viewport, analysis, bands)
         drawWaveform(viewport, analysis, bands)
         (loopDraft ?: loop)?.let { drawLoop(viewport, it, bands) }
-        drawChordLabels(viewport, analysis, bands, boxes, labels, currentIndex)
+        drawChordLabels(viewport, analysis, bands, boxes, labels, labelTops, currentIndex)
         drawPlayhead(viewport, bands)
     }
 }
@@ -283,12 +295,12 @@ private class TimelineBands(density: Density, height: Float, boxHeight: Float) {
     fun rowTop(row: Int): Float = rowsTop + row * rowStep
 }
 
-private fun DrawScope.drawTimeLabels(viewport: TimelineViewport, analysis: Analysis, bands: TimelineBands, textMeasurer: TextMeasurer, style: TextStyle) {
+private inline fun DrawScope.drawTimeLabels(viewport: TimelineViewport, analysis: Analysis, bands: TimelineBands, timeText: (Int) -> TextLayoutResult) {
     val step = timeLabelStep(viewport.pxPerSec, TimelineMetrics.labelSpacing.toPx())
     var second = (ceil(max(0.0, viewport.startTime) / step) * step).toInt()
     val last = min(viewport.endTime, analysis.meta.durationSec)
     while (second <= last) {
-        val text = textMeasurer.measure(formatDuration(second.toDouble()), style)
+        val text = timeText(second)
         val x = viewport.x(second.toDouble())
         drawLine(MusicDecodedColors.TextMuted, Offset(x, Spacing.xxs.toPx()), Offset(x, bands.timeBottom), Sizes.hairline.toPx())
         drawText(text, topLeft = Offset(x + Spacing.xxs.toPx(), (bands.timeBottom - text.size.height) / 2f))
@@ -345,16 +357,16 @@ private fun DrawScope.drawChordLabels(
     bands: TimelineBands,
     boxes: LabelBoxes,
     labels: List<PlacedLabel>,
+    rows: LabelRows,
     currentIndex: Int?,
 ) {
     val tick = Sizes.hairline.toPx()
-    val placedTop = HashMap<Int, Float>(labels.size)
-    labels.forEach { placedTop[it.index] = bands.rowTop(it.row) }
     for (i in visibleChordIndices(analysis.chords, viewport.startTime, viewport.endTime)) {
         val chord = analysis.chords[i]
         if (isNoChord(chord.label)) continue
         val x = viewport.x(chord.start)
-        val top = placedTop[i]?.let { it + boxes.height } ?: bands.rowTop(0)
+        val row = rows.rowOf(i)
+        val top = if (row >= 0) bands.rowTop(row) + boxes.height else bands.rowTop(0)
         val color = if (i == currentIndex) MusicDecodedColors.Chord else MusicDecodedColors.TextMuted
         drawLine(color, Offset(x, top), Offset(x, bands.waveBottom), tick)
     }
@@ -363,6 +375,7 @@ private fun DrawScope.drawChordLabels(
     val border = Borders.separator.toPx()
     val shadow = Shadows.sm.toPx()
     val gap = Spacing.xxs.toPx()
+    val outline = Stroke(border)
     for (i in labels.indices) {
         val label = labels[i]
         val left = labelScreenLeft(labels, i, offset, currentIndex, gap)
@@ -373,7 +386,7 @@ private fun DrawScope.drawChordLabels(
         val boxSize = Size(label.width, boxes.height)
         if (current) drawRect(MusicDecodedColors.Violet, Offset(left + shadow, top + shadow), boxSize)
         drawRect(if (current) MusicDecodedColors.Chord else MusicDecodedColors.SurfaceRaised, Offset(left, top), boxSize)
-        drawRect(MusicDecodedColors.Border, Offset(left + border / 2, top + border / 2), Size(label.width - border, boxes.height - border), style = Stroke(border))
+        drawRect(MusicDecodedColors.Border, Offset(left + border / 2, top + border / 2), Size(label.width - border, boxes.height - border), style = outline)
         val textColor = if (current) MusicDecodedColors.OnChord else MusicDecodedColors.Text
         val nameTop = top + boxes.pad
         drawText(text.name, color = textColor, topLeft = Offset(left + (label.width - text.name.size.width) / 2f, nameTop))
@@ -409,7 +422,7 @@ private fun ChordTimelinePreview() = PreviewSurface {
         analysis = analysis,
         position = { position },
         chords = ChordDisplay(analysis.key, 0, basic = false, voicings = null),
-        currentIndex = currentState(position, analysis).chordIndex,
+        currentIndex = { currentState(position, analysis).chordIndex },
         onSeek = { position = it },
         modifier = Modifier.height(200.dp),
         loop = 12.841..<18.947,

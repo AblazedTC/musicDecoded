@@ -65,7 +65,9 @@ internal fun PianoFocusView(state: PlayerUiState, analysis: Analysis, position: 
     val chordIndex by remember(analysis) { derivedStateOf { currentState(position.value, analysis).chordIndex } }
     val next by remember(analysis) { derivedStateOf { upNext(position.value, analysis) } }
     val currentLabel = chordIndex?.let { analysis.chords[it].label }
-    val voicing = currentLabel?.let { chords.voicing(it, state.inversion) }
+    // Remembered so the keyboard skips the per-beat recomposition (up next counts beats) unless the voicing changes.
+    val voicing = remember(chords, currentLabel, state.inversion) { currentLabel?.let { chords.voicing(it, state.inversion) } }
+    val description = remember(chords, currentLabel, state.inversion) { currentLabel?.let { chords.noteNames(it, state.inversion) } }
 
     Column(
         modifier.verticalScroll(rememberScrollState()),
@@ -86,7 +88,7 @@ internal fun PianoFocusView(state: PlayerUiState, analysis: Analysis, position: 
             onStepInversion = viewModel::stepInversion,
             inversion = voicing?.let { state.inversion.coerceAtMost(it.inversions - 1) } ?: 0,
             showNoteNames = state.showNoteNames,
-            description = currentLabel?.let { chords.noteNames(it, state.inversion) },
+            description = description,
             // Inset by the gutter so the frame's lime shadowLg stays on screen (DESIGN.md §1).
             modifier = Modifier.padding(horizontal = Spacing.gutter),
             frameShadow = Shadows.lg,

@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
@@ -55,9 +56,11 @@ import kotlin.math.sin
 
 /** A solid shadow offset by [offset] down-right, no blur. Draws outside the bounds (leave room). */
 fun Modifier.hardShadow(offset: Dp, color: Color = MusicDecodedColors.Border, shape: Shape = RectangleShape): Modifier =
-    if (offset <= 0.dp) this else drawBehind {
+    if (offset <= 0.dp) this else drawWithCache {
+        // The outline only changes with the size; build it once, not on every draw.
         val outline = shape.createOutline(size, layoutDirection, this)
-        translate(offset.toPx(), offset.toPx()) { drawOutline(outline, color) }
+        val px = offset.toPx()
+        onDrawBehind { translate(px, px) { drawOutline(outline, color) } }
     }
 
 /** A 3pt rule along the top edge, drawn over the content (tab bar, sheets, transport). */

@@ -144,6 +144,41 @@ class TimelineMathTest {
         assertEquals(0f, stickyLabelLeft(left = -200f, width = 50f, nextLeft = null, gap = 4f))
     }
 
+    @Test fun memoizedLayoutMatchesAFreshLayoutForEveryCurrentChord() {
+        // The real song at the narrowest zoom (most collisions): base + withCurrentLabel == layout(current).
+        val chords = Analysis.decode(Contracts.text("fixtures/sunnydays.analysis.json")).chords
+        val relayout = { current: Int? -> layout(chords, pxPerSec = 60f * 2.625f, current = current, width = 120f) }
+        val base = relayout(null)
+        assertTrue(base.size < chords.size) // some labels are dropped, so both paths are exercised
+        for (current in listOf<Int?>(null) + chords.indices) {
+            assertEquals(relayout(current), withCurrentLabel(base, current, relayout))
+        }
+    }
+
+    @Test fun withCurrentLabelReusesTheBaseWhenItHasTheCurrentLabel() {
+        val chords = chordsAt(0.0, 0.2, 0.4, 1.0)
+        val base = layout(chords)
+        var relayouts = 0
+        val relayout = { current: Int? -> relayouts++; layout(chords, current = current) }
+        assertTrue(withCurrentLabel(base, 1, relayout) === base)
+        assertTrue(withCurrentLabel(base, null, relayout) === base)
+        assertEquals(0, relayouts)
+        assertEquals(listOf(1, 2, 3), withCurrentLabel(base, 2, relayout).map { it.index })
+        assertEquals(1, relayouts)
+    }
+
+    @Test fun labelRowsLooksUpEachChordsRow() {
+        val rows = LabelRows(layout(chordsAt(0.0, 0.3, 1.0)), chordCount = 4)
+        assertEquals(listOf(0, 1, 0, -1, -1), listOf(0, 1, 2, 3, 99).map(rows::rowOf))
+    }
+
+    @Test fun seekStepQuantizesThePosition() {
+        assertEquals(0, seekStep(-1.0, 248f))
+        assertEquals(500, seekStep(124.0, 248f))
+        assertEquals(500, seekStep(124.1, 248f)) // under a step: same value, no recomposition
+        assertEquals(1000, seekStep(300.0, 248f))
+    }
+
     @Test fun labelStepKeepsLabelsApart() {
         assertEquals(1, timeLabelStep(pxPerSec = 120f, minSpacingPx = 56f))
         assertEquals(2, timeLabelStep(pxPerSec = 40f, minSpacingPx = 56f))

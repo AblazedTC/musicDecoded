@@ -58,6 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -122,8 +123,8 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onExit: (Player
         }
         PlayerTitleLine(track.title, track.artist)
         val analysis = track.analysis
-        val chordIndex by remember(analysis) { derivedStateOf { currentState(position.value, analysis).chordIndex } }
-        val currentLabel = chordIndex?.let { analysis.chords[it].label }
+        // Read only where it's used, so a chord change doesn't recompose the whole screen.
+        val chordIndex = remember(analysis, position) { derivedStateOf { currentState(position.value, analysis).chordIndex } }
         val scrolls = LocalDensity.current.fontScale >= SCROLL_FONT_SCALE && state.view == PlayerView.TIMELINE
 
         Column(
@@ -141,8 +142,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onExit: (Player
                     } else {
                         ChordSheetView(analysis, chords, position, viewModel::seekTo, middle)
                     }
-                    ControlRow(state, currentLabel, viewModel)
-                    PianoPanel(state, currentLabel, viewModel, compact = true)
+                    ChordPanels(state, analysis, chordIndex, viewModel, compact = true)
                     // The video is the clock for youtube tracks without local audio, so it stays on screen.
                     if (state.videoIsClock) MediaStrip(state, track, viewModel)
                 }
@@ -164,14 +164,13 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onExit: (Player
 private fun TimelineView(
     state: PlayerUiState,
     track: PlayerTrack,
-    chordIndex: Int?,
+    chordIndex: State<Int?>,
     position: State<Double>,
     viewModel: PlayerViewModel,
     scrolls: Boolean,
     modifier: Modifier,
 ) {
     val analysis = track.analysis
-    val currentLabel = chordIndex?.let { analysis.chords[it].label }
     BoxWithConstraints(modifier) {
         val timelineHeight = if (scrolls) TIMELINE_MAX else (maxHeight * TIMELINE_SHARE).coerceIn(TIMELINE_MIN, TIMELINE_MAX)
         Column(if (scrolls) Modifier else Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -179,14 +178,13 @@ private fun TimelineView(
                 analysis = analysis,
                 position = { position.value },
                 chords = state.chords,
-                currentIndex = chordIndex,
+                currentIndex = { chordIndex.value },
                 onSeek = viewModel::seekTo,
                 modifier = Modifier.height(timelineHeight),
                 loop = state.loop,
                 onLoopSelected = viewModel::setLoop,
             )
-            ControlRow(state, currentLabel, viewModel)
-            PianoPanel(state, currentLabel, viewModel)
+            ChordPanels(state, analysis, chordIndex, viewModel)
             BoxWithConstraints(if (scrolls) Modifier.height(SCROLL_MEDIA_HEIGHT) else Modifier.weight(1f).fillMaxWidth()) {
                 if (maxHeight < MEDIA_MIN) {
                     MediaStrip(state, track, viewModel)
@@ -196,6 +194,14 @@ private fun TimelineView(
             }
         }
     }
+}
+
+/** Control row + piano panel for the chord under the playhead; the only part that recomposes on a chord change. */
+@Composable
+private fun ChordPanels(state: PlayerUiState, analysis: Analysis, chordIndex: State<Int?>, viewModel: PlayerViewModel, compact: Boolean = false) {
+    val currentLabel = chordIndex.value?.let { analysis.chords[it].label }
+    ControlRow(state, currentLabel, viewModel)
+    PianoPanel(state, currentLabel, viewModel, compact)
 }
 
 /** Chords · Voicing · Transpose (DESIGN.md §3.7 item 4). */
@@ -223,7 +229,9 @@ private fun ControlRow(state: PlayerUiState, currentLabel: String?, viewModel: P
 @Composable
 private fun PianoPanel(state: PlayerUiState, label: String?, viewModel: PlayerViewModel, compact: Boolean = false) {
     val chords = state.chords
-    val voicing = label?.let { chords.voicing(it, state.inversion) }
+    // Same instance while the voicing inputs are unchanged, so the keyboard skips recomposing and redrawing.
+    val voicing = remember(chords, label, state.inversion) { label?.let { chords.voicing(it, state.inversion) } }
+    val description = remember(chords, label, state.inversion) { label?.let { chords.noteNames(it, state.inversion) } }
     BoxWithConstraints(
         Modifier
             .fillMaxWidth()
@@ -262,7 +270,7 @@ private fun PianoPanel(state: PlayerUiState, label: String?, viewModel: PlayerVi
                 onStepInversion = viewModel::stepInversion,
                 inversion = voicing?.let { state.inversion.coerceAtMost(it.inversions - 1) } ?: 0,
                 showNoteNames = state.showNoteNames,
-                description = label?.let { chords.noteNames(it, state.inversion) },
+                description = description,
             )
         }
     }
@@ -417,6 +425,8 @@ private fun TransportSheet(state: PlayerUiState, position: State<Double>, durati
     Column(
         Modifier
             .fillMaxWidth()
+            // Own layer: the seek bar's updates re-record only the transport.
+            .graphicsLayer()
             .background(MusicDecodedColors.Surface)
             .topRule()
             .padding(horizontal = Spacing.md, vertical = Spacing.xxs),
@@ -446,7 +456,11 @@ private fun TransportSheet(state: PlayerUiState, position: State<Double>, durati
 @Composable
 internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double) -> Unit, inlineTimes: Boolean = false) {
     val total = duration.toFloat().coerceAtLeast(1f)
-    val value = position.value.toFloat().coerceIn(0f, total)
+    // The clock ticks at ~60 Hz; the bar only recomposes when the thumb moves a step (1/SEEK_STEPS of
+    // the track, under a pixel) and the time text once a second.
+    val step by remember(position, total) { derivedStateOf { seekStep(position.value, total) } }
+    val elapsed by remember(position) { derivedStateOf { formatDuration(position.value) } }
+    val value = step * total / SEEK_STEPS
     val timeStyle = MaterialTheme.typography.labelSmall.tabular()
     val slider = @Composable { modifier: Modifier ->
         Slider(
@@ -455,7 +469,7 @@ internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double)
             valueRange = 0f..total,
             modifier = modifier.semantics {
                 contentDescription = "Seek"
-                stateDescription = "${formatDuration(position.value)} of ${formatDuration(duration)}"
+                stateDescription = "$elapsed of ${formatDuration(duration)}"
             },
             thumb = { Box(Modifier.size(SeekThumb).background(MusicDecodedColors.Primary).border(Borders.separator, MusicDecodedColors.Border)) },
             track = {
@@ -468,7 +482,7 @@ internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double)
     }
     if (inlineTimes) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(formatDuration(position.value), style = timeStyle, color = MusicDecodedColors.TextSecondary)
+            Text(elapsed, style = timeStyle, color = MusicDecodedColors.TextSecondary)
             slider(Modifier.weight(1f))
             Text(formatDuration(duration), style = timeStyle, color = MusicDecodedColors.TextMuted)
         }
@@ -476,12 +490,19 @@ internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double)
         Column {
             slider(Modifier)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(formatDuration(position.value), style = timeStyle, color = MusicDecodedColors.TextSecondary)
+                Text(elapsed, style = timeStyle, color = MusicDecodedColors.TextSecondary)
                 Text(formatDuration(duration), style = timeStyle, color = MusicDecodedColors.TextMuted)
             }
         }
     }
 }
+
+/** Seek bar resolution: the thumb moves in this many steps over the track. */
+internal const val SEEK_STEPS = 1000
+
+/** The seek bar step (0…[SEEK_STEPS]) for [position] seconds of [total]. */
+internal fun seekStep(position: Double, total: Float): Int =
+    (position / total * SEEK_STEPS).roundToInt().coerceIn(0, SEEK_STEPS)
 
 /** The seek bar's square thumb (a component size, not spacing). */
 private val SeekThumb = 14.dp

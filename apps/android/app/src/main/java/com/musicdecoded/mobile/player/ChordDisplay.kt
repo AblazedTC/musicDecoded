@@ -1,5 +1,6 @@
 package com.musicdecoded.mobile.player
 
+import androidx.compose.runtime.Immutable
 import com.musicdecoded.mobile.core.Accidentals
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.ChordVoicings
@@ -12,6 +13,7 @@ import com.musicdecoded.mobile.core.romanNumeral
  * How chords are shown with the current Chords (Basic/Full) and Transpose settings, so the
  * timeline, Now Playing and the piano always agree (DESIGN.md §4).
  */
+@Immutable
 data class ChordDisplay(
     val key: Analysis.Key?,
     val transpose: Int,
