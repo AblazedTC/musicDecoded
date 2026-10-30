@@ -6,6 +6,7 @@ import com.musicdecoded.mobile.network.AuthResponse
 import com.musicdecoded.mobile.network.ClientConfig
 import com.musicdecoded.mobile.network.ConfigApiService
 import com.musicdecoded.mobile.network.Kind
+import com.musicdecoded.mobile.network.Plan
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,9 @@ class AuthRepository(
 
     /** The stored session without creating one (sync must never sign in as a guest). */
     suspend fun currentSession(): Session? = store.session().also { _session.value = it }
+
+    /** Pro per the session's plan or the latest `/config` (which updates first after a purchase). */
+    fun isPro(session: Session): Boolean = session.plan == Plan.PRO || _config.value?.plan == Plan.PRO
 
     /** Called once at launch: make sure there's a session, then refresh the config. */
     suspend fun start() {

@@ -32,6 +32,8 @@ interface SyncStateStore {
  * 3. Merge last-write-wins on `updatedAt` (a tie keeps the local row).
  * 4. Fetch what synced rows are missing here: the analysis file, and the user's own audio
  *    (file/recording with an `audioUploadId`). Streaming audio is never synced (R-1).
+ * Own-audio sync is Pro only (PLAN.md §9): free accounts push without `audioUploadId`, and the
+ * server returns it as null, so nothing is downloaded for them.
  */
 class SyncRepository(
     private val api: SyncApiService,
@@ -50,17 +52,17 @@ class SyncRepository(
         // First sync for this account here: full pull. Rows another account already synced aren't
         // re-pushed (only never-synced rows, i.e. guest data, and later edits are).
         if (state.userId() != session.userId) state.save(session.userId, null)
-        push(session.token)
+        push(session.token, syncsOwnAudio = auth.isPro(session))
         pull(session.token, session.userId)
         fetchMissing(session.token)
         true
     }
 
-    private suspend fun push(token: String) {
+    private suspend fun push(token: String, syncsOwnAudio: Boolean) {
         while (true) {
             val batch = dao.pendingPush(PAGE)
             if (batch.isEmpty()) return
-            val items = batch.map { it.toSyncItem() }
+            val items = batch.map { it.toSyncItem().let { item -> if (syncsOwnAudio) item else item.copy(audioUploadId = null) } }
             val response = try {
                 api.push(token, items)
             } catch (e: ApiException) {

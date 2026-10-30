@@ -94,5 +94,7 @@ class AccountTest {
             files,
         )
         assertEquals(MigrationSummary(timelines = 4, ownAudio = 2, ownAudioBytes = 1500, restricted = 2), summary)
+        // Free accounts: own audio isn't synced (Pro only, PLAN.md §9).
+        assertEquals(false, MigrationSummary.of(listOf(row("a", Source.FILE, "audio/a.mp3")), files, pro = false).ownAudioSyncs)
     }
 }

@@ -126,7 +126,7 @@ private class MemorySyncState : SyncStateStore {
 }
 
 /** One phone: its own Room database, files and sync state, talking to the shared fake server. */
-private class Device(server: FakeSyncServer, root: File, kind: Kind = Kind.ACCOUNT) {
+private class Device(server: FakeSyncServer, root: File, kind: Kind = Kind.ACCOUNT, plan: Plan = Plan.FREE) {
     val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LibraryDatabase::class.java)
         .allowMainThreadQueries()
         .build()
@@ -141,7 +141,7 @@ private class Device(server: FakeSyncServer, root: File, kind: Kind = Kind.ACCOU
         val auth = AuthRepository(
             AuthApiService(http, BASE),
             ConfigApiService(http, BASE),
-            FixedSession(Session("token", "user-1", kind, Plan.FREE)),
+            FixedSession(Session("token", "user-1", kind, plan)),
         )
         sync = SyncRepository(SyncApiService(http, BASE), TranscriptionApiService(http, BASE), auth, dao, analysisStore, filesDir, state)
     }
@@ -179,7 +179,7 @@ class SyncRepositoryTest {
     private val server = FakeSyncServer()
     private val devices = mutableListOf<Device>()
 
-    private fun device(kind: Kind = Kind.ACCOUNT) = Device(server, folder.newFolder(), kind).also { devices += it }
+    private fun device(kind: Kind = Kind.ACCOUNT, plan: Plan = Plan.FREE) = Device(server, folder.newFolder(), kind, plan).also { devices += it }
 
     @After fun close() = devices.forEach { it.db.close() }
 
@@ -279,10 +279,39 @@ class SyncRepositoryTest {
         assertTrue(a.dao.pendingPush(10).isEmpty())
     }
 
+    @Test fun freeAccountsPushWithoutTheirAudioUploadId() = runTest {
+        val a = device(plan = Plan.FREE)
+        a.dao.upsert(item("rec", at(1), source = Source.RECORDING, audioUploadId = "up-1"))
+
+        a.sync.sync()
+
+        assertNull(server.item("rec")!!.audioUploadId) // the timeline syncs, the audio doesn't
+    }
+
+    @Test fun proAccountsPushTheirAudioUploadId() = runTest {
+        val a = device(plan = Plan.PRO)
+        a.dao.upsert(item("rec", at(1), source = Source.RECORDING, audioUploadId = "up-1"))
+
+        a.sync.sync()
+
+        assertEquals("up-1", server.item("rec")!!.audioUploadId)
+    }
+
+    @Test fun aPulledNullAudioUploadIdDownloadsNoAudio() = runTest {
+        server.put(item("rec", at(1), source = Source.RECORDING).toSyncItem()) // a free account's row
+        val a = device(plan = Plan.FREE)
+
+        a.sync.sync()
+
+        assertNull(a.dao.get("rec")!!.localAudioPath)
+        assertTrue(server.calls.none { it.startsWith("GET /uploads/") })
+        assertTrue(a.analysisStore.exists("rec")) // the timeline still arrives
+    }
+
     @Test fun ownAudioIsDownloadedStreamingAudioIsNot() = runTest {
         server.put(item("rec", at(1), source = Source.RECORDING, audioUploadId = "up-1").toSyncItem())
         server.put(item("yt", at(1), source = Source.YOUTUBE).toSyncItem())
-        val a = device()
+        val a = device(plan = Plan.PRO)
 
         a.sync.sync()
 

@@ -2,6 +2,7 @@ package com.musicdecoded.mobile.ui.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CheckBox
 import androidx.compose.material.icons.rounded.CheckBoxOutlineBlank
 import androidx.compose.material.icons.rounded.Close
@@ -24,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.ViewModel
@@ -38,6 +41,8 @@ import com.musicdecoded.mobile.library.LibraryItem
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.PolicyNote
 import com.musicdecoded.mobile.ui.components.PrimaryButton
+import com.musicdecoded.mobile.ui.components.Sticker
+import com.musicdecoded.mobile.ui.paywall.LocalOpenPaywall
 import com.musicdecoded.mobile.ui.components.formatBytes
 import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.components.tilt
@@ -65,15 +70,18 @@ data class MigrationSummary(
     val ownAudioBytes: Long,
     /** youtube/soundcloud rows: the timeline syncs, the audio never does. */
     val restricted: Int,
+    /** Own-audio sync is Pro only (PLAN.md §9); free accounts sync timelines only. */
+    val ownAudioSyncs: Boolean = true,
 ) {
     companion object {
-        fun of(items: List<LibraryItem>, filesDir: File): MigrationSummary {
+        fun of(items: List<LibraryItem>, filesDir: File, pro: Boolean = true): MigrationSummary {
             val own = items.filter { it.source == Source.FILE || it.source == Source.RECORDING }
             return MigrationSummary(
                 timelines = items.size,
                 ownAudio = own.size,
                 ownAudioBytes = own.sumOf { item -> item.localAudioPath?.let { File(filesDir, it).length() } ?: 0L },
                 restricted = items.count { it.source == Source.YOUTUBE || it.source == Source.SOUNDCLOUD },
+                ownAudioSyncs = pro,
             )
         }
     }
@@ -98,8 +106,9 @@ class MigrationViewModel(
             initializer {
                 MigrationViewModel(
                     load = {
+                        val pro = app.authRepository.currentSession()?.let(app.authRepository::isPro) ?: false
                         withContext(Dispatchers.IO) {
-                            MigrationSummary.of(app.libraryDatabase.libraryDao().unsynced(), app.filesDir)
+                            MigrationSummary.of(app.libraryDatabase.libraryDao().unsynced(), app.filesDir, pro)
                         }
                     },
                     requestSync = app::requestSync,
@@ -143,9 +152,14 @@ fun MigrationScreen(viewModel: MigrationViewModel, onDone: () -> Unit) {
             if (s != null) {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     CheckRow(true, plural(s.timelines, "chord timeline"), "Analysis, tempo and key data")
-                    CheckRow(true, plural(s.ownAudio, "local audio file"), "Eligible for private sync · ${formatBytes(s.ownAudioBytes)}")
+                    if (s.ownAudioSyncs) {
+                        CheckRow(true, plural(s.ownAudio, "local audio file"), "Eligible for private sync · ${formatBytes(s.ownAudioBytes)}")
+                    } else {
+                        CheckRow(false, plural(s.ownAudio, "local audio file"), "Private audio sync · ${formatBytes(s.ownAudioBytes)}", pro = true)
+                    }
                     CheckRow(false, plural(s.restricted, "restricted track"), "Timelines sync; source audio stays local")
                 }
+                if (!s.ownAudioSyncs) ProAudioNote(LocalOpenPaywall.current)
             }
             PolicyNote("Nothing is removed from this device. Restricted third-party audio never uploads.")
             PrimaryButton("Confirm & sync", onClick = {
@@ -156,9 +170,23 @@ fun MigrationScreen(viewModel: MigrationViewModel, onDone: () -> Unit) {
     }
 }
 
+/**
+ * Free accounts: own audio stays on this device. Tapping the note opens the paywall (when there is
+ * one to open, i.e. not already Pro).
+ */
 @Composable
-private fun CheckRow(checked: Boolean, title: String, subtitle: String) {
-    val description = "$title, $subtitle, ${if (checked) "included" else "not included"}"
+private fun ProAudioNote(openPaywall: (() -> Unit)?) {
+    PolicyNote(
+        "Syncing your own audio files is part of Pro. Their chord timelines still sync." +
+            if (openPaywall != null) " Tap to see Pro." else "",
+        modifier = if (openPaywall != null) Modifier.clickable(onClickLabel = "See Pro", role = Role.Button, onClick = openPaywall) else Modifier,
+        icon = Icons.Rounded.AutoAwesome,
+    )
+}
+
+@Composable
+private fun CheckRow(checked: Boolean, title: String, subtitle: String, pro: Boolean = false) {
+    val description = "$title, $subtitle, ${if (pro) "Pro only, " else ""}${if (checked) "included" else "not included"}"
     Row(
         Modifier
             .fillMaxWidth()
@@ -182,6 +210,7 @@ private fun CheckRow(checked: Boolean, title: String, subtitle: String) {
             )
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
         }
+        if (pro) Sticker("Pro", fill = MusicDecodedColors.Yellow)
     }
 }
 
