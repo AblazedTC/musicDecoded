@@ -502,10 +502,11 @@ Read PLAN.md §9 first. **Rule: the API enforces Pro. The apps only reflect it.*
   - [ ] Sandbox purchase verified on both stores
 
 ### T-603 Contributor setup
-- Lane: infra · Status: todo · Owner: — · Deps: —
+- Lane: infra · Status: blocked · Owner: claude → product owner · Deps: —
 - Goal: Make the repo welcoming for contributors and recruiters, and keep relicensing possible (PLAN.md D-9).
 - Acceptance:
-  - [ ] `CONTRIBUTING.md`: setup, lanes and the task workflow (from the top of TASKS.md), how to pick a task, PR rules, the license split (MIT apps / AGPL backend)
+  - [x] `CONTRIBUTING.md`: setup, lanes and the task workflow (from the top of TASKS.md), how to pick a task, PR rules, the license split (MIT apps / AGPL backend)
   - [ ] CLA via CLA Assistant (GitHub app) required on PRs that touch `apps/api` or `apps/worker`
-  - [ ] Issue/PR templates; `good first issue` labels on 5 small tasks
-  - [ ] README badges (license, CI) and an architecture diagram near the top
+  - [x] Issue/PR templates; ~~`good first issue` labels~~ 5 small tasks listed in CONTRIBUTING.md "Good first tasks"
+  - [x] README badges (license, CI) and an architecture diagram near the top
+- Notes: Blocked on repo-owner actions only: install the CLA bot and create the labels/issues (steps in CONTRIBUTING.md "Maintainer setup"). Diagram is Mermaid (PLAN.md §5).
