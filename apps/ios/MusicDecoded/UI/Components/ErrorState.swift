@@ -1,0 +1,69 @@
+import SwiftUI
+
+/// The one error state for anything that talks to the server (T-503i): icon, title, message and
+/// an optional "Try again". VoiceOver announces it when it appears. Same copy as Android's
+/// ErrorState.
+struct ErrorState: View {
+    let message: String
+    var title: String?
+    /// `nil` hides "Try again" (when retrying can't help).
+    var onRetry: (() -> Void)?
+
+    var body: some View {
+        let resolvedTitle = title ?? Self.title(for: message)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                Image(systemName: Self.isOffline(message) ? "wifi.slash" : "exclamationmark.circle")
+                    .foregroundStyle(Palette.record)
+                    .accessibilityHidden(true)
+                Text(resolvedTitle)
+                    .font(.rowTitle)
+                    .foregroundStyle(Palette.text)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(message)
+                .font(.detail)
+                .foregroundStyle(Palette.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if let onRetry {
+                Button(action: onRetry) {
+                    Label("Try again", systemImage: "arrow.clockwise")
+                        .font(.detail.weight(.semibold))
+                        .foregroundStyle(Palette.primary)
+                        .frame(minHeight: ComponentSize.minTouchTarget)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.md)
+        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .onAppear {
+            AccessibilityNotification.Announcement("\(resolvedTitle). \(message)").post()
+        }
+    }
+
+    /// "You're offline" for the shared offline copy, otherwise "Something went wrong".
+    static func title(for message: String) -> String {
+        isOffline(message) ? "You're offline" : "Something went wrong"
+    }
+
+    static func isOffline(_ message: String) -> Bool {
+        message == Transcription.offlineMessage
+    }
+}
+
+#Preview {
+    VStack(spacing: Spacing.sm) {
+        ErrorState(message: Transcription.offlineMessage, onRetry: {})
+        ErrorState(message: Transcription.rateLimitedMessage)
+    }
+    .padding(Spacing.md)
+    .background(Palette.canvas)
+    .preferredColorScheme(.dark)
+}

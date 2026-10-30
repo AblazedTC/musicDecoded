@@ -176,26 +176,7 @@ private struct SearchFailureCard: View {
     let onRetry: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Label(failure.title, systemImage: failure == .offline ? "wifi.slash" : "exclamationmark.circle")
-                .font(.rowTitle)
-                .foregroundStyle(Palette.text)
-            Text(failure.message)
-                .font(.detail)
-                .foregroundStyle(Palette.textSecondary)
-            if failure.canRetry {
-                Button("Try again", action: onRetry)
-                    .font(.detail.weight(.semibold))
-                    .foregroundStyle(Palette.primary)
-                    .frame(minHeight: ComponentSize.minTouchTarget)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        ErrorState(message: failure.message, title: failure.title, onRetry: failure.canRetry ? onRetry : nil)
     }
 }
 

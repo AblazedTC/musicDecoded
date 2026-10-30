@@ -10,7 +10,7 @@ struct PianoKeyboard: View {
     var octaves = 2
     var height = ComponentSize.pianoCompactHeight
     var noteName: ((Int) -> String)?
-    /// Read by VoiceOver, e.g. "D · F♯ · A".
+    /// Read by VoiceOver, e.g. "D major: D, F sharp, A" (`ChordDisplay.accessibilitySummary`).
     var notesDescription = ""
 
     @State private var lastStart = PianoLayout.defaultStart

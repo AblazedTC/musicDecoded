@@ -36,6 +36,12 @@ struct IconButton: View {
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        // A fixed-size control: the glyph stops growing at xxxLarge, and at accessibility sizes
+        // a long press shows it (with its title) in the Large Content Viewer instead.
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityShowsLargeContentViewer {
+            Label(title, systemImage: systemImage)
+        }
         .accessibilityLabel(title)
         .accessibilityAddTraits(isActive ? .isSelected : [])
     }

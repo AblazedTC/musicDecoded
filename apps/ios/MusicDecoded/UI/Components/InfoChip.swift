@@ -1,3 +1,4 @@
+import MusicDecodedCore
 import SwiftUI
 
 /// A read-only metadata chip in the player header (Key · Time signature · BPM).
@@ -5,6 +6,8 @@ struct InfoChip: View {
     let title: String
     let value: String
     let systemImage: String
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -14,7 +17,7 @@ struct InfoChip: View {
                 .font(.rowTitle)
                 .monospacedDigit()
                 .foregroundStyle(Palette.text)
-                .lineLimit(1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.sm)
@@ -22,7 +25,9 @@ struct InfoChip: View {
         .overlay {
             RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.line, lineWidth: 1)
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(value == "—" ? "Unknown" : ChordDisplay.spoken(value))
     }
 }
 

@@ -1,4 +1,5 @@
 import Foundation
+import MusicDecodedCore
 
 /// What one song row shows (Home and Library), from the library row and its running job.
 struct SongRowState: Equatable, Sendable {
@@ -29,5 +30,33 @@ struct SongRowState: Equatable, Sendable {
         }
         isOffline = item.localAudioPath != nil
         favorite = item.favorite
+    }
+}
+
+extension SongRowState {
+    /// What VoiceOver reads for the whole row (T-503i), e.g.
+    /// "Sunny Days, Fixture, 4:23, F sharp minor, 136 BPM, available offline, favorite".
+    var accessibilityLabel: String {
+        var parts = [title]
+        if let artist, artist.isEmpty == false {
+            parts.append(artist)
+        }
+        switch status {
+        case .ready:
+            parts += meta.components(separatedBy: " · ")
+                .filter { $0.isEmpty == false }
+                .map(ChordDisplay.spoken)
+            if isOffline {
+                parts.append("available offline")
+            }
+        case .analyzing(let progress):
+            parts.append(progress.map { "analyzing, \($0) percent" } ?? "analyzing")
+        case .failed:
+            parts.append("failed")
+        }
+        if favorite {
+            parts.append("favorite")
+        }
+        return parts.joined(separator: ", ")
     }
 }

@@ -129,7 +129,7 @@ private struct LibrarySummaryCard: View {
     let offline: Int
 
     var body: some View {
-        HStack(spacing: Spacing.lg) {
+        AdaptiveStack(spacing: Spacing.lg) {
             count(decoded, decoded == 1 ? "song decoded" : "songs decoded", systemImage: "music.note")
             count(offline, "available offline", systemImage: "arrow.down.circle")
         }

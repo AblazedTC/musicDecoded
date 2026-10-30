@@ -39,9 +39,7 @@ struct VideoDetailScreen: View {
 
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     if let errorMessage {
-                        Text(errorMessage)
-                            .font(.detail)
-                            .foregroundStyle(Palette.record)
+                        ErrorState(message: errorMessage, onRetry: isStarting ? nil : { decode() })
                     }
                     PrimaryButton(title: isStarting ? "Starting…" : "Decode this song", systemImage: "waveform") {
                         decode()

@@ -14,6 +14,7 @@ struct ProcessingScreen: View {
     let onOpenTranscription: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(TranscriptionService.self) private var transcription
     @Query private var items: [LibraryItem]
     @State private var state = ProcessingState()
@@ -50,15 +51,13 @@ struct ProcessingScreen: View {
                         Text(subtitle)
                             .font(.detail)
                             .foregroundStyle(Palette.textSecondary)
-                            .lineLimit(1)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                     }
                 }
 
+                // The "Try again" button below is this error state's retry.
                 if state.phase == .failed {
-                    Text(state.error ?? Transcription.genericMessage)
-                        .font(.detail)
-                        .foregroundStyle(Palette.record)
-                        .multilineTextAlignment(.center)
+                    ErrorState(message: state.error ?? Transcription.genericMessage)
                 } else {
                     OverallProgress(state: state)
                     VStack(spacing: Spacing.xs) {

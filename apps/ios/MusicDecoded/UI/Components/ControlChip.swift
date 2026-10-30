@@ -1,3 +1,4 @@
+import MusicDecodedCore
 import SwiftUI
 
 /// A tappable chip with a label above its current value and a chevron
@@ -12,6 +13,8 @@ struct ControlChip: View {
             ControlChipLabel(title: title, value: value)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityValue(ChordDisplay.spoken(value))
     }
 }
 
@@ -19,6 +22,8 @@ struct ControlChip: View {
 struct ControlChipLabel: View {
     let title: String
     let value: String
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HStack(spacing: Spacing.xxs) {
@@ -29,7 +34,7 @@ struct ControlChipLabel: View {
                     .font(.rowTitle)
                     .monospacedDigit()
                     .foregroundStyle(Palette.text)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
             }
             Spacer(minLength: Spacing.xxs)
             Image(systemName: "chevron.down")

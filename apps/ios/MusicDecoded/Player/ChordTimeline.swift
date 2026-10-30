@@ -20,6 +20,9 @@ struct ChordTimeline: View {
     var loop: Range<Double>?
     let onSeek: (Double) -> Void
     var onLoopSelected: (Range<Double>) -> Void = { _ in }
+    /// VoiceOver actions: the chord blocks are drawn, so these stand in for tapping one.
+    var onPreviousChord: () -> Void = {}
+    var onNextChord: () -> Void = {}
 
     @State private var zoom = TimelineZoom.standard
     @State private var zoomAtGestureStart: CGFloat?
@@ -67,6 +70,19 @@ struct ChordTimeline: View {
                 let step = direction == .increment ? Self.accessibilityStep : -Self.accessibilityStep
                 seek(livePosition() + step)
             }
+            .accessibilityHint("Swipe up or down to move 5 seconds.")
+            .accessibilityAction(named: "Previous chord") {
+                onPreviousChord()
+            }
+            .accessibilityAction(named: "Next chord") {
+                onNextChord()
+            }
+            .accessibilityAction(named: "Zoom in") {
+                zoom = TimelineZoom.clamp(zoom * Self.zoomStep)
+            }
+            .accessibilityAction(named: "Zoom out") {
+                zoom = TimelineZoom.clamp(zoom / Self.zoomStep)
+            }
 
             Text("Pinch to zoom · drag to scrub")
                 .font(.overline)
@@ -83,10 +99,12 @@ struct ChordTimeline: View {
 
     /// VoiceOver swipes up/down move by this many seconds.
     private static let accessibilityStep: Double = 5
+    /// One VoiceOver "Zoom in" / "Zoom out" step.
+    private static let zoomStep: CGFloat = 1.5
 
     private var accessibilityValue: String {
         let t = isPlaying ? livePosition() : pausedPosition
-        let name = currentState(at: t, in: analysis).chordIndex.map { chords.name(analysis.chords[$0].label) } ?? ""
+        let name = currentState(at: t, in: analysis).chordIndex.map { chords.spokenName(analysis.chords[$0].label) } ?? ""
         let time = PlayerFormat.time(t)
         return name.isEmpty ? time : "\(name), \(time)"
     }

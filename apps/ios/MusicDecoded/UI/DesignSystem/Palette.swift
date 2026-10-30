@@ -28,7 +28,9 @@ enum Palette {
     // Text
     static let text = Color(hex: 0xF5F8FB)
     static let textSecondary = Color(hex: 0x9FB0C3)
-    static let textMuted = Color(hex: 0x63778C)
+    /// #8396AA, not the prototype's #63778C (3.3–4.1:1): ≥ 4.5:1 on every surface text sits on
+    /// (T-503, matches Android and DESIGN.md T-506).
+    static let textMuted = Color(hex: 0x8396AA)
 
     // Record
     static let record = Color(hex: 0xEC6478)

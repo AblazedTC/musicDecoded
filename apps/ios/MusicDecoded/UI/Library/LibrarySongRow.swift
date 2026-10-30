@@ -45,8 +45,30 @@ struct LibrarySongRow: View {
         .onTapGesture {
             open(row)
         }
-        .accessibilityAction(named: "Open") {
+        // One VoiceOver stop per song; the ⋯ menu and Retry become its actions.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(row.accessibilityLabel)
+        .accessibilityAddTraits(row.status == .failed ? [] : .isButton)
+        .accessibilityAction {
             open(row)
+        }
+        .accessibilityActions {
+            if row.status == .failed {
+                Button("Retry analysis") {
+                    reanalyze()
+                }
+            }
+            Button(row.favorite ? "Remove from favorites" : "Favorite") {
+                setFavorite(!row.favorite)
+            }
+            if item.status != .analyzing {
+                Button("Re-analyze") {
+                    reanalyze()
+                }
+            }
+            Button("Delete") {
+                confirmDelete = true
+            }
         }
         .confirmationDialog("Delete “\(row.title)”?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {

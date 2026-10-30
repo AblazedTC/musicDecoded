@@ -197,7 +197,7 @@ struct PlayerView: View {
                     MetadataRow(analysis: analysis)
                     PlayerTimeline(model: model)
                     NowPlayingChord(model: model)
-                    HStack(spacing: Spacing.xs) {
+                    AdaptiveStack {
                         ControlChip(title: "Chords", value: model.chordsMode == .basic ? "Basic" : "Full") {
                             model.toggleChordsMode()
                         }
@@ -313,7 +313,7 @@ private struct MetadataRow: View {
     let analysis: Analysis
 
     var body: some View {
-        HStack(spacing: Spacing.xs) {
+        AdaptiveStack {
             InfoChip(title: "Key", value: analysis.key.map(PlayerFormat.key) ?? "—", systemImage: "music.note")
             InfoChip(
                 title: "Time",
@@ -344,7 +344,9 @@ private struct PlayerTimeline: View {
                 livePosition: { model.livePosition },
                 loop: model.loop,
                 onSeek: { model.seek(to: $0) },
-                onLoopSelected: { model.setLoop($0) }
+                onLoopSelected: { model.setLoop($0) },
+                onPreviousChord: { model.previousChord() },
+                onNextChord: { model.nextChord() }
             )
         }
     }
@@ -377,7 +379,11 @@ private struct NowPlayingChord: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        // "Now playing, D major: D, F sharp, A" instead of the glyph-heavy visible text.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Now playing")
+        .accessibilityValue(chords.accessibilitySummary(label))
+        .accessibilityAddTraits([.isHeader, .updatesFrequently])
     }
 }
 
@@ -433,16 +439,34 @@ private struct CurrentChordSummary: View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text("Current chord")
                 .overlineStyle()
-            HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-                Text(name.isEmpty ? "—" : name)
-                    .font(.sectionHeader)
-                    .foregroundStyle(Palette.chord)
-                Text(label.map(chords.noteNames) ?? "")
-                    .font(.detail)
-                    .foregroundStyle(Palette.textSecondary)
+            // Name and notes on one line, or stacked when large text doesn't fit.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                    chordName(name)
+                    noteNames(label.map(chords.noteNames) ?? "")
+                }
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    chordName(name)
+                    noteNames(label.map(chords.noteNames) ?? "")
+                }
             }
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Current chord")
+        .accessibilityValue(chords.accessibilitySummary(label))
+        .accessibilityAddTraits(.updatesFrequently)
+    }
+
+    private func chordName(_ name: String) -> some View {
+        Text(name.isEmpty ? "—" : name)
+            .font(.sectionHeader)
+            .foregroundStyle(Palette.chord)
+    }
+
+    private func noteNames(_ notes: String) -> some View {
+        Text(notes)
+            .font(.detail)
+            .foregroundStyle(Palette.textSecondary)
     }
 }
 
@@ -456,7 +480,7 @@ private struct CompactKeyboard: View {
         PianoKeyboard(
             notes: label.map(chords.notes) ?? [],
             bassNote: label.flatMap(chords.bassNote),
-            notesDescription: label.map(chords.noteNames) ?? ""
+            notesDescription: chords.accessibilitySummary(label)
         )
         .clipShape(.rect(cornerRadius: Radius.chip))
     }

@@ -4,8 +4,9 @@ import SwiftUI
 /// The smallest role is `.caption2` (11pt at the default size).
 extension Font {
     static var pageTitle: Font { .largeTitle.bold() }
-    /// The big chord name in the player (fixed size per DESIGN.md).
-    static var currentChord: Font { .system(size: 34, weight: .bold) }
+    /// The big chord name in the player: 34pt bold at the default size (DESIGN.md), via
+    /// `.largeTitle` so it follows Dynamic Type (T-503i).
+    static var currentChord: Font { .largeTitle.bold() }
     static var sectionHeader: Font { .title3.bold() }
     static var rowTitle: Font { .subheadline.weight(.semibold) }
     /// Body and secondary text.

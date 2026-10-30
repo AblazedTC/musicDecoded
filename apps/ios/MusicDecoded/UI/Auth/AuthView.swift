@@ -61,7 +61,9 @@ struct AuthView: View {
                         .font(.overline)
                         .foregroundStyle(Palette.textMuted)
                 }
-                if let error = model.error {
+                if let error = model.error, ErrorState.isOffline(error) {
+                    ErrorState(message: error, onRetry: model.isBusy ? nil : { submit() })
+                } else if let error = model.error {
                     Text(error)
                         .font(.detail)
                         .foregroundStyle(Palette.record)

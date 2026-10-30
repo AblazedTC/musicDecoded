@@ -16,6 +16,8 @@ struct SoundCloudLinkScreen: View {
     @State private var text = ""
     @State private var isStarting = false
     @State private var errorMessage: String?
+    /// A failure to start the job (network, plan limit, feature off), shown with Try again.
+    @State private var startError: String?
     /// The clipboard holds something that could be a link. Checked without reading it, so iOS
     /// doesn't ask for paste permission until the user taps "Paste from clipboard".
     @State private var clipboardHasContent = false
@@ -65,6 +67,10 @@ struct SoundCloudLinkScreen: View {
                     }
                 }
 
+                if let startError {
+                    ErrorState(message: startError, onRetry: isStarting ? nil : { decode() })
+                }
+
                 PrimaryButton(title: isStarting ? "Starting…" : "Decode this song", systemImage: "waveform") {
                     decode()
                 }
@@ -89,6 +95,7 @@ struct SoundCloudLinkScreen: View {
         }
         .onChange(of: text) {
             errorMessage = nil
+            startError = nil
         }
     }
 
@@ -136,6 +143,7 @@ struct SoundCloudLinkScreen: View {
         }
         isStarting = true
         errorMessage = nil
+        startError = nil
         let link = text
         Task {
             do {
@@ -144,7 +152,7 @@ struct SoundCloudLinkScreen: View {
                 onDecodeStarted(trackId)
             } catch {
                 isStarting = false
-                errorMessage = Transcription.userMessage(for: error)
+                startError = Transcription.userMessage(for: error)
             }
         }
     }

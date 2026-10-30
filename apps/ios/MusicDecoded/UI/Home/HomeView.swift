@@ -8,6 +8,7 @@ struct HomeView: View {
     let onShowSettings: () -> Void
 
     @Environment(SessionStore.self) private var session
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var path = NavigationPath()
     @State private var sourceRoute: SourceRoute?
     /// The 3 newest songs, any status.
@@ -72,32 +73,65 @@ struct HomeView: View {
     private var transcribeSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             SectionHeader(title: "Transcribe Music")
-            Grid(horizontalSpacing: Spacing.sm, verticalSpacing: Spacing.sm) {
-                GridRow {
-                    SourceCard(title: "Files", subtitle: "Import audio from this device", systemImage: "folder", tint: .files) {
-                        sourceRoute = .files
-                    }
-                    SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary) {
-                        sourceRoute = .mediaLibrary
+            if dynamicTypeSize.isAccessibilitySize {
+                // One column, so large titles and descriptions wrap instead of clipping.
+                VStack(spacing: Spacing.sm) {
+                    filesCard
+                    mediaLibraryCard
+                    youtubeCard
+                    if soundcloudEnabled {
+                        soundcloudCard
                     }
                 }
-                GridRow {
-                    SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle", tint: .youtube) {
-                        path.append(YouTubeRoute.search)
+            } else {
+                Grid(horizontalSpacing: Spacing.sm, verticalSpacing: Spacing.sm) {
+                    GridRow {
+                        filesCard
+                        mediaLibraryCard
                     }
-                    if session.config?.soundcloudEnabled == true {
-                        SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud", tint: .soundcloud) {
-                            path.append(SoundCloudRoute())
+                    GridRow {
+                        youtubeCard
+                        if soundcloudEnabled {
+                            soundcloudCard
+                        } else {
+                            Color.clear
+                                .gridCellUnsizedAxes(.vertical)
                         }
-                    } else {
-                        Color.clear
-                            .gridCellUnsizedAxes(.vertical)
                     }
                 }
             }
             RecordCard {
                 sourceRoute = .record
             }
+        }
+    }
+
+    /// DESIGN.md §3.1: the SoundCloud card is hidden unless the server enables the source.
+    private var soundcloudEnabled: Bool {
+        session.config?.soundcloudEnabled == true
+    }
+
+    private var filesCard: some View {
+        SourceCard(title: "Files", subtitle: "Import audio from this device", systemImage: "folder", tint: .files) {
+            sourceRoute = .files
+        }
+    }
+
+    private var mediaLibraryCard: some View {
+        SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary) {
+            sourceRoute = .mediaLibrary
+        }
+    }
+
+    private var youtubeCard: some View {
+        SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle", tint: .youtube) {
+            path.append(YouTubeRoute.search)
+        }
+    }
+
+    private var soundcloudCard: some View {
+        SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud", tint: .soundcloud) {
+            path.append(SoundCloudRoute())
         }
     }
 

@@ -21,7 +21,7 @@ struct ImportSheet: View {
                     }
                 } else if let draft = model.draft {
                     FileHeader(draft: draft)
-                    HStack(spacing: Spacing.xs) {
+                    AdaptiveStack {
                         InfoChip(title: "Duration", value: durationText(draft), systemImage: "clock")
                         InfoChip(title: "Quality", value: qualityText(draft), systemImage: "waveform")
                         InfoChip(title: "Storage", value: "On device", systemImage: "iphone")
@@ -30,9 +30,8 @@ struct ImportSheet: View {
                 }
 
                 if let errorMessage = model.errorMessage {
-                    Text(errorMessage)
-                        .font(.detail)
-                        .foregroundStyle(Palette.record)
+                    // Retry only once there's a file to send again.
+                    ErrorState(message: errorMessage, onRetry: model.draft != nil && model.isStarting == false ? onImport : nil)
                 }
 
                 if model.draft != nil {

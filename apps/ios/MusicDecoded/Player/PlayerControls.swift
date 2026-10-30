@@ -89,6 +89,10 @@ struct PlayButton: View {
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        .accessibilityShowsLargeContentViewer {
+            Label(isPlaying ? "Pause" : "Play", systemImage: isPlaying ? "pause.fill" : "play.fill")
+        }
         .accessibilityLabel(isPlaying ? "Pause" : "Play")
     }
 }
@@ -110,6 +114,7 @@ struct SpeedButton: View {
         } primaryAction: {
             model.toggleSpeed()
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityLabel("Speed")
         .accessibilityValue(PlayerFormat.speed(model.speed))
         .accessibilityHint("Toggles practice speed. Touch and hold to choose a speed.")

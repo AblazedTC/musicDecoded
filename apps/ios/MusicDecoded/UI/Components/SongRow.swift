@@ -23,6 +23,10 @@ struct SongRow<Actions: View>: View {
     private let hasActions: Bool
     private let actions: Actions
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Text wraps at accessibility sizes instead of truncating.
+    private var lines: Int { dynamicTypeSize.isAccessibilitySize ? 3 : 1 }
+
     /// A row with a ⋯ menu holding `actions`.
     init(
         title: String,
@@ -77,13 +81,13 @@ struct SongRow<Actions: View>: View {
                 Text(title)
                     .font(.rowTitle)
                     .foregroundStyle(Palette.text)
-                    .lineLimit(1)
+                    .lineLimit(lines)
 
                 if let artist {
                     Text(artist)
                         .font(.detail)
                         .foregroundStyle(Palette.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(lines)
                 }
 
                 statusLine
@@ -132,7 +136,7 @@ struct SongRow<Actions: View>: View {
                     .font(.overline)
                     .monospacedDigit()
                     .foregroundStyle(Palette.textMuted)
-                    .lineLimit(1)
+                    .lineLimit(lines)
             }
         case .analyzing(let progress):
             VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -140,7 +144,7 @@ struct SongRow<Actions: View>: View {
                     .font(.overline.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(Palette.primary)
-                    .lineLimit(1)
+                    .lineLimit(lines)
                 ProgressView(value: Double(progress ?? 0), total: 100)
                     .tint(Palette.primary)
                     .accessibilityHidden(true)

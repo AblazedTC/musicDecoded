@@ -60,9 +60,14 @@ private struct PianoHeadCard: View {
         let current = model.currentLabel
         let currentName = current.map(chords.name) ?? ""
         let next = model.upcoming
-        let nextName = next.flatMap { upcoming in
-            model.analysis.map { chords.name($0.chords[upcoming.chordIndex].label) }
-        } ?? ""
+        let nextLabel = next.flatMap { upcoming in
+            model.analysis.map { $0.chords[upcoming.chordIndex].label }
+        }
+        let nextName = nextLabel.map(chords.name) ?? ""
+        let nextSpoken = nextLabel.map(chords.spokenName) ?? ""
+        let upNextSpoken = nextSpoken.isEmpty
+            ? "None"
+            : [nextSpoken, next.map { PlayerFormat.inBeats($0.inBeats) }].compactMap { $0 }.joined(separator: ", ")
 
         HStack(alignment: .top, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -78,7 +83,10 @@ private struct PianoHeadCard: View {
                     .foregroundStyle(Palette.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Current chord")
+            .accessibilityValue(chords.accessibilitySummary(current))
+            .accessibilityAddTraits(.updatesFrequently)
 
             Rectangle()
                 .fill(Palette.line)
@@ -99,7 +107,10 @@ private struct PianoHeadCard: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Up next")
+            .accessibilityValue(upNextSpoken)
+            .accessibilityAddTraits(.updatesFrequently)
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(Spacing.md)
@@ -130,7 +141,7 @@ private struct LearningKeyboard: View {
             octaves: octaves,
             height: ComponentSize.pianoLargeHeight,
             noteName: noteName,
-            notesDescription: label.map(chords.noteNames) ?? ""
+            notesDescription: chords.accessibilitySummary(label)
         )
     }
 }
@@ -158,6 +169,7 @@ private struct ProgressionStrip: View {
                             let chord = analysis.chords[item.id]
                             StripCard(
                                 name: chords.name(chord.label),
+                                spokenName: chords.spokenName(chord.label),
                                 beats: item.beats,
                                 isCurrent: item.id == current
                             ) {
@@ -199,6 +211,7 @@ private struct ProgressionStrip: View {
 
 private struct StripCard: View {
     let name: String
+    let spokenName: String
     let beats: Int
     let isCurrent: Bool
     let action: () -> Void
@@ -223,7 +236,7 @@ private struct StripCard: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(name), \(PlayerFormat.beats(beats))")
+        .accessibilityLabel("\(spokenName), \(PlayerFormat.beats(beats))")
         .accessibilityHint("Plays from this chord")
         .accessibilityAddTraits(isCurrent ? .isSelected : [])
     }
