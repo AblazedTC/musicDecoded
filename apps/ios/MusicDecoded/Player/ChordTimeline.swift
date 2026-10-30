@@ -85,16 +85,14 @@ struct ChordTimeline: View {
             }
 
             Text("Pinch to zoom · drag to scrub")
-                .font(.overline)
+                .font(.detail)
                 .foregroundStyle(Palette.textMuted)
                 .padding(.horizontal, Spacing.md)
                 .accessibilityHidden(true)
         }
         .padding(.vertical, Spacing.sm)
-        .background(Palette.timelineBackground, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.timelineBorder, lineWidth: 1)
-        }
+        // Decoration only: the timeline is never tilted (DESIGN.md §1).
+        .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.violet)
     }
 
     /// VoiceOver swipes up/down move by this many seconds.
@@ -196,7 +194,6 @@ private enum TimelineMetrics {
     static let playhead: CGFloat = 1.5
     static let playheadGlow: CGFloat = 6
     static let playheadDot: CGFloat = 4
-    static let blockRadius: CGFloat = 6
     static let minLabelWidth: CGFloat = 16
 
     static let chordTop: CGFloat = labels + Spacing.xxs
@@ -235,7 +232,7 @@ private struct TimelineRenderer {
             let x = viewport.x(Double(second))
             let label = context.resolve(
                 Text(PlayerFormat.time(Double(second)))
-                    .font(.caption2)
+                    .font(.overline)
                     .monospacedDigit()
                     .foregroundStyle(Palette.textMuted)
             )
@@ -315,7 +312,7 @@ private struct TimelineRenderer {
             if width <= 0 { continue }
             let isCurrent = viewport.playhead >= chord.start && viewport.playhead < chord.end
             let rect = CGRect(x: left, y: TimelineMetrics.chordTop, width: width, height: TimelineMetrics.chordTrack)
-            let block = Path(roundedRect: rect, cornerRadius: TimelineMetrics.blockRadius)
+            let block = Path(rect)
             if isCurrent {
                 context.fill(block, with: .color(Palette.chord))
             } else {
@@ -327,7 +324,7 @@ private struct TimelineRenderer {
             guard labelRect.width >= TimelineMetrics.minLabelWidth else { continue }
             let label = context.resolve(
                 Text(chords.name(chord.label))
-                    .font(.footnote.weight(.semibold))
+                    .font(.labelSmall)
                     .foregroundStyle(isCurrent ? Palette.onChord : Palette.chord)
             )
             // Keep the name readable while a long block scrolls off the left edge.
@@ -367,12 +364,12 @@ private struct TimelineRenderer {
         context.stroke(
             line,
             with: .color(Palette.primary.opacity(0.22)),
-            style: StrokeStyle(lineWidth: TimelineMetrics.playheadGlow, lineCap: .round)
+            style: StrokeStyle(lineWidth: TimelineMetrics.playheadGlow, lineCap: .butt)
         )
         context.stroke(line, with: .color(Palette.primary), lineWidth: TimelineMetrics.playhead)
         let dot = TimelineMetrics.playheadDot
         context.fill(
-            Path(ellipseIn: CGRect(x: x - dot, y: top - dot, width: dot * 2, height: dot * 2)),
+            Path(CGRect(x: x - dot, y: top - dot, width: dot * 2, height: dot * 2)),
             with: .color(Palette.primary)
         )
     }

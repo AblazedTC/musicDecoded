@@ -1,7 +1,8 @@
 import MusicDecodedCore
 import SwiftUI
 
-/// A read-only metadata chip in the player header (Key · Time signature · BPM).
+/// A read-only metadata chip in the player header (Key · Time signature · BPM): lime icon, caption
+/// and value on a square `surface` chip with a 3pt `line` border.
 struct InfoChip: View {
     let title: String
     let value: String
@@ -10,21 +11,24 @@ struct InfoChip: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Label(title, systemImage: systemImage)
-                .overlineStyle()
-            Text(value)
-                .font(.rowTitle)
-                .monospacedDigit()
-                .foregroundStyle(Palette.text)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+            Image(systemName: systemImage)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(Palette.lime)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(title)
+                    .chipCaptionStyle()
+                    .lineLimit(1)
+                Text(value)
+                    .font(.rowTitle)
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.text)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.sm)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.control))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .inkCard()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(value == "—" ? "Unknown" : ChordDisplay.spoken(value))

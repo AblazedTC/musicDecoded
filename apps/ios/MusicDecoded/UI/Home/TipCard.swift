@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Rotating tips (sparkle icon, chord color) at the bottom of Home.
+/// Rotating tips at the bottom of Home: a slightly tilted yellow block with ink text and a pink
+/// hard shadow.
 struct TipCard: View {
     struct Tip: Sendable {
         let title: String
@@ -22,27 +23,25 @@ struct TipCard: View {
         let tip = Self.tips[index % Self.tips.count]
         HStack(alignment: .top, spacing: Spacing.sm) {
             Image(systemName: "sparkles")
-                .font(.title3)
-                .foregroundStyle(Palette.chord)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(Palette.onColor)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(tip.title)
                     .font(.rowTitle)
-                    .foregroundStyle(Palette.chord)
+                    .textCase(.uppercase)
                 Text(tip.body)
                     .font(.detail)
-                    .foregroundStyle(Palette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .foregroundStyle(Palette.onColor)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
         }
         .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .block(Palette.yellow, shadow: HardShadow.md, shadowColor: Palette.pink)
+        .tilt(Tilt.listCard)
         .task {
             while true {
                 do {

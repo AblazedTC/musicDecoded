@@ -22,8 +22,9 @@ struct VideoDetailScreen: View {
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(video.displayTitle)
-                        .font(.sectionHeader)
+                        .font(.display(24, relativeTo: .title2))
                         .foregroundStyle(Palette.text)
+                        .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                     let details = [video.channelTitle.isEmpty ? nil : video.channelTitle, video.durationText]
                         .compactMap { $0 }
@@ -69,19 +70,20 @@ struct VideoDetailScreen: View {
                 } label: {
                     Image(systemName: "play.fill")
                         .font(.title2)
-                        .foregroundStyle(Palette.onPrimary)
+                        .foregroundStyle(Palette.onSecondary)
                         .frame(width: ComponentSize.playButton, height: ComponentSize.playButton)
-                        .background(Palette.primary, in: .circle)
                         .contentShape(.circle)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(BlockButtonStyle(fill: Palette.secondary, shadow: HardShadow.sm, isCircle: true))
                 .accessibilityLabel("Play video")
             }
         }
         .frame(maxWidth: .infinity)
         .frame(height: ComponentSize.videoHeroHeight)
         .background(Palette.ink)
-        .clipShape(.rect(cornerRadius: Radius.card))
+        .clipShape(.rect)
+        .squareBorder(Palette.border)
+        .hardShadow(HardShadow.lg, color: Palette.orange)
     }
 
     private func decode() {
@@ -106,7 +108,7 @@ struct VideoDetailScreen: View {
 private struct AvailabilityCard: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "checkmark.circle.fill")
+            Image(systemName: "checkmark.square.fill")
                 .font(.title3)
                 .foregroundStyle(Palette.primary)
                 .accessibilityHidden(true)
@@ -121,7 +123,7 @@ private struct AvailabilityCard: View {
             Spacer(minLength: 0)
         }
         .padding(Spacing.md)
-        .background(Palette.primarySoft, in: .rect(cornerRadius: Radius.card))
+        .inkCard()
         .accessibilityElement(children: .combine)
     }
 }

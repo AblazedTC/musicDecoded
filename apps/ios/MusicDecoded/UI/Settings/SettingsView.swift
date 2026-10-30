@@ -21,13 +21,9 @@ struct SettingsView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text("Preferences & account")
-                            .overlineStyle()
-                        Text("Settings")
-                            .font(.pageTitle)
-                            .foregroundStyle(Palette.text)
-                            .accessibilityAddTraits(.isHeader)
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Eyebrow(text: "Preferences & account")
+                        DisplayHeadline(text: "Settings")
                     }
 
                     ProfileCard(
@@ -213,13 +209,10 @@ private struct InfoSheet: View {
     var body: some View {
         VStack(spacing: Spacing.md) {
             Image(systemName: topic.systemImage)
-                .font(.title)
+                .font(.title.weight(.bold))
                 .foregroundStyle(Palette.secondary)
                 .accessibilityHidden(true)
-            Text(topic.title)
-                .font(.sectionHeader)
-                .foregroundStyle(Palette.text)
-                .accessibilityAddTraits(.isHeader)
+            DisplayHeadline(text: topic.title, font: .sectionHeader)
             Text(topic.text)
                 .font(.detail)
                 .foregroundStyle(Palette.textSecondary)
@@ -230,9 +223,10 @@ private struct InfoSheet: View {
         }
         .padding(Spacing.lg)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(Palette.transportBackground)
+        .background(Palette.surface)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .presentationCornerRadius(0)
     }
 }
 
@@ -248,67 +242,62 @@ private struct ProfileCard: View {
         VStack(spacing: Spacing.md) {
             HStack(spacing: Spacing.sm) {
                 Image(systemName: "person.fill")
-                    .foregroundStyle(Palette.secondary)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(Palette.onColor)
                     .frame(width: ComponentSize.songArt, height: ComponentSize.songArt)
-                    .background(Palette.surfaceSoft, in: .circle)
+                    .background(Palette.white, in: .circle)
+                    .overlay {
+                        Circle().strokeBorder(Palette.border, lineWidth: BorderWidth.thick)
+                    }
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     if isAccount {
                         Text(email.flatMap { $0.split(separator: "@").first.map(String.init) } ?? "Account")
                             .font(.rowTitle)
-                            .foregroundStyle(Palette.text)
                         Text([email, "Synced"].compactMap { $0 }.joined(separator: " · "))
                             .font(.detail)
-                            .foregroundStyle(Palette.textSecondary)
                     } else {
                         Text("Guest account")
                             .font(.rowTitle)
-                            .foregroundStyle(Palette.text)
                         Text("Music is stored on this device")
                             .font(.detail)
-                            .foregroundStyle(Palette.textSecondary)
                     }
                 }
+                .foregroundStyle(Palette.onColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .combine)
                 if isPro {
-                    Text("Pro")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Palette.onPrimary)
-                        .padding(.horizontal, Spacing.xs)
-                        .padding(.vertical, Spacing.xxs)
-                        .background(Palette.primary, in: .rect(cornerRadius: Radius.chip))
+                    Sticker(text: "Pro", fill: Palette.lime)
                         .accessibilityLabel("Pro plan")
                 }
                 if isAccount {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Palette.primary)
+                    Image(systemName: "checkmark.square.fill")
+                        .font(.title3)
+                        .foregroundStyle(Palette.onColor)
                         .accessibilityLabel("Synced")
                 }
             }
             if isAccount {
-                SecondaryButton(title: "Log out", action: onLogOut)
+                PrimaryButton(title: "Log out", fill: Palette.white, shadowColor: Palette.border, action: onLogOut)
             } else {
-                PrimaryButton(title: "Create account") {
+                PrimaryButton(title: "Create account", shadowColor: Palette.border) {
                     onAuth(.signUp)
                 }
                 Button {
                     onAuth(.logIn)
                 } label: {
                     Text("I already have an account")
-                        .font(.detail.weight(.semibold))
-                        .foregroundStyle(Palette.primary)
+                        .font(.label)
+                        .foregroundStyle(Palette.onColor)
                         .frame(maxWidth: .infinity, minHeight: ComponentSize.minTouchTarget)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PushButtonStyle())
             }
         }
         .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        // DESIGN.md §1 color map: the profile card is a yellow block.
+        .block(Palette.yellow, shadow: HardShadow.lg, shadowColor: Palette.violet)
     }
 }
 
@@ -318,8 +307,9 @@ private struct SyncCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "icloud")
-                    .foregroundStyle(Palette.primary)
+                Image(systemName: "icloud.fill")
+                    .font(.title3)
+                    .foregroundStyle(Palette.pink)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Sync your music")
@@ -331,14 +321,16 @@ private struct SyncCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "arrow.right")
+                    .fontWeight(.bold)
                     .foregroundStyle(Palette.primary)
                     .accessibilityHidden(true)
             }
             .padding(Spacing.md)
-            .background(Palette.primarySoft, in: .rect(cornerRadius: Radius.card))
             .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(
+            BlockButtonStyle(fill: Palette.surface, shadow: HardShadow.md, shadowColor: Palette.pink, border: Palette.borderOnInk)
+        )
     }
 }
 
@@ -348,16 +340,12 @@ private struct SettingsGroup<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
-            Text(title)
-                .overlineStyle()
+            Eyebrow(text: title)
                 .accessibilityAddTraits(.isHeader)
             VStack(spacing: 0) {
                 content
             }
-            .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-            }
+            .inkCard()
         }
     }
 }
@@ -366,8 +354,8 @@ private struct RowDivider: View {
     var body: some View {
         Rectangle()
             .fill(Palette.line)
-            .frame(height: 1)
-            .padding(.leading, Spacing.md)
+            .frame(height: BorderWidth.separator)
+            .padding(.horizontal, Spacing.md)
     }
 }
 
@@ -390,8 +378,8 @@ private struct SettingsRowLabel: View {
             }
             if showsChevron {
                 Image(systemName: "chevron.right")
-                    .font(.detail.weight(.semibold))
-                    .foregroundStyle(Palette.textMuted)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(Palette.primary)
                     .accessibilityHidden(true)
             }
         }

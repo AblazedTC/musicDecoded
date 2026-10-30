@@ -1,38 +1,50 @@
 import SwiftUI
 
-/// A section title with an optional trailing action ("See all").
+/// A section title (uppercase display) with an optional eyebrow, a decorative big numeral behind
+/// it ("01") and a trailing action ("See all").
 struct SectionHeader: View {
     let title: String
+    var eyebrow: String?
+    var numeral: String?
+    var color: Color = Palette.text
     var actionTitle: String?
     var action: (() -> Void)?
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
-            Text(title)
-                .font(.sectionHeader)
-                .foregroundStyle(Palette.text)
-                .accessibilityAddTraits(.isHeader)
-
-            Spacer(minLength: Spacing.xs)
+        HStack(alignment: .bottom, spacing: Spacing.xs) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                if let eyebrow {
+                    Eyebrow(text: eyebrow)
+                }
+                DisplayHeadline(text: title, font: .sectionHeader, color: color)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             if let actionTitle, let action {
                 Button(action: action) {
                     Text(actionTitle)
-                        .font(.detail.weight(.semibold))
+                        .font(.sticker)
+                        .textCase(.uppercase)
+                        .tracking(Tracking.sticker)
                         .foregroundStyle(Palette.primary)
                         .frame(minHeight: ComponentSize.minTouchTarget)
                         .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PushButtonStyle())
+            }
+        }
+        .background(alignment: .trailing) {
+            if let numeral {
+                BigNumeral(text: numeral, size: 72, color: color)
             }
         }
     }
 }
 
 #Preview {
-    VStack(spacing: Spacing.md) {
-        SectionHeader(title: "Recently Decoded", actionTitle: "See all") {}
-        SectionHeader(title: "Transcribe Music")
+    VStack(spacing: Spacing.lg) {
+        SectionHeader(title: "Recently Decoded", numeral: "01", actionTitle: "See all") {}
+        SectionHeader(title: "Transcribe Music", numeral: "02")
     }
     .padding(Spacing.md)
     .background(Palette.canvas)

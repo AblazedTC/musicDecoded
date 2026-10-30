@@ -8,6 +8,7 @@ struct ProcessingRoute: Hashable, Sendable {
 
 /// DESIGN.md §3.5. Watches one track's row and job. × and "Continue in background" both just
 /// leave: the job keeps running and the row keeps showing progress. Leaving never cancels it.
+/// DESIGN.md §1 color map: violet, with the step list on an ink card with `shadowXl`.
 struct ProcessingScreen: View {
     let trackId: String
     /// Replaces this screen with the Player.
@@ -34,23 +35,21 @@ struct ProcessingScreen: View {
     var body: some View {
         let input = Input(row: items.first.map { ProcessingState.Row($0) }, job: transcription.jobs[trackId])
         ScrollView {
-            VStack(spacing: Spacing.lg) {
-                OrbitArt(title: state.title)
-                    .padding(.top, Spacing.xxxl)
+            VStack(spacing: Spacing.xl) {
+                ProcessingArt(title: state.title)
+                    .padding(.top, Spacing.xxl)
 
-                VStack(spacing: Spacing.xxs) {
-                    Text(headline)
-                        .font(.pageTitle)
-                        .foregroundStyle(Palette.text)
+                VStack(spacing: Spacing.xs) {
+                    Eyebrow(text: eyebrow, color: Palette.white)
+                    DisplayHeadline(text: headline, font: .display(36, relativeTo: .largeTitle), color: Palette.white)
                         .multilineTextAlignment(.center)
-                        .accessibilityAddTraits(.isHeader)
                     let subtitle = [state.title.isEmpty ? nil : state.title, state.artist]
                         .compactMap { $0 }
                         .joined(separator: " · ")
                     if subtitle.isEmpty == false {
                         Text(subtitle)
                             .font(.detail)
-                            .foregroundStyle(Palette.textSecondary)
+                            .foregroundStyle(Palette.textSecondaryOnViolet)
                             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 1)
                     }
                 }
@@ -59,34 +58,51 @@ struct ProcessingScreen: View {
                 if state.phase == .failed {
                     ErrorState(message: state.error ?? Transcription.genericMessage)
                 } else {
-                    OverallProgress(state: state)
-                    VStack(spacing: Spacing.xs) {
-                        ForEach(ProcessingStep.allCases, id: \.self) { step in
-                            StepRow(step: step, done: state.isDone(step), active: state.isActive(step))
+                    VStack(spacing: Spacing.md) {
+                        OverallProgress(state: state)
+                        VStack(spacing: Spacing.xs) {
+                            ForEach(ProcessingStep.allCases, id: \.self) { step in
+                                StepRow(step: step, done: state.isDone(step), active: state.isActive(step))
+                            }
                         }
                     }
+                    .padding(Spacing.md)
+                    .block(Palette.ink, shadow: HardShadow.xl)
                 }
 
                 actions
             }
             .padding(.horizontal, Spacing.md)
-            .padding(.bottom, Spacing.lg)
+            .padding(.bottom, Spacing.xl)
         }
-        .background(Palette.canvas)
+        .background {
+            HalftoneTexture()
+                .ignoresSafeArea()
+        }
+        .background(Palette.violet)
         .navigationBarBackButtonHidden()
         .toolbar(.hidden, for: .tabBar)
-        .toolbarBackground(Palette.canvas, for: .navigationBar)
+        .toolbarBackground(Palette.violet, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Continue in background", systemImage: "xmark") {
                     dismiss()
                 }
                 .labelStyle(.iconOnly)
-                .foregroundStyle(Palette.text)
+                .fontWeight(.bold)
+                .foregroundStyle(Palette.white)
             }
         }
         .onChange(of: input, initial: true) { _, newInput in
             state = ProcessingState.reduce(state, row: newInput.row, job: newInput.job)
+        }
+    }
+
+    private var eyebrow: String {
+        switch state.phase {
+        case .complete: "Done"
+        case .failed: "Stopped"
+        case .loading, .running: "Processing"
         }
     }
 
@@ -100,12 +116,12 @@ struct ProcessingScreen: View {
 
     @ViewBuilder
     private var actions: some View {
-        VStack(spacing: Spacing.sm) {
+        VStack(spacing: Spacing.md) {
             switch state.phase {
             case .complete:
-                PrimaryButton(title: "Open transcription", systemImage: "music.note", action: onOpenTranscription)
+                PrimaryButton(title: "Open transcription", systemImage: "music.note", shadowColor: Palette.border, action: onOpenTranscription)
             case .failed:
-                PrimaryButton(title: isRetrying ? "Starting…" : "Try again", systemImage: "arrow.clockwise", action: retry)
+                PrimaryButton(title: isRetrying ? "Starting…" : "Try again", systemImage: "arrow.clockwise", shadowColor: Palette.border, action: retry)
                     .disabled(isRetrying)
                 SecondaryButton(title: "Back", systemImage: "chevron.left") {
                     dismiss()
@@ -129,33 +145,28 @@ struct ProcessingScreen: View {
     }
 }
 
-/// Art (the title's initial) inside two orbit rings, with a wave badge.
-private struct OrbitArt: View {
+/// The art (the title's initial) as a tilted card with a black border and hard shadow, a lime
+/// waveform sticker on its corner.
+private struct ProcessingArt: View {
     let title: String
 
-    private static let outer: CGFloat = 208
-    private static let inner: CGFloat = 164
-    private static let art: CGFloat = 120
+    private static let art: CGFloat = 132
 
     var body: some View {
-        ZStack {
-            Circle()
-                .strokeBorder(Palette.line, lineWidth: 1)
-                .frame(width: Self.outer, height: Self.outer)
-            Circle()
-                .strokeBorder(Palette.primarySoft, lineWidth: 1)
-                .frame(width: Self.inner, height: Self.inner)
-            InitialArt(title: title, size: Self.art, cornerRadius: Radius.card, font: .pageTitle)
-            Image(systemName: "waveform")
-                .font(.footnote.weight(.bold))
-                .foregroundStyle(Palette.onPrimary)
-                .frame(width: ComponentSize.iconButton, height: ComponentSize.iconButton)
-                .background(Palette.primary, in: .circle)
-                .frame(width: Self.outer, height: Self.outer, alignment: .bottomTrailing)
-                .padding(Spacing.xl)
-        }
-        .frame(width: Self.outer, height: Self.outer)
-        .accessibilityHidden(true)
+        InitialArt(title: title, size: Self.art, font: .display(64, relativeTo: .largeTitle), border: Palette.border)
+            .hardShadow(HardShadow.lg)
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "waveform")
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(Palette.onColor)
+                    .frame(width: ComponentSize.iconButton, height: ComponentSize.iconButton)
+                    .block(Palette.lime, shadow: HardShadow.sm)
+                    .tilt(Tilt.stickerMax)
+                    .offset(x: Spacing.md, y: Spacing.md)
+            }
+            .tilt(Tilt.hero)
+            .padding(Spacing.md)
+            .accessibilityHidden(true)
     }
 }
 
@@ -164,18 +175,16 @@ private struct OverallProgress: View {
 
     var body: some View {
         VStack(spacing: Spacing.xs) {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(state.step.title)
-                    .font(.overline)
-                    .foregroundStyle(Palette.textSecondary)
+                    .overlineStyle(Palette.lime)
                 Spacer(minLength: Spacing.xs)
                 Text("\(state.progress)%")
-                    .font(.overline.weight(.semibold))
+                    .font(.display(28, relativeTo: .title2))
                     .monospacedDigit()
                     .foregroundStyle(Palette.primary)
             }
-            ProgressView(value: Double(state.progress), total: 100)
-                .tint(Palette.primary)
+            WrappedProgressBar(fraction: Double(state.progress) / 100, height: Spacing.xs)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Overall progress")
@@ -191,8 +200,8 @@ private struct StepRow: View {
     var body: some View {
         HStack(spacing: Spacing.sm) {
             ZStack {
-                Circle()
-                    .fill(done || active ? Palette.primary : Palette.surfaceSoft)
+                Rectangle()
+                    .fill(done || active ? Palette.primary : Palette.surfaceRaised)
                 if done {
                     Image(systemName: "checkmark")
                         .font(.footnote.weight(.bold))
@@ -211,11 +220,10 @@ private struct StepRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Spacing.sm)
-        .background(done ? Palette.primarySoft : Palette.surface, in: .rect(cornerRadius: Radius.row))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.row)
-                .strokeBorder(active ? Palette.primary : Palette.line, lineWidth: 1)
-        }
+        .block(
+            done ? Palette.surfaceRaised : Palette.surface,
+            border: active ? Palette.primary : Palette.borderOnInk
+        )
         .accessibilityElement(children: .combine)
         .accessibilityValue(done ? "Done" : active ? "In progress" : "Waiting")
     }

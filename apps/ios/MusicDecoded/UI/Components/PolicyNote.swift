@@ -1,14 +1,15 @@
 import SwiftUI
 
-/// A small boxed note that explains a policy or what happens to the user's data.
+/// A small boxed note that explains a policy or what happens to the user's data: a `surface` card
+/// with a blue info icon.
 struct PolicyNote: View {
     let text: String
-    var systemImage = "info.circle"
+    var systemImage = "info.circle.fill"
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
             Image(systemName: systemImage)
-                .foregroundStyle(Palette.secondary)
+                .foregroundStyle(Palette.info)
                 .accessibilityHidden(true)
             Text(text)
                 .foregroundStyle(Palette.textSecondary)
@@ -16,10 +17,7 @@ struct PolicyNote: View {
         }
         .font(.detail)
         .padding(Spacing.sm)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.control))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .inkCard()
         .accessibilityElement(children: .combine)
     }
 }

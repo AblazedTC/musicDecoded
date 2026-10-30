@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// A compact segmented control in the app's style (visualizer: Piano | Video).
+/// A compact segmented control in the app's style (visualizer: Piano | Video): a `surface` box
+/// with a white-20% border; the selected segment is a lime block with ink text.
 struct SegmentedToggle<Option: Hashable>: View {
     let options: [Option]
     @Binding var selection: Option
@@ -24,25 +25,25 @@ struct SegmentedToggle<Option: Hashable>: View {
         HStack(spacing: Spacing.xxs) {
             ForEach(options, id: \.self) { option in
                 let isSelected = option == selection
+                let enabled = isEnabled(option)
                 Button {
                     selection = option
                 } label: {
                     Text(label(option))
-                        .font(.detail.weight(.semibold))
-                        .foregroundStyle(isSelected ? Palette.text : Palette.textSecondary)
+                        .font(.label)
+                        .foregroundStyle(enabled ? (isSelected ? Palette.onPrimary : Palette.textSecondary) : Palette.textMuted)
                         .padding(.horizontal, Spacing.sm)
                         .frame(maxWidth: .infinity, minHeight: ComponentSize.minTouchTarget)
-                        .background(isSelected ? Palette.surfaceSoft : Color.clear, in: .rect(cornerRadius: Radius.chip))
+                        .background(isSelected ? Palette.primary : Palette.surface, in: .rect)
                         .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .disabled(isEnabled(option) == false)
-                .opacity(isEnabled(option) ? 1 : 0.4)
+                .disabled(enabled == false)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
         .padding(Spacing.xxs)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.control))
+        .inkCard()
     }
 }
 

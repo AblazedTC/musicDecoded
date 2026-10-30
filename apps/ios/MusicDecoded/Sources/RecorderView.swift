@@ -87,15 +87,17 @@ struct RecorderView: View {
         StateLabel(phase: model.phase)
 
         Text(InputLevel.formatTimer(model.elapsed))
-            .font(.largeTitle.weight(.light))
+            .font(.display(56, relativeTo: .largeTitle))
             .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
             .foregroundStyle(Palette.text)
             .accessibilityLabel("Recorded time \(InputLevel.formatTimer(model.elapsed))")
 
         LiveWaveform(levels: model.waveform, isActive: model.phase == .recording)
         LevelMeter(db: model.levelDb, isActive: model.phase == .recording)
 
-        HStack(alignment: .top, spacing: Spacing.xxxl) {
+        HStack(alignment: .top, spacing: Spacing.xxl) {
             LabeledAction(label: "Discard") {
                 IconButton(title: "Discard recording", systemImage: "trash") { model.discard() }
                     .disabled(!model.hasRecording || model.phase == .starting)
@@ -148,8 +150,7 @@ private struct StateLabel: View {
                 .frame(width: Spacing.xs, height: Spacing.xs)
                 .accessibilityHidden(true)
             Text(text)
-                .font(.detail)
-                .foregroundStyle(color)
+                .overlineStyle(color)
         }
     }
 }
@@ -177,15 +178,12 @@ private struct LiveWaveform: View {
                     width: barWidth,
                     height: height
                 )
-                context.fill(Path(roundedRect: rect, cornerRadius: barWidth / 2), with: .color(color))
+                context.fill(Path(rect), with: .color(color))
             }
         }
         .frame(height: ComponentSize.recorderWaveformHeight)
         .padding(Spacing.md)
-        .background(Palette.timelineBackground, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.timelineBorder, lineWidth: 1)
-        }
+        .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.violet)
         .accessibilityHidden(true)
     }
 }
@@ -200,17 +198,16 @@ private struct LevelMeter: View {
         let dbText = isActive ? "\(Int(db.rounded())) dB" : "— dB"
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack {
-                Text("Input level")
-                    .overlineStyle()
+                Eyebrow(text: "Input level")
                 Spacer()
                 Text(dbText)
-                    .font(.overline)
+                    .font(.detail)
                     .monospacedDigit()
                     .foregroundStyle(Palette.textSecondary)
             }
             HStack(spacing: Spacing.xxs) {
                 ForEach(0..<InputLevel.segments, id: \.self) { index in
-                    Capsule()
+                    Rectangle()
                         .fill(color(for: index, lit: lit))
                         .frame(height: ComponentSize.meterSegmentHeight)
                 }
@@ -222,14 +219,14 @@ private struct LevelMeter: View {
     }
 
     private func color(for index: Int, lit: Int) -> Color {
-        if index >= lit { return Palette.surfaceSoft }
+        if index >= lit { return Palette.surfaceRaised }
         if index >= InputLevel.segments - 2 { return Palette.record } // clipping
-        if index >= InputLevel.segments - 5 { return Palette.chord }
+        if index >= InputLevel.segments - 5 { return Palette.yellow }
         return Palette.primary
     }
 }
 
-/// The 84pt red ring: record, pause or resume.
+/// The 84pt orange record button with a black border and violet hard shadow: record, pause or resume.
 private struct RecordButton: View {
     let phase: RecorderModel.Phase
     let action: () -> Void
@@ -251,17 +248,18 @@ private struct RecordButton: View {
             Button(action: action) {
                 Image(systemName: phase == .recording ? "pause.fill" : "mic.fill")
                     .font(.title2)
-                    .foregroundStyle(Palette.text)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(isEnabled ? Palette.record : Palette.surfaceSoft, in: .circle)
-                    .padding(Spacing.xs)
-                    .overlay {
-                        Circle().strokeBorder(Palette.recordRing, lineWidth: Spacing.xxs)
-                    }
+                    .foregroundStyle(isEnabled ? Palette.onColor : Palette.textMuted)
                     .frame(width: ComponentSize.recordButton, height: ComponentSize.recordButton)
                     .contentShape(.circle)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(
+                BlockButtonStyle(
+                    fill: isEnabled ? Palette.record : Palette.surfaceRaised,
+                    shadow: isEnabled ? HardShadow.md : 0,
+                    shadowColor: Palette.violet,
+                    isCircle: true
+                )
+            )
             .disabled(!isEnabled)
             .accessibilityLabel(label)
         }
@@ -276,7 +274,7 @@ private struct LabeledAction<Content: View>: View {
         VStack(spacing: Spacing.xxs) {
             content
             Text(label)
-                .font(.overline)
+                .font(.labelSmall)
                 .foregroundStyle(Palette.textSecondary)
                 .accessibilityHidden(true)
         }
@@ -292,15 +290,18 @@ private struct PermissionCard: View {
 
     var body: some View {
         VStack(spacing: Spacing.md) {
-            Image(systemName: "mic.slash")
+            Image(systemName: "mic.slash.fill")
                 .font(.title)
-                .foregroundStyle(SourceTint.record.icon)
+                .foregroundStyle(Palette.onColor)
                 .frame(width: ComponentSize.recordButton, height: ComponentSize.recordButton)
-                .background(SourceTint.record.background, in: .circle)
+                .background(SourceTint.record.fill, in: .circle)
+                .overlay {
+                    Circle().strokeBorder(Palette.border, lineWidth: BorderWidth.thick)
+                }
+                .hardShadowCircle(HardShadow.md, color: Palette.violet)
                 .accessibilityHidden(true)
-            Text(title)
-                .font(.sectionHeader)
-                .foregroundStyle(Palette.text)
+            DisplayHeadline(text: title, font: .sectionHeader)
+                .multilineTextAlignment(.center)
             Text(message)
                 .font(.detail)
                 .foregroundStyle(Palette.textSecondary)

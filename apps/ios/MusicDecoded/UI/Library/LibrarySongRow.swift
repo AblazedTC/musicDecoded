@@ -8,6 +8,8 @@ struct LibrarySongRow: View {
     let item: LibraryItem
     let onOpenPlayer: (_ trackId: String) -> Void
     let onOpenProcessing: (_ trackId: String) -> Void
+    /// The decorative big number behind the row ("01"), Library only.
+    var numeral: String?
 
     @Environment(\.modelContext) private var modelContext
     @Environment(TranscriptionService.self) private var transcription
@@ -42,6 +44,7 @@ struct LibrarySongRow: View {
                 confirmDelete = true
             }
         }
+        .numeral(numeral)
         .contentShape(.rect)
         .onTapGesture {
             open(row)

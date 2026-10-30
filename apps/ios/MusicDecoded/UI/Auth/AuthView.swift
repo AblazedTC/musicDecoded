@@ -25,16 +25,12 @@ struct AuthView: View {
         let isSignUp = model.mode == .signUp
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text("Account")
-                        .overlineStyle()
-                    Text(isSignUp ? "Create account" : "Log in")
-                        .font(.pageTitle)
-                        .foregroundStyle(Palette.text)
-                        .accessibilityAddTraits(.isHeader)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Eyebrow(text: "Account")
+                    DisplayHeadline(text: isSignUp ? "Create account" : "Log in")
                 }
                 Text("Sync your chord timelines and your own audio across your devices. Music already on this device comes with you.")
-                    .font(.detail)
+                    .font(.bodyText)
                     .foregroundStyle(Palette.textSecondary)
 
                 SegmentedToggle(options: AuthMode.allCases, selection: $model.mode) { $0.title }
@@ -58,7 +54,7 @@ struct AuthView: View {
                 }
                 if isSignUp {
                     Text("At least 8 characters.")
-                        .font(.overline)
+                        .font(.detail)
                         .foregroundStyle(Palette.textMuted)
                 }
                 if let error = model.error, ErrorState.isOffline(error) {
@@ -124,17 +120,14 @@ private struct AuthField<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(title)
-                .font(.detail.weight(.semibold))
-                .foregroundStyle(Palette.textSecondary)
+                .chipCaptionStyle()
             field
-                .font(.body)
+                .font(.bodyText)
                 .foregroundStyle(Palette.text)
+                .tint(Palette.primary)
                 .padding(.horizontal, Spacing.sm)
                 .frame(minHeight: ComponentSize.searchFieldHeight)
-                .background(Palette.surface, in: .rect(cornerRadius: Radius.control))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.line, lineWidth: 1)
-                }
+                .block(Palette.surfaceRaised, border: Palette.borderOnInk)
         }
     }
 }

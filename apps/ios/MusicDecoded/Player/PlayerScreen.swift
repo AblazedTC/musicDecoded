@@ -200,10 +200,12 @@ struct PlayerView: View {
     private var content: some View {
         if let analysis = model.analysis {
             ScrollView {
-                VStack(spacing: Spacing.md) {
+                // lg gaps leave room for the hard shadows and the tilted Now Playing card.
+                VStack(spacing: Spacing.lg) {
                     MetadataRow(analysis: analysis)
                     PlayerTimeline(model: model)
                     NowPlayingChord(model: model)
+                        .padding(.vertical, Spacing.xs)
                     AdaptiveStack {
                         ControlChip(title: "Chords", value: model.chordsMode == .basic ? "Basic" : "Full") {
                             model.toggleChordsMode()
@@ -218,7 +220,8 @@ struct PlayerView: View {
                     }
                 }
                 .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.xs)
+                .padding(.top, Spacing.xs)
+                .padding(.bottom, Spacing.lg)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 TransportPanel(model: model)
@@ -269,7 +272,10 @@ private struct FavoriteButton: View {
             model.toggleFavorite()
         } label: {
             Image(systemName: model.favorite ? "heart.fill" : "heart")
-                .foregroundStyle(model.favorite ? Palette.primary : Palette.text)
+                .fontWeight(.bold)
+                .foregroundStyle(model.favorite ? Palette.pink : Palette.text)
+                .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
+                .contentShape(.rect)
         }
         .accessibilityLabel(model.favorite ? "Remove from favorites" : "Add to favorites")
     }
@@ -306,7 +312,7 @@ private struct PlayerMoreMenu: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .fontWeight(.semibold)
+                .fontWeight(.bold)
                 .foregroundStyle(Palette.text)
                 .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
                 .contentShape(.rect)
@@ -359,7 +365,8 @@ private struct PlayerTimeline: View {
     }
 }
 
-/// NOW PLAYING: the big chord name, its notes and the voicing caption.
+/// NOW PLAYING: the big lime chord name, its notes and the voicing caption, on the hero card
+/// (`card`, 3pt black border, pink `shadowXl`, tilted -1.5°).
 private struct NowPlayingChord: View {
     let model: PlayerModel
 
@@ -368,9 +375,13 @@ private struct NowPlayingChord: View {
         let label = model.currentLabel
         let name = label.map(chords.name) ?? ""
         let notes = label.map(chords.noteNames) ?? ""
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text("Now playing")
-                .overlineStyle()
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(alignment: .top) {
+                Eyebrow(text: "Now playing")
+                Spacer(minLength: Spacing.xs)
+                WaveformBars(bars: 5, color: Palette.lime, gap: Spacing.xxs)
+                    .frame(width: 40, height: 20)
+            }
             Text(name.isEmpty ? "—" : name)
                 .font(.currentChord)
                 .foregroundStyle(Palette.chord)
@@ -379,13 +390,16 @@ private struct NowPlayingChord: View {
             if notes.isEmpty == false {
                 Text(notes)
                     .font(.rowTitle)
-                    .foregroundStyle(Palette.textSecondary)
+                    .foregroundStyle(Palette.text)
                 Text("Representative root-position voicing")
-                    .font(.overline)
-                    .foregroundStyle(Palette.textMuted)
+                    .font(.detail)
+                    .foregroundStyle(Palette.textSecondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Spacing.lg)
+        .block(Palette.card, shadow: HardShadow.xl, shadowColor: Palette.pink)
+        .tilt(Tilt.hero)
         // "Now playing, D major: D, F sharp, A" instead of the glyph-heavy visible text.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Now playing")
@@ -428,10 +442,7 @@ private struct VisualizerCard: View {
             }
         }
         .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.violet)
     }
 }
 
@@ -444,8 +455,7 @@ private struct CurrentChordSummary: View {
         let label = model.currentLabel
         let name = label.map(chords.name) ?? ""
         VStack(alignment: .leading, spacing: Spacing.xxs) {
-            Text("Current chord")
-                .overlineStyle()
+            Eyebrow(text: "Current chord")
             // Name and notes on one line, or stacked when large text doesn't fit.
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
@@ -489,7 +499,7 @@ private struct CompactKeyboard: View {
             bassNote: label.flatMap(chords.bassNote),
             notesDescription: chords.accessibilitySummary(label)
         )
-        .clipShape(.rect(cornerRadius: Radius.chip))
+        .clipShape(.rect)
     }
 }
 

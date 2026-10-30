@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// A Canvas piano that highlights `notes` (MIDI) in the DESIGN.md §1 piano colors, with the slash
-/// `bassNote` in the chord color. It shows `octaves` octaves and moves to keep the active keys in
+/// `bassNote` in pink. It shows `octaves` octaves and moves to keep the active keys in
 /// view (holding its place while there's no chord). `noteName`, when set, labels the white keys
 /// and the active keys.
 struct PianoKeyboard: View {
@@ -46,13 +46,12 @@ private struct KeyboardRenderer {
     let bassNote: Int?
     let noteName: ((Int) -> String)?
 
-    private static let keyRadius: CGFloat = 3
-    private static let hairline: CGFloat = 1
+    private static let separator = BorderWidth.key
     private static let blackKeyHeight: CGFloat = 0.62
     private static let blackKeyWidth: CGFloat = 0.6
 
     func draw(in context: inout GraphicsContext, size: CGSize) {
-        context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Palette.pianoBackground))
+        context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Palette.ink))
         let whiteCount = octaves * PianoLayout.whiteKeysPerOctave
         let whiteWidth = size.width / CGFloat(whiteCount)
         let indices = (firstWhite - 1)...(firstWhite + whiteCount + 1)
@@ -61,9 +60,9 @@ private struct KeyboardRenderer {
             let midi = PianoLayout.midiOfWhiteKey(index)
             guard PianoLayout.range.contains(midi) else { continue }
             let rect = CGRect(x: CGFloat(index - firstWhite) * whiteWidth, y: 0, width: whiteWidth, height: size.height)
-            let key = Path(roundedRect: rect, cornerRadius: Self.keyRadius)
+            let key = Path(rect)
             context.fill(key, with: .color(color(of: midi, black: false)))
-            context.stroke(key, with: .color(Palette.pianoWhiteKeyBorder), lineWidth: Self.hairline)
+            context.stroke(key, with: .color(Palette.ink), lineWidth: Self.separator)
             if let noteName {
                 let label = active.contains(midi) ? noteName(midi) : PianoLayout.whiteLabel(midi)
                 drawLabel(label, color: Palette.pianoBlackKey, in: rect, context: &context)
@@ -81,15 +80,15 @@ private struct KeyboardRenderer {
                 width: blackWidth,
                 height: blackHeight
             )
-            context.fill(Path(roundedRect: rect, cornerRadius: Self.keyRadius), with: .color(color(of: midi, black: true)))
+            context.fill(Path(rect), with: .color(color(of: midi, black: true)))
             if let noteName, active.contains(midi) {
-                drawLabel(noteName(midi), color: Palette.onPrimary, in: rect, context: &context)
+                drawLabel(noteName(midi), color: Palette.onColor, in: rect, context: &context)
             }
         }
     }
 
     private func color(of midi: Int, black: Bool) -> Color {
-        if midi == bassNote { return Palette.chord }
+        if midi == bassNote { return Palette.pianoBass }
         if active.contains(midi) { return black ? Palette.pianoActiveBlackKey : Palette.pianoActiveWhiteKey }
         return black ? Palette.pianoBlackKey : Palette.pianoWhiteKey
     }
@@ -98,7 +97,7 @@ private struct KeyboardRenderer {
     private func drawLabel(_ text: String, color: Color, in rect: CGRect, context: inout GraphicsContext) {
         let resolved = context.resolve(
             Text(text)
-                .font(.caption2.weight(.semibold))
+                .font(.overline)
                 .foregroundStyle(color)
         )
         let size = resolved.measure(in: CGSize(width: CGFloat.greatestFiniteMagnitude, height: rect.height))

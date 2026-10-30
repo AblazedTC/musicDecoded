@@ -34,13 +34,10 @@ struct TransportPanel: View {
             .padding(.top, Spacing.sm)
             .padding(.bottom, Spacing.xs)
             .background {
-                let shape = UnevenRoundedRectangle(topLeadingRadius: Radius.sheet, topTrailingRadius: Radius.sheet)
-                ZStack {
-                    shape.fill(Palette.transportBackground)
-                    shape.stroke(Palette.transportBorder, lineWidth: 1)
-                }
-                .playerShadow()
-                .ignoresSafeArea(edges: .bottom)
+                // A square sheet on ink with a 3pt black top rule.
+                Palette.surface
+                    .topRule()
+                    .ignoresSafeArea(edges: .bottom)
             }
         }
     }
@@ -66,14 +63,15 @@ struct PlayerSeekBar: View {
                 Text(PlayerFormat.time(duration))
                     .foregroundStyle(Palette.textMuted)
             }
-            .font(.overline)
+            .font(.detail)
             .monospacedDigit()
             .accessibilityHidden(true)
         }
     }
 }
 
-/// The primary play/pause circle (56pt in the transport; larger in the learning view).
+/// The primary play/pause circle (56pt in the transport; larger in the learning view): pink fill,
+/// ink icon, 3pt black border and a black hard shadow, pushed while pressed.
 struct PlayButton: View {
     let isPlaying: Bool
     var diameter: CGFloat = ComponentSize.playButton
@@ -83,12 +81,11 @@ struct PlayButton: View {
         Button(action: action) {
             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2)
-                .foregroundStyle(Palette.onPrimary)
+                .foregroundStyle(Palette.onSecondary)
                 .frame(width: diameter, height: diameter)
-                .background(Palette.primary, in: .circle)
                 .contentShape(.circle)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BlockButtonStyle(fill: Palette.secondary, shadow: HardShadow.sm, isCircle: true))
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityShowsLargeContentViewer {
             Label(isPlaying ? "Pause" : "Play", systemImage: isPlaying ? "pause.fill" : "play.fill")
@@ -170,7 +167,7 @@ struct SpeedChip: View {
     }
 }
 
-/// "Looping 1:04–1:20 · Clear", floating above the transport (chord fill).
+/// "Looping 1:04–1:20 · Clear", floating above the transport: a pink sticker with ink text.
 struct LoopPill: View {
     let loop: Range<Double>
     let onClear: () -> Void
@@ -178,7 +175,7 @@ struct LoopPill: View {
     var body: some View {
         HStack(spacing: Spacing.xxs) {
             Text("Looping \(PlayerFormat.loop(loop)) ·")
-                .font(.detail.weight(.semibold))
+                .font(.labelSmall)
                 .monospacedDigit()
             Button("Clear", action: onClear)
                 .font(.detail.weight(.bold))
@@ -187,8 +184,8 @@ struct LoopPill: View {
                 .contentShape(.rect)
                 .accessibilityLabel("Clear loop")
         }
-        .foregroundStyle(Palette.onChord)
+        .foregroundStyle(Palette.onSecondary)
         .padding(.horizontal, Spacing.md)
-        .background(Palette.chord, in: .capsule)
+        .block(Palette.secondary, shadow: HardShadow.sm)
     }
 }

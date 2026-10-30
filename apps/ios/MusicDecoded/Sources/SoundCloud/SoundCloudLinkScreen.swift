@@ -29,7 +29,7 @@ struct SoundCloudLinkScreen: View {
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     TextField("https://soundcloud.com/...", text: $text)
-                        .font(.subheadline)
+                        .font(.bodyText)
                         .foregroundStyle(Palette.text)
                         .tint(Palette.primary)
                         .keyboardType(.URL)
@@ -40,10 +40,7 @@ struct SoundCloudLinkScreen: View {
                         .onSubmit(decode)
                         .padding(.horizontal, Spacing.sm)
                         .frame(minHeight: ComponentSize.searchFieldHeight)
-                        .background(Palette.surface, in: .rect(cornerRadius: Radius.control))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.line, lineWidth: 1)
-                        }
+                        .inkCard()
                         .accessibilityLabel("SoundCloud link")
 
                     if clipboardHasContent {
@@ -51,7 +48,7 @@ struct SoundCloudLinkScreen: View {
                             pasteFromClipboard()
                         } label: {
                             Label("Paste from clipboard", systemImage: "doc.on.clipboard")
-                                .font(.detail.weight(.semibold))
+                                .font(.labelSmall)
                                 .foregroundStyle(Palette.primary)
                                 .frame(minHeight: ComponentSize.minTouchTarget)
                                 .contentShape(.rect)
@@ -101,17 +98,9 @@ struct SoundCloudLinkScreen: View {
 
     private var header: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "cloud")
-                .font(.title3)
-                .foregroundStyle(SourceTint.soundcloud.icon)
-                .frame(width: ComponentSize.sourceIconTile, height: ComponentSize.sourceIconTile)
-                .background(SourceTint.soundcloud.background, in: .rect(cornerRadius: Radius.control))
-                .accessibilityHidden(true)
+            SourceIconTile(systemImage: "cloud.fill", fill: SourceTint.soundcloud.fill)
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Paste a SoundCloud link")
-                    .font(.sectionHeader)
-                    .foregroundStyle(Palette.text)
-                    .accessibilityAddTraits(.isHeader)
+                DisplayHeadline(text: "Paste a SoundCloud link", font: .sectionHeader)
                 Text("Copy a track's link in SoundCloud (Share → Copy link), then paste it here.")
                     .font(.detail)
                     .foregroundStyle(Palette.textSecondary)

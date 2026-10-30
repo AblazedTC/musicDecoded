@@ -17,15 +17,18 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.lg) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // The violet hero block runs edge to edge; the ink body below is padded.
                     BrandHeader(onSearch: onShowLibrary, onProfile: onShowSettings)
-                    recentSection
-                    transcribeSection
-                    TipCard()
+                    VStack(alignment: .leading, spacing: Spacing.xxl) {
+                        recentSection
+                        transcribeSection
+                        TipCard()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.xl)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Spacing.md)
-                .padding(.vertical, Spacing.lg)
             }
             .background(Palette.canvas)
             .miniPlayerInset { path.append(PlayerRoute(trackId: $0)) }
@@ -45,8 +48,8 @@ struct HomeView: View {
     }
 
     private var recentSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            SectionHeader(title: "Recently Decoded", actionTitle: "See all", action: onShowLibrary)
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            SectionHeader(title: "Recently Decoded", numeral: "01", actionTitle: "See all", action: onShowLibrary)
             if recent.isEmpty {
                 Text("Nothing decoded yet. Pick a source below to decode your first song.")
                     .font(.detail)
@@ -62,7 +65,7 @@ struct HomeView: View {
             #if DEBUG
             NavigationLink(value: PlayerRoute(trackId: DebugFixtures.sunnyDays)) {
                 Label("Open Sunny Days fixture (Debug)", systemImage: "ladybug")
-                    .font(.detail.weight(.semibold))
+                    .font(.labelSmall)
                     .foregroundStyle(Palette.secondary)
                     .frame(minHeight: ComponentSize.minTouchTarget)
             }
@@ -72,10 +75,10 @@ struct HomeView: View {
 
     private var transcribeSection: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            SectionHeader(title: "Transcribe Music")
+            SectionHeader(title: "Transcribe Music", numeral: "02")
             if dynamicTypeSize.isAccessibilitySize {
                 // One column, so large titles and descriptions wrap instead of clipping.
-                VStack(spacing: Spacing.sm) {
+                VStack(spacing: Spacing.md) {
                     filesCard
                     mediaLibraryCard
                     youtubeCard
@@ -84,7 +87,8 @@ struct HomeView: View {
                     }
                 }
             } else {
-                Grid(horizontalSpacing: Spacing.sm, verticalSpacing: Spacing.sm) {
+                // md gaps leave room for the hard shadows and the alternating tilt.
+                Grid(horizontalSpacing: Spacing.md, verticalSpacing: Spacing.md) {
                     GridRow {
                         filesCard
                         mediaLibraryCard
@@ -112,25 +116,25 @@ struct HomeView: View {
     }
 
     private var filesCard: some View {
-        SourceCard(title: "Files", subtitle: "Import audio from this device", systemImage: "folder", tint: .files) {
+        SourceCard(title: "Files", subtitle: "Import audio from this device", systemImage: "folder.fill", tint: .files, tilt: -Tilt.listCard) {
             sourceRoute = .files
         }
     }
 
     private var mediaLibraryCard: some View {
-        SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary) {
+        SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary, tilt: Tilt.listCard) {
             sourceRoute = .mediaLibrary
         }
     }
 
     private var youtubeCard: some View {
-        SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle", tint: .youtube) {
+        SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle.fill", tint: .youtube, tilt: Tilt.listCard) {
             path.append(YouTubeRoute.search)
         }
     }
 
     private var soundcloudCard: some View {
-        SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud", tint: .soundcloud) {
+        SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud.fill", tint: .soundcloud, tilt: -Tilt.listCard) {
             path.append(SoundCloudRoute())
         }
     }

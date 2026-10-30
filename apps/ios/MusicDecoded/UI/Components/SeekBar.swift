@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The seek bar from DESIGN.md §3.7: a thin `surfaceSoft` track, a `primary` fill and a round
-/// thumb. Tap or drag anywhere on its 44pt-tall area. VoiceOver, Voice Control and Switch Control
+/// The seek bar from DESIGN.md §3.7: a thin square-ended `surfaceRaised` track, a lime fill and a
+/// square lime thumb with a black border. Tap or drag anywhere on its 44pt-tall area. VoiceOver, Voice Control and Switch Control
 /// get a native `Slider` through `accessibilityRepresentation`, so it stays adjustable.
 struct SeekBar: View {
     @Binding var value: Double
@@ -19,15 +19,16 @@ struct SeekBar: View {
             let usable = max(proxy.size.width - thumb, 0)
             let offset = usable * Self.fraction(value, in: range)
             ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(Palette.surfaceSoft)
+                Rectangle()
+                    .fill(Palette.surfaceRaised)
                     .frame(height: ComponentSize.seekTrackHeight)
-                Capsule()
+                Rectangle()
                     .fill(Palette.primary)
                     .frame(width: offset + thumb / 2, height: ComponentSize.seekTrackHeight)
-                Circle()
+                Rectangle()
                     .fill(Palette.primary)
                     .frame(width: thumb, height: thumb)
+                    .squareBorder(Palette.border, width: BorderWidth.separator)
                     .offset(x: offset)
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -71,6 +72,6 @@ struct SeekBar: View {
 #Preview {
     SeekBar(value: .constant(64), range: 0...200, valueDescription: "1:04 of 3:20")
         .padding(Spacing.md)
-        .background(Palette.transportBackground)
+        .background(Palette.surface)
         .preferredColorScheme(.dark)
 }

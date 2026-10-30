@@ -8,7 +8,8 @@ struct VideoResultRow: View {
         HStack(alignment: .top, spacing: Spacing.sm) {
             VideoThumbnail(url: video.thumbnailUrl)
                 .frame(width: ComponentSize.videoThumbnailWidth, height: ComponentSize.videoThumbnailHeight)
-                .clipShape(.rect(cornerRadius: Radius.chip))
+                .clipShape(.rect)
+                .squareBorder(Palette.borderOnInk)
                 .overlay(alignment: .bottomTrailing) {
                     if let duration = video.durationText {
                         DurationBadge(text: duration)
@@ -48,7 +49,7 @@ struct VideoThumbnail: View {
                     .scaledToFill()
             } else {
                 ZStack {
-                    Palette.surfaceSoft
+                    Palette.surfaceRaised
                     Image(systemName: "play.rectangle")
                         .foregroundStyle(Palette.textMuted)
                 }
@@ -64,11 +65,11 @@ struct DurationBadge: View {
 
     var body: some View {
         Text(text)
-            .font(.overline.weight(.semibold))
+            .font(.overline)
             .monospacedDigit()
-            .foregroundStyle(Palette.text)
+            .foregroundStyle(Palette.onColor)
             .padding(.horizontal, Spacing.xxs)
-            .background(Palette.ink.opacity(0.8), in: .rect(cornerRadius: Radius.badge))
+            .background(Palette.yellow, in: .rect)
             .accessibilityLabel("Duration \(text)")
     }
 }

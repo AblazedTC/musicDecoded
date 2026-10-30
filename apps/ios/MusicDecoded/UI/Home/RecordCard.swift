@@ -1,42 +1,34 @@
 import SwiftUI
 
-/// The full-width "Record Audio" card under the source grid.
+/// The full-width "Record Audio" card under the source grid: a pink block (the Record source fill)
+/// with ink text, black border and a violet hard shadow.
 struct RecordCard: View {
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "mic")
-                    .font(.title3)
-                    .foregroundStyle(SourceTint.record.icon)
-                    .frame(width: ComponentSize.sourceIconTile, height: ComponentSize.sourceIconTile)
-                    .background(SourceTint.record.background, in: .rect(cornerRadius: Radius.control))
-                    .accessibilityHidden(true)
+                SourceIconTile(systemImage: "mic.fill", fill: Palette.white)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Record Audio")
                         .font(.rowTitle)
-                        .foregroundStyle(Palette.text)
+                        .textCase(.uppercase)
                     Text("Capture a live performance")
                         .font(.detail)
-                        .foregroundStyle(Palette.textSecondary)
                 }
+                .foregroundStyle(Palette.onColor)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Palette.textMuted)
+                Image(systemName: "arrow.right")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(Palette.onColor)
                     .accessibilityHidden(true)
             }
             .padding(Spacing.md)
-            .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-            }
             .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BlockButtonStyle(fill: SourceTint.record.fill, shadow: HardShadow.md, shadowColor: Palette.violet))
     }
 }
 

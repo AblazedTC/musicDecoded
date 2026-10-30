@@ -58,6 +58,7 @@ struct MusicDecodedApp: App {
                 onJobComplete: { sync.requestSync() }
             )
         )
+        WrappedAppearance.apply()
     }
 
     var body: some Scene {

@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Full-width outlined button for the alternative action ("Choose another file").
+/// Full-width secondary action ("Choose another file"): `surface` fill, white text, white-20% 3pt
+/// border, no shadow.
 struct SecondaryButton: View {
     let title: String
     var systemImage: String?
@@ -17,17 +18,14 @@ struct SecondaryButton: View {
                 }
                 Text(title)
             }
-            .font(.body.weight(.semibold))
-            .foregroundStyle(Palette.text)
+            .font(.label)
+            .foregroundStyle(isEnabled ? Palette.text : Palette.textMuted)
+            .padding(.horizontal, Spacing.md)
             .frame(maxWidth: .infinity, minHeight: ComponentSize.primaryButtonHeight)
-            .background(Palette.surface, in: .rect(cornerRadius: Radius.button))
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.button).strokeBorder(Palette.line, lineWidth: 1)
-            }
-            .opacity(isEnabled ? 1 : 0.5)
+            .inkCard()
             .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PushButtonStyle())
     }
 }
 

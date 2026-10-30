@@ -22,6 +22,8 @@ struct SongRow<Actions: View>: View {
     let onRetry: (() -> Void)?
     private let hasActions: Bool
     private let actions: Actions
+    /// A big faint number behind the row ("01"), set with `numeral(_:)`. Decorative.
+    private var numeralText: String?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Text wraps at accessibility sizes instead of truncating.
@@ -98,7 +100,7 @@ struct SongRow<Actions: View>: View {
             if status == .failed, let onRetry {
                 Button(action: onRetry) {
                     Text("Retry")
-                        .font(.detail.weight(.semibold))
+                        .font(.labelSmall)
                         .foregroundStyle(Palette.primary)
                         .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
                         .contentShape(.rect)
@@ -112,7 +114,7 @@ struct SongRow<Actions: View>: View {
                     actions
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.body.weight(.semibold))
+                        .font(.label)
                         .foregroundStyle(Palette.textSecondary)
                         .frame(width: ComponentSize.minTouchTarget, height: ComponentSize.minTouchTarget)
                         .contentShape(.rect)
@@ -121,7 +123,21 @@ struct SongRow<Actions: View>: View {
             }
         }
         .padding(Spacing.xs)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.row))
+        .background(alignment: .trailing) {
+            if let numeralText {
+                BigNumeral(text: numeralText, size: 64)
+                    .padding(.trailing, Spacing.xxxl)
+            }
+        }
+        .clipped()
+        .background(Palette.surface, in: .rect)
+    }
+
+    /// Draws `text` ("01") big and faint behind the row.
+    func numeral(_ text: String?) -> Self {
+        var copy = self
+        copy.numeralText = text
+        return copy
     }
 
     @ViewBuilder
@@ -133,7 +149,7 @@ struct SongRow<Actions: View>: View {
                     offlineBadge
                 }
                 Text(metadata)
-                    .font(.overline)
+                    .font(.detail)
                     .monospacedDigit()
                     .foregroundStyle(Palette.textMuted)
                     .lineLimit(lines)
@@ -141,17 +157,15 @@ struct SongRow<Actions: View>: View {
         case .analyzing(let progress):
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(progress.map { "Analyzing · \($0)%" } ?? "Analyzing…")
-                    .font(.overline.weight(.semibold))
+                    .font(.overline)
                     .monospacedDigit()
                     .foregroundStyle(Palette.primary)
                     .lineLimit(lines)
-                ProgressView(value: Double(progress ?? 0), total: 100)
-                    .tint(Palette.primary)
-                    .accessibilityHidden(true)
+                WrappedProgressBar(fraction: Double(progress ?? 0) / 100)
             }
         case .failed:
             Text("Failed")
-                .font(.overline.weight(.semibold))
+                .font(.overline)
                 .foregroundStyle(Palette.record)
         }
     }
@@ -169,8 +183,9 @@ struct SongRow<Actions: View>: View {
                 InitialArt(title: title)
             }
             .frame(width: ComponentSize.songArt, height: ComponentSize.songArt)
-            .background(Palette.surfaceSoft)
-            .clipShape(.rect(cornerRadius: Radius.art))
+            .background(Palette.surfaceRaised)
+            .clipShape(.rect)
+            .squareBorder(Palette.borderOnInk)
             .accessibilityHidden(true)
         } else {
             InitialArt(title: title)
@@ -180,9 +195,10 @@ struct SongRow<Actions: View>: View {
     private var offlineBadge: some View {
         Image(systemName: "arrow.down")
             .font(.caption2.weight(.bold))
-            .foregroundStyle(Palette.primary)
-            .padding(Spacing.xxs)
-            .background(Palette.primarySoft, in: .circle)
+            .foregroundStyle(Palette.onColor)
+            .padding(Spacing.xxs / 2)
+            .block(Palette.yellow, shadow: HardShadow.sm)
+            .tilt(Tilt.sticker)
             .accessibilityLabel("Available offline")
     }
 }

@@ -25,7 +25,7 @@ struct VideoPanel: View {
             YouTubePlayerView(controller: controller)
                 .aspectRatio(16 / 9, contentMode: .fit)
                 .frame(width: isVisible ? nil : 1, height: isVisible ? nil : 1)
-                .clipShape(.rect(cornerRadius: Radius.chip))
+                .clipShape(.rect)
                 .opacity(isVisible ? 1 : 0.01)
                 .allowsHitTesting(isVisible)
                 .accessibilityHidden(isVisible == false)
@@ -33,7 +33,7 @@ struct VideoPanel: View {
 
             if isVisible {
                 Label("Authorized embedded playback", systemImage: "checkmark.shield")
-                    .font(.overline.weight(.semibold))
+                    .font(.overline)
                     .foregroundStyle(Palette.textSecondary)
             }
         }

@@ -2,7 +2,8 @@ import SwiftUI
 
 /// The one error state for anything that talks to the server (T-503i): icon, title, message and
 /// an optional "Try again". VoiceOver announces it when it appears. The daily plan limit adds a
-/// "Go Pro" action that opens the paywall (T-602i). Same copy as Android's ErrorState.
+/// "Go Pro" action that opens the paywall (T-602i). Same copy as Android's ErrorState: a `surface`
+/// card with an orange border and orange hard shadow.
 struct ErrorState: View {
     let message: String
     var title: String?
@@ -13,7 +14,7 @@ struct ErrorState: View {
 
     var body: some View {
         let resolvedTitle = title ?? Self.title(for: message)
-        VStack(alignment: .leading, spacing: Spacing.xs) {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
                 Image(systemName: Self.isOffline(message) ? "wifi.slash" : "exclamationmark.circle")
                     .foregroundStyle(Palette.record)
@@ -33,22 +34,12 @@ struct ErrorState: View {
                 }
             }
             if let onRetry {
-                Button(action: onRetry) {
-                    Label("Try again", systemImage: "arrow.clockwise")
-                        .font(.detail.weight(.semibold))
-                        .foregroundStyle(Palette.primary)
-                        .frame(minHeight: ComponentSize.minTouchTarget)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
+                SecondaryButton(title: "Try again", systemImage: "arrow.clockwise", action: onRetry)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .block(Palette.surface, shadow: HardShadow.md, shadowColor: Palette.orange, border: Palette.orange)
         .accessibilityElement(children: .contain)
         .onAppear {
             AccessibilityNotification.Announcement("\(resolvedTitle). \(message)").post()
@@ -68,7 +59,7 @@ struct ErrorState: View {
 }
 
 #Preview {
-    VStack(spacing: Spacing.sm) {
+    VStack(spacing: Spacing.lg) {
         ErrorState(message: Transcription.offlineMessage, onRetry: {})
         ErrorState(message: Transcription.rateLimitedMessage)
             .environment(\.openPaywall, OpenPaywallAction {})

@@ -58,13 +58,14 @@ struct MiniPlayer: View {
                 .padding(.leading, Spacing.xs)
                 .padding(.vertical, Spacing.xxs)
             }
-            .background(Palette.miniPlayerBackground, in: .rect(cornerRadius: Radius.row))
-            .clipShape(.rect(cornerRadius: Radius.row))
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Palette.transportBorder, lineWidth: 1)
-            }
-            .padding(.horizontal, Spacing.xs)
-            .padding(.vertical, Spacing.xxs)
+            .background(Palette.surface, in: .rect)
+            .clipShape(.rect)
+            .squareBorder(Palette.border)
+            .hardShadow(HardShadow.sm, color: Palette.violet)
+            .padding(.leading, Spacing.xs)
+            .padding(.trailing, Spacing.xs + HardShadow.sm)
+            .padding(.top, Spacing.xxs)
+            .padding(.bottom, Spacing.xxs + HardShadow.sm)
             // Keeps the progress line and play/pause icon current while the Player isn't on screen.
             .task(id: track.trackId) {
                 while Task.isCancelled == false {
@@ -97,7 +98,7 @@ private struct MiniPlayerProgress: View {
         let fraction = durationSec > 0 ? min(max(nowPlaying.position / durationSec, 0), 1) : 0
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
-                Palette.surfaceSoft
+                Palette.surfaceRaised
                 Palette.primary
                     .frame(width: proxy.size.width * fraction)
             }

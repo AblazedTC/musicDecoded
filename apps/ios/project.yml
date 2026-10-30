@@ -53,6 +53,12 @@ targets:
         CFBundleDisplayName: MusicDecoded
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
+        # Bundled "Wrapped" faces (DESIGN.md §1), SIL OFL: Resources/Licenses.
+        UIAppFonts:
+          - ArchivoBlack-Regular.ttf
+          - SpaceGrotesk-Regular.ttf
+          - SpaceGrotesk-Medium.ttf
+          - SpaceGrotesk-Bold.ttf
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         # Landscape gives the Piano learning view a wider keyboard (DESIGN.md §3.8).

@@ -12,19 +12,18 @@ struct MigrationView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: Spacing.md) {
-                Image(systemName: "icloud.and.arrow.up")
-                    .font(.title)
-                    .foregroundStyle(Palette.primary)
+                Image(systemName: "icloud.and.arrow.up.fill")
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(Palette.onColor)
                     .frame(width: ComponentSize.recordButton, height: ComponentSize.recordButton)
-                    .background(Palette.primarySoft, in: .rect(cornerRadius: Radius.card))
+                    .block(Palette.yellow, shadow: HardShadow.md, shadowColor: Palette.violet)
+                    .tilt(Tilt.sticker)
+                    .padding(.bottom, Spacing.xs)
                     .accessibilityHidden(true)
-                Text("Bring your music with you")
-                    .font(.sectionHeader)
-                    .foregroundStyle(Palette.text)
+                DisplayHeadline(text: "Bring your music with you", font: .sectionHeader)
                     .multilineTextAlignment(.center)
-                    .accessibilityAddTraits(.isHeader)
                 Text("Move local music to your account.")
-                    .font(.detail)
+                    .font(.bodyText)
                     .foregroundStyle(Palette.textSecondary)
 
                 if let summary {
@@ -96,10 +95,7 @@ private struct CheckRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.row))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.row).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .inkCard()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(title), \(subtitle), \(isChecked ? "included" : "not included")")
     }

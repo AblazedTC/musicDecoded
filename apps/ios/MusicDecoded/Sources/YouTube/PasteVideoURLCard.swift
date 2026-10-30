@@ -11,12 +11,7 @@ struct PasteVideoURLCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
             HStack(spacing: Spacing.sm) {
-                Image(systemName: "link")
-                    .font(.title3)
-                    .foregroundStyle(SourceTint.youtube.icon)
-                    .frame(width: ComponentSize.sourceIconTile, height: ComponentSize.sourceIconTile)
-                    .background(SourceTint.youtube.background, in: .rect(cornerRadius: Radius.control))
-                    .accessibilityHidden(true)
+                SourceIconTile(systemImage: "link", fill: SourceTint.youtube.fill)
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text("Paste a video URL")
                         .font(.rowTitle)
@@ -29,7 +24,7 @@ struct PasteVideoURLCard: View {
 
             HStack(spacing: Spacing.xs) {
                 TextField("https://youtu.be/...", text: $text)
-                    .font(.subheadline)
+                    .font(.bodyText)
                     .foregroundStyle(Palette.text)
                     .tint(Palette.primary)
                     .keyboardType(.URL)
@@ -40,12 +35,9 @@ struct PasteVideoURLCard: View {
                     .onSubmit(open)
                     .padding(.horizontal, Spacing.sm)
                     .frame(minHeight: ComponentSize.searchFieldHeight)
-                    .background(Palette.canvas, in: .rect(cornerRadius: Radius.control))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.line, lineWidth: 1)
-                    }
+                    .block(Palette.canvas, border: Palette.borderOnInk)
                 Button("Open", action: open)
-                    .font(.detail.weight(.semibold))
+                    .font(.labelSmall)
                     .foregroundStyle(Palette.primary)
                     .frame(minWidth: ComponentSize.minTouchTarget, minHeight: ComponentSize.minTouchTarget)
                     .disabled(text.isEmpty)
@@ -58,10 +50,7 @@ struct PasteVideoURLCard: View {
             }
         }
         .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .inkCard(shadow: HardShadow.lg, shadowColor: Palette.orange)
         .onChange(of: text) {
             showInvalid = false
         }

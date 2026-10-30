@@ -12,13 +12,14 @@ struct ControlChip: View {
         Button(action: action) {
             ControlChipLabel(title: title, value: value)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PushButtonStyle())
         .accessibilityLabel(title)
         .accessibilityValue(ChordDisplay.spoken(value))
     }
 }
 
-/// The look of a `ControlChip`, for use as the label of a `Menu` (e.g. Transpose −6…+6).
+/// The look of a `ControlChip`, for use as the label of a `Menu` (e.g. Transpose −6…+6): a square
+/// `surface` chip with a 3pt `line` border, a caption and the value.
 struct ControlChipLabel: View {
     let title: String
     let value: String
@@ -29,7 +30,8 @@ struct ControlChipLabel: View {
         HStack(spacing: Spacing.xxs) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
-                    .overlineStyle()
+                    .chipCaptionStyle()
+                    .lineLimit(1)
                 Text(value)
                     .font(.rowTitle)
                     .monospacedDigit()
@@ -38,16 +40,13 @@ struct ControlChipLabel: View {
             }
             Spacer(minLength: Spacing.xxs)
             Image(systemName: "chevron.down")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(Palette.textSecondary)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(Palette.lime)
                 .accessibilityHidden(true)
         }
         .padding(Spacing.sm)
         .frame(maxWidth: .infinity, minHeight: ComponentSize.minTouchTarget)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.control))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .inkCard()
         .contentShape(.rect)
     }
 }

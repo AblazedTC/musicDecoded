@@ -49,11 +49,11 @@ struct ImportSheet: View {
             .padding(.horizontal, Spacing.md)
             .padding(.vertical, Spacing.xl)
         }
-        .background(Palette.transportBackground)
+        .background(Palette.surface)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationCornerRadius(Radius.sheet)
-        .presentationBackground(Palette.transportBackground)
+        .presentationCornerRadius(0)
+        .presentationBackground(Palette.surface)
         .interactiveDismissDisabled(model.isStarting)
     }
 
@@ -74,12 +74,7 @@ private struct FileHeader: View {
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
-            Image(systemName: "music.note")
-                .font(.title3)
-                .foregroundStyle(SourceTint.files.icon)
-                .frame(width: ComponentSize.sourceIconTile, height: ComponentSize.sourceIconTile)
-                .background(SourceTint.files.background, in: .rect(cornerRadius: Radius.control))
-                .accessibilityHidden(true)
+            SourceIconTile(systemImage: "music.note", fill: SourceTint.files.fill)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(draft.fileName)

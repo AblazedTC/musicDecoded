@@ -1,57 +1,64 @@
 import SwiftUI
 
-/// A card in the "Transcribe Music" grid: icon tile, title and a one-line description.
+/// A card in the "Transcribe Music" grid: a color block in the source's fill (ink text, black
+/// border, violet hard shadow on ink) with a white icon tile, the title and a one-line description.
+/// Optionally tilted like a sticker.
 struct SourceCard: View {
     let title: String
     let subtitle: String
     let systemImage: String
     let tint: SourceTint
+    var tilt: Double = 0
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
-                Image(systemName: systemImage)
-                    .font(.title3)
-                    .foregroundStyle(tint.icon)
-                    .frame(width: ComponentSize.sourceIconTile, height: ComponentSize.sourceIconTile)
-                    .background(tint.background, in: .rect(cornerRadius: Radius.control))
-                    .accessibilityHidden(true)
+                SourceIconTile(systemImage: systemImage, fill: Palette.white)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(title)
                         .font(.rowTitle)
-                        .foregroundStyle(Palette.text)
+                        .textCase(.uppercase)
                     Text(subtitle)
                         .font(.detail)
-                        .foregroundStyle(Palette.textSecondary)
                         .multilineTextAlignment(.leading)
                 }
+                .foregroundStyle(Palette.onColor)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding(Spacing.md)
-            .background(
-                LinearGradient(colors: [Palette.surfaceRaised, Palette.surface], startPoint: .top, endPoint: .bottom),
-                in: .rect(cornerRadius: Radius.card)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-            }
             .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(BlockButtonStyle(fill: tint.fill, shadow: HardShadow.md, shadowColor: Palette.violet))
+        .tilt(tilt)
+    }
+}
+
+/// A source's icon tile: an ink icon on the source fill (or white) with a 3pt black border.
+struct SourceIconTile: View {
+    let systemImage: String
+    var fill: Color
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.title3.weight(.bold))
+            .foregroundStyle(Palette.onColor)
+            .frame(width: ComponentSize.sourceIconTile, height: ComponentSize.sourceIconTile)
+            .block(fill)
+            .accessibilityHidden(true)
     }
 }
 
 #Preview {
-    Grid(horizontalSpacing: Spacing.xs, verticalSpacing: Spacing.xs) {
+    Grid(horizontalSpacing: Spacing.md, verticalSpacing: Spacing.md) {
         GridRow {
-            SourceCard(title: "Files", subtitle: "Import audio from this device", systemImage: "folder", tint: .files) {}
-            SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary) {}
+            SourceCard(title: "Files", subtitle: "Import audio from this device", systemImage: "folder.fill", tint: .files, tilt: -Tilt.listCard) {}
+            SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary, tilt: Tilt.listCard) {}
         }
         GridRow {
-            SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle", tint: .youtube) {}
-            SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud", tint: .soundcloud) {}
+            SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle.fill", tint: .youtube, tilt: Tilt.listCard) {}
+            SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud.fill", tint: .soundcloud, tilt: -Tilt.listCard) {}
         }
     }
     .padding(Spacing.md)

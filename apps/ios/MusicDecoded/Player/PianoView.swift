@@ -16,19 +16,24 @@ struct PianoView: View {
     var body: some View {
         let isLandscape = verticalSizeClass == .compact
         ScrollView {
-            VStack(spacing: Spacing.md) {
+            VStack(spacing: Spacing.lg) {
                 PianoHeadCard(model: model)
                     .padding(.horizontal, Spacing.md)
                 PlayerSeekBar(model: model)
                     .padding(.horizontal, Spacing.md)
+                // Inset by the gutter so the frame's hard shadow shows (DESIGN.md §1: lime shadowLg).
                 LearningKeyboard(model: model, octaves: isLandscape ? Self.landscapeOctaves : Self.portraitOctaves)
+                    .squareBorder(Palette.border)
+                    .hardShadow(HardShadow.lg, color: Palette.lime)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.trailing, HardShadow.lg)
                 ProgressionStrip(model: model)
                 LearningControls(model: model)
                     .padding(.horizontal, Spacing.md)
                 LearningTransport(model: model)
                 if isLandscape == false {
                     Text("Rotate your device for a wider keyboard")
-                        .font(.overline)
+                        .font(.detail)
                         .foregroundStyle(Palette.textMuted)
                 }
             }
@@ -71,8 +76,7 @@ private struct PianoHeadCard: View {
 
         HStack(alignment: .top, spacing: Spacing.md) {
             VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text("Current chord")
-                    .overlineStyle()
+                Eyebrow(text: "Current chord")
                 Text(currentName.isEmpty ? "—" : currentName)
                     .font(.currentChord)
                     .foregroundStyle(Palette.chord)
@@ -90,14 +94,14 @@ private struct PianoHeadCard: View {
 
             Rectangle()
                 .fill(Palette.line)
-                .frame(width: 1)
+                .frame(width: BorderWidth.separator)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text("Up next")
                     .overlineStyle()
                 Text(nextName.isEmpty ? "—" : nextName)
-                    .font(.sectionHeader)
+                    .font(.display(40, relativeTo: .title))
                     .foregroundStyle(Palette.text)
                     .lineLimit(1)
                 if let next {
@@ -114,10 +118,8 @@ private struct PianoHeadCard: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(Spacing.md)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.card))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card).strokeBorder(Palette.line, lineWidth: 1)
-        }
+        .block(Palette.surface, shadow: HardShadow.lg, shadowColor: Palette.pink)
+        .padding(.trailing, HardShadow.lg)
     }
 }
 
@@ -164,7 +166,7 @@ private struct ProgressionStrip: View {
             let current = model.chordIndex
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
-                    LazyHStack(spacing: Spacing.xs) {
+                    LazyHStack(spacing: Spacing.sm) {
                         ForEach(items) { item in
                             let chord = analysis.chords[item.id]
                             StripCard(
@@ -179,6 +181,8 @@ private struct ProgressionStrip: View {
                         }
                     }
                     .padding(.horizontal, Spacing.md)
+                    // Room for the current card's hard shadow inside the scroll view's clip.
+                    .padding(.bottom, HardShadow.sm)
                 }
                 .scrollIndicators(.hidden)
                 .onAppear {
@@ -223,19 +227,20 @@ private struct StripCard: View {
                     .font(.rowTitle)
                     .foregroundStyle(isCurrent ? Palette.onChord : Palette.chord)
                 Text(PlayerFormat.beats(beats))
-                    .font(.overline)
-                    .foregroundStyle(isCurrent ? Palette.onChord : Palette.textMuted)
+                    .font(.detail)
+                    .foregroundStyle(isCurrent ? Palette.textSecondaryOnLime : Palette.textSecondary)
             }
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, Spacing.xs)
             .frame(minHeight: ComponentSize.minTouchTarget)
-            .background(isCurrent ? Palette.chord : Palette.surface, in: .rect(cornerRadius: Radius.chip))
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.chip)
-                    .strokeBorder(isCurrent ? Palette.chord : Palette.line, lineWidth: 1)
-            }
+            .block(
+                isCurrent ? Palette.chord : Palette.surface,
+                shadow: isCurrent ? HardShadow.sm : 0,
+                shadowColor: Palette.violet,
+                border: isCurrent ? Palette.border : Palette.borderOnInk
+            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PushButtonStyle())
         .accessibilityLabel("\(spokenName), \(PlayerFormat.beats(beats))")
         .accessibilityHint("Plays from this chord")
         .accessibilityAddTraits(isCurrent ? .isSelected : [])

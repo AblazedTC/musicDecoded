@@ -125,14 +125,14 @@ private struct YouTubeSearchContent: View {
             Button("Couldn't load more results. Retry") {
                 model.loadMore()
             }
-            .font(.detail.weight(.semibold))
+            .font(.labelSmall)
             .foregroundStyle(Palette.primary)
             .frame(maxWidth: .infinity, minHeight: ComponentSize.minTouchTarget)
         }
     }
 }
 
-/// The search field, with the emphasized (primary) border from the prototype.
+/// The search field: a `surface` input with a lime border and violet hard shadow.
 private struct YouTubeSearchField: View {
     @Binding var text: String
     var isFocused: FocusState<Bool>.Binding
@@ -141,10 +141,11 @@ private struct YouTubeSearchField: View {
     var body: some View {
         HStack(spacing: Spacing.xs) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(Palette.textMuted)
+                .fontWeight(.bold)
+                .foregroundStyle(Palette.primary)
                 .accessibilityHidden(true)
             TextField("Search songs on YouTube", text: $text)
-                .font(.subheadline)
+                .font(.bodyText)
                 .foregroundStyle(Palette.text)
                 .tint(Palette.primary)
                 .textInputAutocapitalization(.never)
@@ -163,10 +164,7 @@ private struct YouTubeSearchField: View {
         }
         .padding(.leading, Spacing.sm)
         .frame(minHeight: ComponentSize.searchFieldHeight)
-        .background(Palette.surface, in: .rect(cornerRadius: Radius.control))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.control).strokeBorder(Palette.primary, lineWidth: 1)
-        }
+        .block(Palette.surface, shadow: HardShadow.sm, shadowColor: Palette.violet, border: Palette.primary)
     }
 }
 

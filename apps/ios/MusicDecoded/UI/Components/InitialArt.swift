@@ -1,22 +1,23 @@
 import SwiftUI
 
-/// Placeholder artwork: the title's first letter on `surfaceSoft`, in `secondary`. The mini
-/// player, Processing and song rows without a thumbnail all use it, so a song looks the same
-/// everywhere (T-213).
+/// Placeholder artwork: the title's first letter in lime display type on a `surfaceRaised` square
+/// with a white-20% 3pt border. The mini player, Processing and song rows without a thumbnail all
+/// use it, so a song looks the same everywhere (T-213).
 struct InitialArt: View {
     let title: String
     var size: CGFloat = ComponentSize.songArt
-    var cornerRadius: CGFloat = Radius.art
-    var font: Font = .title3.weight(.semibold)
+    var font: Font = .display(24, relativeTo: .title3)
+    var border: Color = Palette.borderOnInk
 
     var body: some View {
         Text(Self.initial(of: title))
             .font(font)
-            .foregroundStyle(Palette.secondary)
+            .foregroundStyle(Palette.lime)
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .frame(width: size, height: size)
-            .background(Palette.surfaceSoft, in: .rect(cornerRadius: cornerRadius))
+            .background(Palette.surfaceRaised, in: .rect)
+            .squareBorder(border)
             .accessibilityHidden(true)
     }
 
