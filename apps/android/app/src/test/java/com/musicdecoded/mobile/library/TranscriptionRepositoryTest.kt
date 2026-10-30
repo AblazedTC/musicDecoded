@@ -338,4 +338,54 @@ class TranscriptionRepositoryTest {
         }
         assertNull(dao.get("track-1"))
     }
+
+    @Test fun soundCloudJobSendsTheUrlAndKeepsNoAudio() = runTest {
+        setUp()
+        server.pollResponses += job("complete", progress = 100)
+        val url = "https://soundcloud.com/artist/sunny-days"
+
+        val trackId = repository.startSoundCloud(url, "Sunny days")
+
+        assertEquals(0, server.count("POST", "/uploads"))
+        assertEquals("soundcloud", body("jobs")["source"]!!.jsonPrimitive.content)
+        assertEquals(url, body("jobs")["soundcloudUrl"]!!.jsonPrimitive.content)
+        assertNull(body("jobs")["videoId"])
+        val analyzing = dao.get(trackId)!!
+        assertEquals(Source.SOUNDCLOUD, analyzing.source)
+        assertEquals(url, analyzing.sourceRef)
+        assertEquals("Sunny days", analyzing.title)
+        assertNull(analyzing.localAudioPath) // PLAN.md R-1
+        assertEquals(listOf("track-1" to true), scheduled)
+
+        repository.poll(trackId)
+        assertEquals(LibraryStatus.READY, dao.get(trackId)!!.status)
+    }
+
+    @Test fun soundCloudRetryRequestsByUrlAgain() = runTest {
+        setUp()
+        server.pollResponses += job("failed", error = "Track unavailable")
+        val url = "https://soundcloud.com/artist/sunny-days"
+        val trackId = repository.startSoundCloud(url, "Sunny days")
+        repository.poll(trackId)
+
+        server.createJobBody = job("queued", jobId = "job-2")
+        repository.retry(trackId)
+
+        assertEquals(2, server.count("POST", "/jobs"))
+        assertEquals(url, body("jobs")["soundcloudUrl"]!!.jsonPrimitive.content)
+        assertEquals("job-2", dao.get(trackId)!!.jobId)
+    }
+
+    @Test fun soundCloudFeatureDisabledShowsAFriendlyMessage() = runTest {
+        setUp()
+        server.createJobStatus = HttpStatusCode.Forbidden
+        server.createJobBody = """{"code":"feature_disabled","message":"soundcloud is disabled"}"""
+        try {
+            repository.startSoundCloud("https://soundcloud.com/artist/sunny-days", "Sunny days")
+            fail("Expected TranscriptionException")
+        } catch (e: TranscriptionException) {
+            assertEquals(TranscriptionRepository.SOUNDCLOUD_DISABLED, e.message)
+        }
+        assertNull(dao.get("track-1"))
+    }
 }

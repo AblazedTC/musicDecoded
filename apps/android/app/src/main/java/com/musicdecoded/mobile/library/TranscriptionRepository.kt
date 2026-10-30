@@ -125,6 +125,27 @@ class TranscriptionRepository(
         job.trackId
     }
 
+    /**
+     * Requests the analysis of a SoundCloud track (T-502a): no upload, the worker fetches the audio
+     * from [url]. Same LibraryItem + polling as [startYouTube]; no local audio is kept (PLAN.md R-1).
+     * A server with SoundCloud off answers 403 `feature_disabled` ([SOUNDCLOUD_DISABLED]).
+     */
+    suspend fun startSoundCloud(url: String, title: String): String = userFacing {
+        val job = auth.authorized { api.createJob(it, soundCloudJob(url)) }
+        val now = clock()
+        val existing = dao.get(job.trackId)
+        val item = (existing ?: LibraryItem(
+            trackId = job.trackId,
+            title = title,
+            source = Source.SOUNDCLOUD,
+            createdAt = now,
+            updatedAt = now,
+            status = LibraryStatus.ANALYZING,
+        )).copy(sourceRef = url, deleted = false)
+        begin(item, job)
+        job.trackId
+    }
+
     /** Requests a new analysis for a failed (or re-analyzed) item, reusing its upload when possible. */
     suspend fun retry(trackId: String): Unit = userFacing {
         val item = checkNotNull(dao.get(trackId)) { "Unknown track" }
@@ -132,6 +153,10 @@ class TranscriptionRepository(
             if (item.source == Source.YOUTUBE) {
                 val videoId = item.sourceRef ?: throw TranscriptionException(GENERIC)
                 return@userFacing begin(item, auth.authorized { api.createJob(it, youTubeJob(videoId)) })
+            }
+            if (item.source == Source.SOUNDCLOUD) {
+                val url = item.sourceRef ?: throw TranscriptionException(GENERIC)
+                return@userFacing begin(item, auth.authorized { api.createJob(it, soundCloudJob(url)) })
             }
             val uploadId = item.audioUploadId ?: upload(localAudio(item))
             val job = try {
@@ -213,6 +238,8 @@ class TranscriptionRepository(
 
     private fun youTubeJob(videoId: String) = JobRequest(Source.YOUTUBE, videoId = videoId)
 
+    private fun soundCloudJob(url: String) = JobRequest(Source.SOUNDCLOUD, soundcloudUrl = url)
+
     private suspend fun createJob(item: LibraryItem, uploadId: String): Job =
         auth.authorized { api.createJob(it, JobRequest(item.source, uploadId = uploadId, title = item.title)) }
 
@@ -270,6 +297,7 @@ class TranscriptionRepository(
         const val OFFLINE = "Couldn't reach MusicDecoded. Check your connection and try again."
         const val ANALYSIS_FAILED = "We couldn't decode this audio. Try again."
         const val GENERIC = "Something went wrong. Try again."
+        const val SOUNDCLOUD_DISABLED = "SoundCloud links aren't available right now. Try another source."
 
         private val TRACK_ID = Regex("[A-Za-z0-9_-]+")
 
@@ -290,6 +318,8 @@ class TranscriptionRepository(
             is ApiException -> when {
                 e.error.code == "rate_limited" || e.status == 429 -> RATE_LIMITED
                 e.error.code == "too_large" || e.status == 413 -> TOO_LARGE
+                // Only `POST /jobs` with source soundcloud answers this (openapi).
+                e.error.code == "feature_disabled" -> SOUNDCLOUD_DISABLED
                 else -> e.message ?: GENERIC
             }
             is IOException -> OFFLINE

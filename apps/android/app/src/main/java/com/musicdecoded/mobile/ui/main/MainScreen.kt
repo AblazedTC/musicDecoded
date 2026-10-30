@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -32,6 +33,8 @@ import com.musicdecoded.mobile.sources.ImportFrom
 import com.musicdecoded.mobile.sources.navigateToImport
 import com.musicdecoded.mobile.sources.navigateToRecorder
 import com.musicdecoded.mobile.sources.sourceRoutes
+import com.musicdecoded.mobile.sources.soundcloud.SoundCloudRoutes
+import com.musicdecoded.mobile.sources.soundcloud.soundCloudRoute
 import com.musicdecoded.mobile.sources.youtube.YouTubeRoutes
 import com.musicdecoded.mobile.sources.youtube.youTubeRoutes
 import com.musicdecoded.mobile.ui.auth.AccountRoutes
@@ -52,8 +55,15 @@ import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
  * player sits above the bar on Home and Library while [NowPlaying] has a track.
  */
 @Composable
-fun MainScreen() {
+fun MainScreen(sharedText: String? = null, onSharedTextHandled: () -> Unit = {}) {
     val navController = rememberNavController()
+    // Text shared to the app (share sheet, T-502a) opens the SoundCloud link dialog prefilled.
+    LaunchedEffect(sharedText) {
+        if (sharedText != null) {
+            navController.navigate(SoundCloudRoutes.link(sharedText))
+            onSharedTextHandled()
+        }
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentTab = AppTab.entries.firstOrNull { it.route == backStackEntry?.destination?.route }
     val nowPlaying = (LocalContext.current.applicationContext as MusicDecodedApplication).nowPlaying
@@ -104,6 +114,7 @@ fun MainScreen() {
             // After the job starts, the import sheet / recorder is replaced by Processing.
             sourceRoutes(navController, onDecodeStarted = navController::navigateToProcessing)
             processingDestination(navController)
+            soundCloudRoute(navController, onDecodeStarted = navController::navigateToProcessing)
             youTubeRoutes(
                 navController,
                 onDecodeStarted = navController::navigateToProcessing,
@@ -136,6 +147,7 @@ private fun homeNavigation(navController: NavHostController) = HomeNavigation(
     onFiles = { navController.navigateToImport(ImportFrom.FILES) },
     onMediaLibrary = { navController.navigateToImport(ImportFrom.MEDIA_LIBRARY) },
     onYouTube = { navController.navigate(YouTubeRoutes.SEARCH) },
+    onSoundCloud = { navController.navigate(SoundCloudRoutes.link()) },
     onRecord = { navController.navigateToRecorder() },
     onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) },
     onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },

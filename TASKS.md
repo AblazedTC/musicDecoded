@@ -350,6 +350,7 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
   - [ ] Import sheet presented over Home, not an empty screen
   - [ ] Media Library opens a proper audio picker (not the ringtone-style chooser) where the platform allows
   - [ ] Delete-while-playing clears the mini player (logic tested; confirm on device)
+- Notes (android): done. Player ⋯ (Favorite / Re-analyze → Processing / Delete with confirm → back; PlayerViewModel.exit, tested). Seek bar: Slider with a 4dp rounded Canvas track + 14dp round thumb. ui/components/SongArt (thumbnail, else initial) shared by rows, mini player and Processing. Import is a full-screen nav `dialog` with its own bottom sheet over dimmed Home. Media Library: ACTION_OPEN_DOCUMENT with EXTRA_INITIAL_URI = media documents `audio_root` (API 26+); an in-app MediaStore list was rejected (needs READ_MEDIA_AUDIO/READ_EXTERNAL_STORAGE; the Photo Picker has no audio). Delete still dismisses NowPlaying (SongActions).
 
 ---
 
@@ -459,14 +460,20 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Goal: The product owner decides the store-build value of `offlineStreamAudio`. Agents must not decide this.
 
 ### T-502a / T-502i SoundCloud link source
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-302
+- Lane: android / ios · Status: android done, ios todo · Owner: claude (android) · Deps: T-302
 - Acceptance:
   - [ ] Paste/share-sheet a SoundCloud URL → `soundcloud` job; hidden unless `soundcloudEnabled`
+- Notes (android): done. sources/soundcloud: SoundCloudUrl.extract (first soundcloud.com / m. / www. / on.soundcloud.com track link in any text, query/fragment dropped, profiles rejected; SoundCloudUrlTest), a nav `dialog` "soundcloud?text=" from the Home card (shown only when soundcloudEnabled) and from ACTION_SEND text/plain (MainActivity singleTop + onNewIntent) → TranscriptionRepository.startSoundCloud (sourceRef = URL, no local audio; retry re-requests by URL) → Processing. 403 feature_disabled → SOUNDCLOUD_DISABLED copy; config false also disables the dialog. Not verified against a live SoundCloud-enabled worker.
 
 ### T-503a / T-503i Accessibility + error states pass
-- Lane: android / ios · Status: todo · Owner: — · Deps: M2–M4
+- Lane: android / ios · Status: android done, ios todo · Owner: claude (android) · Deps: M2–M4
 - Acceptance:
   - [ ] Screen reader labels on all controls, dynamic type, contrast ≥ 4.5:1, and a network-error state on every screen
+- Notes (android): done. Headings (page/section/player title/NOW PLAYING), row ⋯ "More options for <title>", row click labels, merged InfoChips, seek bar "Seek" + "0:16 of 4:23", timeline description + current chord + Zoom in/out actions, piano reads its note names. Font scale: chip labels/values wrap, timeline text bands grow with fontScale. Contrast (ContrastTest): DESIGN `textMuted` #63778C fails (3.3–4.1:1) → Android uses #8396AA (see T-506); `record` fails only on miniPlayerBg/surfaceSoft/primarySoft (not used for text there). ui/components/ErrorState (title, message, Retry, polite live region) on YouTube search/detail, Processing, Import sheet, SoundCloud dialog. Robolectric Compose tests: AccessibilityTest (adds ui-test-junit4 as a testImplementation from the existing catalog + includeAndroidResources).
+
+### T-506 DESIGN: readable textMuted
+- Lane: design · Status: todo · Owner: — · Deps: —
+- Goal: `textMuted` #63778C is 3.3–4.1:1 on canvas/surface/transport (WCAG AA needs 4.5:1). Android (T-503a) uses #8396AA (5.5–6.3:1 there); pick the final value in DESIGN.md §1 so iOS matches.
 
 ### T-505 Decide: Tuner tab
 - Lane: design · Status: blocked · Owner: product owner · Deps: —

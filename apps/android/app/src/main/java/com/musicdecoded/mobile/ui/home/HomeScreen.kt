@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +60,7 @@ class HomeNavigation(
     val onFiles: () -> Unit,
     val onMediaLibrary: () -> Unit,
     val onYouTube: () -> Unit,
+    val onSoundCloud: () -> Unit,
     val onRecord: () -> Unit,
     val onOpenPlayer: (trackId: String) -> Unit,
     val onOpenProcessing: (trackId: String) -> Unit,
@@ -125,16 +125,15 @@ private fun BrandHeader(onSearch: () -> Unit, onProfile: () -> Unit) {
 
 private const val LOGO_TILT = -4f
 
-/** 2×2 grid: Files · Media Library · YouTube · SoundCloud (only when enabled; its flow is still M3). */
+/** 2×2 grid: Files · Media Library · YouTube · SoundCloud (only when the server enables it). */
 @Composable
 private fun SourceGrid(soundcloudEnabled: Boolean, nav: HomeNavigation) {
     val cards = buildList<@Composable (Modifier) -> Unit> {
         add { SourceCard(SourceKind.FILES, "Files", "Import audio from this device", nav.onFiles, it) }
         add { SourceCard(SourceKind.MEDIA_LIBRARY, "Media Library", "Choose local music", nav.onMediaLibrary, it) }
         add { SourceCard(SourceKind.YOUTUBE, "YouTube", "Discover & play", nav.onYouTube, it) }
-        // Only when the server enables it; the SoundCloud flow itself arrives in M3.
         if (soundcloudEnabled) {
-            add { SourceCard(SourceKind.SOUNDCLOUD, "SoundCloud", "Coming soon", onClick = {}, modifier = it.alpha(DISABLED_ALPHA)) }
+            add { SourceCard(SourceKind.SOUNDCLOUD, "SoundCloud", "Find supported tracks", nav.onSoundCloud, it) }
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -146,8 +145,6 @@ private fun SourceGrid(soundcloudEnabled: Boolean, nav: HomeNavigation) {
         }
     }
 }
-
-private const val DISABLED_ALPHA = 0.5f
 
 @Composable
 private fun RecordCard(onClick: () -> Unit) {
