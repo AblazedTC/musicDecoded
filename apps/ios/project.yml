@@ -21,6 +21,10 @@ settings:
 packages:
   MusicDecodedCore:
     path: Packages/MusicDecodedCore
+  # The only third-party dependency (PLAN.md §9): App Store purchases with a cross-store entitlement backend.
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios-spm
+    exactVersion: 5.95.0
 
 targets:
   MusicDecoded:
@@ -41,6 +45,8 @@ targets:
         group: Contracts
     dependencies:
       - package: MusicDecodedCore
+      - package: RevenueCat
+        product: RevenueCat
     info:
       path: Generated/MusicDecoded-Info.plist
       properties:
@@ -58,6 +64,8 @@ targets:
         NSAppleMusicUsageDescription: "MusicDecoded imports songs you choose from your music library so it can decode their chords."
         # Read at runtime via Bundle.main.object(forInfoDictionaryKey: "APIBaseURL").
         APIBaseURL: $(API_BASE_URL)
+        # RevenueCat public SDK key (T-602i); empty = "Purchases aren't available in this build".
+        RevenueCatAPIKey: $(REVENUECAT_API_KEY)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.musicdecoded.app

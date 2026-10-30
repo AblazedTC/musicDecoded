@@ -10,6 +10,10 @@ struct MusicDecodedApp: App {
     @State private var settings = SettingsStore()
     /// Owns the playing track's engine so playback continues across tabs (mini player).
     @State private var nowPlaying = NowPlaying()
+    /// The Pro paywall (T-602i), shared by every screen.
+    @State private var paywall: PaywallModel
+    /// App Store purchases via RevenueCat; unavailable when the build has no key.
+    private let billing: any BillingService
     private let container: ModelContainer
 
     init() {
@@ -32,6 +36,16 @@ struct MusicDecodedApp: App {
             audioDirectory: audioDirectory
         )
         _session = State(initialValue: session)
+        let billing = RevenueCatBillingService.configured()
+        self.billing = billing
+        _paywall = State(
+            initialValue: PaywallModel(
+                billing: billing,
+                accountUserId: { session.isAccount ? session.userId : nil },
+                config: { session.config },
+                refreshConfig: { await session.refreshConfig() }
+            )
+        )
         _sync = State(initialValue: sync)
         _transcription = State(
             initialValue: TranscriptionService(
@@ -54,10 +68,15 @@ struct MusicDecodedApp: App {
                 .environment(sync)
                 .environment(settings)
                 .environment(nowPlaying)
+                .environment(paywall)
                 .task {
                     transcription.resumePending()
                     await session.start()
                     sync.requestSync()
+                }
+                // The store identity follows the session: appUserID = our userId for accounts (PLAN.md §9).
+                .task(id: storeUserId) {
+                    await updateStoreIdentity(storeUserId)
                 }
         }
         .modelContainer(container)
@@ -71,6 +90,24 @@ struct MusicDecodedApp: App {
                 // No background audio in v1: playback stops with the app.
                 nowPlaying.pause()
             }
+        }
+    }
+
+    /// Our userId for accounts; `nil` for guests (and before there's a session).
+    private var storeUserId: String? {
+        session.isAccount ? session.userId : nil
+    }
+
+    private func updateStoreIdentity(_ userId: String?) async {
+        guard billing.isAvailable else { return }
+        do {
+            if let userId {
+                try await billing.logIn(userId: userId)
+            } else {
+                try await billing.logOut()
+            }
+        } catch {
+            // Purchases log in again before buying, so a failure here only delays the identity switch.
         }
     }
 }

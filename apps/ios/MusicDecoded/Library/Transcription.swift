@@ -24,7 +24,7 @@ enum Transcription {
     static let maxUploadBytes = 104_857_600
 
     static let rateLimitedMessage =
-        "You've reached today's decode limit on the free plan. Try again tomorrow, or upgrade to Pro for more."
+        "You've used today's free transcriptions. Go Pro for more, or try again tomorrow."
     static let tooLargeMessage = "This file is too large to upload (the limit is 100 MB)."
     static let offlineMessage = "Couldn't reach MusicDecoded. Check your connection and try again."
     static let analysisFailedMessage = "We couldn't decode this audio. Try again."

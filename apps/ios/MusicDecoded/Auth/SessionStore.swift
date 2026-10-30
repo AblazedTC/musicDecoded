@@ -69,6 +69,12 @@ final class SessionStore {
     /// refreshes `/config`.
     func start() async {
         ensureDeviceId()
+        await refreshConfig()
+    }
+
+    /// Re-reads `/config` (e.g. after a purchase, T-602i); returns it, or `nil` if it failed.
+    @discardableResult
+    func refreshConfig() async -> ClientConfig? {
         do {
             let config = try await authorized { api, token in
                 try await api.config(token: token)
@@ -78,10 +84,15 @@ final class SessionStore {
             if let data = try? JSONEncoder().encode(config) {
                 defaults.set(data, forKey: Self.configKey)
             }
+            return config
         } catch {
             errorMessage = error.localizedDescription
+            return nil
         }
     }
+
+    /// From `/config`: the server decides Pro.
+    var isPro: Bool { config?.plan == .pro }
 
     /// Runs `request` with the stored token, signing in as a guest first if there's none.
     /// A 401 for a guest means the token is no longer valid: sign in again once and retry once.

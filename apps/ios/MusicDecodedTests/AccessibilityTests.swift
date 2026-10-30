@@ -42,7 +42,8 @@ struct AccessibilityTests {
 
     @Test func errorStateTitles() {
         #expect(ErrorState.title(for: Transcription.offlineMessage) == "You're offline")
-        #expect(ErrorState.title(for: Transcription.rateLimitedMessage) == "Something went wrong")
+        #expect(ErrorState.title(for: Transcription.rateLimitedMessage) == "Daily limit reached")
+        #expect(ErrorState.title(for: Transcription.genericMessage) == "Something went wrong")
     }
 
     @Test func seekBarMapsFractions() {

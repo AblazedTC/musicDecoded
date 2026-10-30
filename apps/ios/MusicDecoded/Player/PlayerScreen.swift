@@ -114,6 +114,7 @@ struct PlayerView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openPaywall) private var openPaywall
     @State private var showPiano = false
     @State private var confirmDelete = false
     @State private var actionError: String?
@@ -156,6 +157,12 @@ struct PlayerView: View {
                 Text("It's removed from your library and its chord timeline won't show up here anymore.")
             }
             .alert("Couldn't re-analyze", isPresented: $showActionError) {
+                // The daily plan limit offers the paywall (DESIGN.md §3.11).
+                if let openPaywall, OpenPaywallAction.opens(for: actionError) {
+                    Button("Go Pro") {
+                        openPaywall()
+                    }
+                }
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(actionError ?? Transcription.genericMessage)

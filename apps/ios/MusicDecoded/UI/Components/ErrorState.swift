@@ -1,13 +1,15 @@
 import SwiftUI
 
 /// The one error state for anything that talks to the server (T-503i): icon, title, message and
-/// an optional "Try again". VoiceOver announces it when it appears. Same copy as Android's
-/// ErrorState.
+/// an optional "Try again". VoiceOver announces it when it appears. The daily plan limit adds a
+/// "Go Pro" action that opens the paywall (T-602i). Same copy as Android's ErrorState.
 struct ErrorState: View {
     let message: String
     var title: String?
     /// `nil` hides "Try again" (when retrying can't help).
     var onRetry: (() -> Void)?
+
+    @Environment(\.openPaywall) private var openPaywall
 
     var body: some View {
         let resolvedTitle = title ?? Self.title(for: message)
@@ -25,6 +27,11 @@ struct ErrorState: View {
                 .font(.detail)
                 .foregroundStyle(Palette.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+            if let openPaywall, OpenPaywallAction.opens(for: message) {
+                PrimaryButton(title: "Go Pro", systemImage: "sparkles") {
+                    openPaywall()
+                }
+            }
             if let onRetry {
                 Button(action: onRetry) {
                     Label("Try again", systemImage: "arrow.clockwise")
@@ -48,9 +55,11 @@ struct ErrorState: View {
         }
     }
 
-    /// "You're offline" for the shared offline copy, otherwise "Something went wrong".
+    /// "You're offline" / "Daily limit reached" for the shared copy, otherwise "Something went wrong".
     static func title(for message: String) -> String {
-        isOffline(message) ? "You're offline" : "Something went wrong"
+        if isOffline(message) { return "You're offline" }
+        if message == Transcription.rateLimitedMessage { return "Daily limit reached" }
+        return "Something went wrong"
     }
 
     static func isOffline(_ message: String) -> Bool {
@@ -62,6 +71,7 @@ struct ErrorState: View {
     VStack(spacing: Spacing.sm) {
         ErrorState(message: Transcription.offlineMessage, onRetry: {})
         ErrorState(message: Transcription.rateLimitedMessage)
+            .environment(\.openPaywall, OpenPaywallAction {})
     }
     .padding(Spacing.md)
     .background(Palette.canvas)

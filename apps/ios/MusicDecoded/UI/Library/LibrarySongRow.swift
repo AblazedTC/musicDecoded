@@ -12,6 +12,7 @@ struct LibrarySongRow: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(TranscriptionService.self) private var transcription
     @Environment(NowPlaying.self) private var nowPlaying
+    @Environment(\.openPaywall) private var openPaywall
     @State private var confirmDelete = false
     @State private var errorMessage: String?
     @State private var showError = false
@@ -112,8 +113,14 @@ struct LibrarySongRow: View {
             } catch is CancellationError {
                 return
             } catch {
-                errorMessage = Transcription.userMessage(for: error)
-                showError = true
+                let message = Transcription.userMessage(for: error)
+                // The daily plan limit (a re-analyze the user just asked for) opens the paywall.
+                if let openPaywall, OpenPaywallAction.opens(for: message) {
+                    openPaywall()
+                } else {
+                    errorMessage = message
+                    showError = true
+                }
             }
         }
     }

@@ -9,6 +9,7 @@ struct SettingsView: View {
     @Environment(SessionStore.self) private var session
     @Environment(SettingsStore.self) private var settings
     @Environment(SyncService.self) private var sync
+    @Environment(\.openPaywall) private var openPaywall
     @Query(LibraryItem.newestFirst) private var visible: [LibraryItem]
     @Query(LibraryItem.offlineItems) private var offline: [LibraryItem]
     @State private var path: [AccountRoute] = []
@@ -31,6 +32,7 @@ struct SettingsView: View {
 
                     ProfileCard(
                         isAccount: session.isAccount,
+                        isPro: session.isPro,
                         email: session.email,
                         onAuth: { path.append(.auth($0)) },
                         onLogOut: logOut
@@ -38,6 +40,17 @@ struct SettingsView: View {
                     if session.isAccount == false {
                         SyncCard {
                             path.append(.auth(.signUp))
+                        }
+                    }
+                    // Free accounts only (guests sign up from the profile card); `openPaywall` is nil for Pro.
+                    if session.isAccount, let openPaywall {
+                        SettingsGroup(title: "MusicDecoded Pro") {
+                            Button {
+                                openPaywall()
+                            } label: {
+                                SettingsRowLabel(label: "Go Pro", value: "Decode more", showsChevron: true)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
 
@@ -225,6 +238,8 @@ private struct InfoSheet: View {
 
 private struct ProfileCard: View {
     let isAccount: Bool
+    /// From `/config` (the server decides Pro): shows a "Pro" chip.
+    let isPro: Bool
     let email: String?
     let onAuth: (AuthMode) -> Void
     let onLogOut: () -> Void
@@ -256,6 +271,15 @@ private struct ProfileCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .combine)
+                if isPro {
+                    Text("Pro")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Palette.onPrimary)
+                        .padding(.horizontal, Spacing.xs)
+                        .padding(.vertical, Spacing.xxs)
+                        .background(Palette.primary, in: .rect(cornerRadius: Radius.chip))
+                        .accessibilityLabel("Pro plan")
+                }
                 if isAccount {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(Palette.primary)

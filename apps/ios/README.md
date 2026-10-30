@@ -30,6 +30,10 @@ xcodebuild -scheme MusicDecoded -destination 'platform=iOS Simulator,name=iPhone
 Debug builds talk to `http://localhost:8080` (set in `Config/Debug.xcconfig`, with an ATS
 exception for localhost in Debug only).
 
+Pro purchases use RevenueCat (SPM, resolved by Xcode). Without a key the paywall says "Purchases
+aren't available in this build". To test them, put `REVENUECAT_API_KEY = appl_...` in
+`Config/Secrets.xcconfig` (gitignored); never commit a key.
+
 ## Test the core package (macOS, Linux, Windows)
 
 `MusicDecodedCore` uses only Foundation, so it builds anywhere the Swift toolchain runs,
