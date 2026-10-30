@@ -131,6 +131,45 @@ struct VideoSyncTests {
         #expect(controller.hasFailed)
     }
 
+    /// The scripts a controller sends to the page.
+    final class Scripts {
+        var sent: [String] = []
+    }
+
+    @Test func idleSeekThenPlaySendsSeekBeforePlay() {
+        let clock = clock
+        let scripts = Scripts()
+        let controller = YouTubePlayerController(
+            videoId: "dQw4w9WgXcQ",
+            now: { clock.now },
+            evaluate: { scripts.sent.append($0) }
+        )
+        controller.seek(to: 42)
+        controller.play()
+        #expect(scripts.sent.isEmpty)
+
+        // Once ready: the seek (which cues an idle video, debounced in the page) goes first, so
+        // the play that follows cancels that cue and loads the video at 42 instead of being stopped.
+        controller.handle(.ready)
+        let commands = scripts.sent.filter { $0.hasPrefix("md.") }
+        #expect(commands == ["md.seek(42.0)", "md.play()"])
+
+        scripts.sent.removeAll()
+        controller.pause()
+        controller.seek(to: 10)
+        controller.play()
+        #expect(scripts.sent == ["md.pause()", "md.seek(10.0)", "md.play()"])
+    }
+
+    @Test func pageCancelsTheIdleCueOnPlay() {
+        let html = YouTubePlayerPage.html(videoId: "dQw4w9WgXcQ")
+        #expect(html.contains("clearTimeout(cueTimer)"))
+        #expect(html.contains("loadVideoById({ videoId: videoId, startSeconds: cuedAt })"))
+        #expect(html.contains("setTimeout(function () { player.cueVideoById"))
+        #expect(html.contains("}, \(YouTubePlayerPage.cueDelay));"))
+        #expect(YouTubePlayerPage.cueDelay == 300)
+    }
+
     // MARK: - Video as the clock
 
     @Test func videoIsTheClockWithoutLocalAudio() {

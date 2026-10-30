@@ -22,11 +22,18 @@ final class YouTubePlayerController: VideoPlayerControl {
     /// A seek requested before the player was ready.
     private var pendingSeek: Double?
     private let now: () -> Double
+    /// Where commands go; `nil` sends them to the page. Tests pass a recorder.
+    private let evaluate: ((String) -> Void)?
     private let bridge: Bridge
 
-    init(videoId: String, now: @escaping () -> Double = { ProcessInfo.processInfo.systemUptime }) {
+    init(
+        videoId: String,
+        now: @escaping () -> Double = { ProcessInfo.processInfo.systemUptime },
+        evaluate: ((String) -> Void)? = nil
+    ) {
         self.videoId = videoId
         self.now = now
+        self.evaluate = evaluate
         let configuration = YouTubeEmbed.configuration()
         let bridge = Bridge()
         // The content controller keeps the bridge; the bridge only weakly points back here.
@@ -45,19 +52,20 @@ final class YouTubePlayerController: VideoPlayerControl {
 
     func play() {
         isPlaying = true
-        run("player.playVideo()")
+        run("md.play()")
     }
 
     func pause() {
         isPlaying = false
-        run("player.pauseVideo()")
+        run("md.pause()")
     }
 
     func seek(to seconds: Double) {
         let target = seconds.isFinite ? max(seconds, 0) : 0
         clock.seek(to: target, at: now())
         if isReady {
-            run("player.seekTo(\(target), true)")
+            // The page cues an idle video instead of starting it (YouTubePlayerPage `md.seek`).
+            run("md.seek(\(target))")
         } else {
             pendingSeek = target
         }
@@ -114,16 +122,21 @@ final class YouTubePlayerController: VideoPlayerControl {
         }
         if let pendingSeek {
             self.pendingSeek = nil
-            run("player.seekTo(\(pendingSeek), true)")
+            run("md.seek(\(pendingSeek))")
         }
+        // After the seek: a play cancels the seek's pending cue and loads at the target.
         if isPlaying {
-            run("player.playVideo()")
+            run("md.play()")
         }
     }
 
     private func run(_ script: String) {
         guard isReady else { return }
-        webView.evaluateJavaScript(script, completionHandler: nil)
+        if let evaluate {
+            evaluate(script)
+        } else {
+            webView.evaluateJavaScript(script, completionHandler: nil)
+        }
     }
 }
 
