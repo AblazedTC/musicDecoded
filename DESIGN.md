@@ -177,21 +177,30 @@ Shown after picking from Files or Media Library: file name, type · size, Durati
 Mic state dot ("Microphone ready" / red "Recording"), a large timer `00:MM:SS` (light weight, tabular numbers), live waveform (dimmed when idle), a 16-segment **input level** meter with a dB value, actions **Discard · Record/Pause (84pt red ring) · Finish ✓**, a "Save" text button in the header, and a tip about background noise. Finish/Save → title prompt → Processing.
 
 ### 3.7 Player (`PlayerScreen`): main screen
-Top to bottom:
-1. **Header**: back · title/artist (centered) · favorite (heart, toggles `favorite`) · ⋯.
-2. **Metadata row**: three equal chips **Key** ("B minor") · **Time signature** ("4/4") · **BPM** ("140 BPM"), each with an icon. Keep layout space for future chips.
-3. **Timeline** (`timelineBg` card):
-   - time labels row;
-   - **chord track**: rounded blocks spanning each chord segment, labelled with the display name. The current block is filled `chord`, the others `chordMuted`. **Tapping a block seeks to its start**;
-   - **waveform**: vertical bars from `waveformPeaks` (played = primary). Spectrogram rendering is an optional alternate (`spectrogram` field) and isn't required in v1. Faint gridlines on downbeats;
-   - **playhead**: a 1.5pt primary line with a dot on top and a soft glow;
-   - hint "Pinch to zoom · drag to scrub". **Behavior**: content scrolls under a **fixed center playhead** while playing (PLAN §3.3), drag to scrub, pinch to zoom (60–400 pt/s, default 120).
-4. **Current chord**: overline "NOW PLAYING", big chord name (34, chord color), note names ("B · D · F♯") from `chord-voicings.json`, and a caption "Representative root-position voicing".
-5. **Control chips** (3 across, label above value + chevron): **Chords** (Basic / Full) · **Voicing** (Simple, v1 only) · **Transpose** (−6…+6). See §4.
-6. **Visualizer card**: segmented **Piano | Video** plus an expand button (→ Piano learning view).
-   - Piano: "CURRENT CHORD" + name + notes, a 2-octave keyboard (96 tall) with active keys highlighted.
-   - Video: the YouTube embed (16:9) with a "Authorized embedded playback" badge. **Disabled unless source = youtube.**
-7. **Transport** (bottom sheet, `transportBg`, radius 22 top): seek bar with current/total times; controls **speed** (1.00× ⇄ 0.75×; long-press for 0.5–1.25 in 0.05 steps) · **previous chord** · **play/pause** (58pt primary circle) · **next chord** · **loop**. When loop is on, a **loop pill** ("Looping 1:04–1:20 · Clear") floats above the transport.
+**Owner revision (T-214, 2026-10-30).** Layout reference: a single-screen chord player (compact header, edge-to-edge waveform with chord-name + Roman-numeral boxes, compact control row, piano filling the rest, transport at the bottom). Keep the §1 Wrapped colors, type, icons and borders; this section only changes **placement, sizing and hierarchy**.
+
+**The whole player fits on one screen with no vertical scrolling** (target: 640pt/dp tall viewports and up, after safe areas). Top to bottom:
+
+1. **Header** (one row, ~48): back · title (one line, ellipsized; artist under it only if it fits, else omitted) · favorite · ⋯. No extra vertical padding.
+2. **Metadata row** (one row, ~36): Key · Time · BPM as compact chips with the value inline next to a small icon (no separate "KEY"/"TIME"/"TEMPO" label line). Room for future chips.
+3. **Timeline**, **full width, edge to edge**: no card, no outer horizontal margin, no offset shadow, no border on the left/right. Fixed height ~32% of the space between the metadata row and the transport (clamped 150-220). Inside, top to bottom:
+   - a thin time-label row (small `textMuted` ticks every second at default zoom);
+   - **chord labels** above the waveform (see below);
+   - the **waveform** (existing styling: played `lime`, unplayed `waveIdle`, downbeat gridlines);
+   - the **playhead**: fixed at the horizontal center, 2pt `lime` line through labels and waveform.
+   - Pinch to zoom (60-400 pt/s, default 120) and drag to scrub still work; **no hint text row** (the hint becomes the timeline's accessibility hint).
+   - **Chord labels**: one compact box per chord change (not spanning the chord's duration), its left edge anchored at the change time, a 1pt tick down to the waveform. Two text lines, centered: chord display name (Archivo Black ~20) and its **Roman numeral** relative to the detected key (Space Grotesk Bold ~15; §4 "Roman numerals"). Box: square, 2pt black border, padding 4/6; **current chord** = `lime` fill + `ink` text + `shadowSm`; others = `cardRaised` fill + `white` text. `N`/`X` segments get no box. No key detected → name only.
+   - **Collision handling**: labels are laid out in time order into up to **2 staggered rows**; a label goes in the first row where it doesn't overlap the previous label in that row (4pt gap). If neither row fits, the label is dropped at the current zoom (its tick stays); the current chord's label is never dropped (it replaces the overlapping neighbor). Re-run on zoom.
+   - Labels, ticks, waveform and playhead stay in sync during playback, seeking and zooming (same time→x mapping). Tapping a label seeks to that chord.
+4. **Control row** (one row, ~44, 8 gap): **Chords** (Basic/Full) · **Voicing** (Simple) · **Transpose** (-6...+6). Same styling as before with tighter padding (label + value on one line where width allows).
+5. **Visualizer panel** takes **all remaining height**:
+   - compact tab header (~36): **Piano | Video** segmented (Piano selected by default; Video disabled unless source = youtube) + expand button (to the Piano learning view);
+   - **Piano**: the **active chord name** centered above the keyboard (Archivo Black ~28, `lime`; Roman numeral next to it in `textSecondary`), then the keyboard sized to fill the rest of the panel (min 96, keys keep proportions; show as many octaves as fit the width, at least 2, centered on the active notes). Highlighted keys show the notes; note names (e.g. "E · G♯ · B") under the highlighted keys in small text. This replaces the old Now Playing card.
+   - **Video**: 16:9 embed letterboxed in the available space.
+6. **Transport**, anchored at the bottom above the bottom safe area (compact, ~104 total): seek bar with current/total times on one line, then speed · previous chord · play/pause (56 pink circle) · next chord · loop. The loop pill floats above the transport without covering the visualizer's keys (overlap the panel header area if needed).
+
+**Removed**: the "Now Playing" card (chord name, notes, "Representative root-position voicing" caption) and the timeline's inset card/shadow/hint row.
+**Accessibility**: at the largest text sizes the screen may scroll as a fallback; the timeline and keyboard keep their own accessibility summaries ("Current chord E major, three. Next A major, six.").
 
 ### 3.8 Piano learning view (`PianoScreen`)
 For practicing. Header with title/artist.
@@ -232,6 +241,15 @@ Not in the Figma prototype; built from the existing tokens and components so it 
 ---
 
 ## 4. Player behavior (both apps)
+
+### Roman numerals (timeline labels, piano panel)
+Computed from the analysis `key` and each chord label (never hard-coded); identical on both apps (shared test cases).
+- **Degree** = semitones from the key tonic to the chord root (after transpose both shift equally, so numerals don't change with transpose).
+- **Major key** numerals by interval: 0 `I`, 1 `♭II`, 2 `II`, 3 `♭III`, 4 `III`, 5 `IV`, 6 `♯IV`, 7 `V`, 8 `♭VI`, 9 `VI`, 10 `♭VII`, 11 `VII`.
+- **Minor key** (relative to the natural minor scale): 0 `I`, 1 `♭II`, 2 `II`, 3 `III`, 4 `♯III`, 5 `IV`, 6 `♯IV`, 7 `V`, 8 `VI`, 9 `♯VI`, 10 `VII`, 11 `♯VII`.
+- **Case = chord quality**: uppercase for major/dominant/augmented/sus/power chords (`maj`, `7`, `maj7`, `9`, `aug`, `sus2`, `sus4`, `5`, ...); lowercase for minor (`min`, `min7`, `min9`, ...) and diminished; append `°` for `dim`/`dim7`, `ø` for `hdim7`, `+` for `aug`. No extensions (7, 9) in the numeral.
+- Slash chords use the chord root, not the bass. `N`/`X` and missing key → no numeral.
+- Examples: key C♯ minor: `E:maj` → `III`, `A:maj` → `VI`, `C#:min` → `i`, `G#:7` → `V`, `B:maj` → `VII`. Key C major: `D:min7` → `ii`, `G:7` → `V`, `B:hdim7` → `viiø`, `Bb:maj` → `♭VII`, `F:min` → `iv`.
 
 - **Clock**: local audio position; if there's no local audio, the YouTube player's `currentTime`.
 - **Current chord**: the segment where `start ≤ t < end`. **Up next**: the next segment whose label isn't `N`, with "in N beats" = number of `beats[].t` between t and its start.

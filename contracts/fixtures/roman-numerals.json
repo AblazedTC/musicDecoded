@@ -1,0 +1,26 @@
+{
+  "description": "Shared test cases for DESIGN.md §4 'Roman numerals'. Both apps must produce exactly these strings. key = analysis key {tonic, mode}; label = Harte chord label; numeral = expected output (null = no numeral).",
+  "cases": [
+    { "key": { "tonic": "C#", "mode": "minor" }, "label": "E:maj", "numeral": "III" },
+    { "key": { "tonic": "C#", "mode": "minor" }, "label": "A:maj", "numeral": "VI" },
+    { "key": { "tonic": "C#", "mode": "minor" }, "label": "C#:min", "numeral": "i" },
+    { "key": { "tonic": "C#", "mode": "minor" }, "label": "G#:7", "numeral": "V" },
+    { "key": { "tonic": "C#", "mode": "minor" }, "label": "B:maj", "numeral": "VII" },
+    { "key": { "tonic": "C#", "mode": "minor" }, "label": "F#:min7", "numeral": "iv" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "C:maj", "numeral": "I" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "D:min7", "numeral": "ii" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "G:7", "numeral": "V" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "B:hdim7", "numeral": "viiø" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "B:dim", "numeral": "vii°" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "Bb:maj", "numeral": "♭VII" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "F:min", "numeral": "iv" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "Ab:maj", "numeral": "♭VI" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "E:aug", "numeral": "III+" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "G:sus4", "numeral": "V" },
+    { "key": { "tonic": "C", "mode": "major" }, "label": "D:maj/3", "numeral": "II" },
+    { "key": { "tonic": "D", "mode": "major" }, "label": "D:maj7", "numeral": "I" },
+    { "key": { "tonic": "D", "mode": "major" }, "label": "A:min7", "numeral": "v" },
+    { "key": { "tonic": "D", "mode": "major" }, "label": "N", "numeral": null },
+    { "key": null, "label": "A:maj", "numeral": null }
+  ]
+}
