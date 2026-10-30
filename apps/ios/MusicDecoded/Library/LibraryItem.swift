@@ -104,6 +104,12 @@ extension LibraryItem {
         updatedAt = date
     }
 
+    /// Playback started: stamps `lastPlayedAt` and bumps `updatedAt` so it syncs.
+    func markPlayed(at date: Date = .now) {
+        lastPlayedAt = date
+        updatedAt = date
+    }
+
     /// The `limit` newest visible items (Home "Recently Decoded").
     static func recent(limit: Int) -> FetchDescriptor<LibraryItem> {
         var descriptor = newestFirst

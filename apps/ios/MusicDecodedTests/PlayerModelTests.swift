@@ -12,6 +12,7 @@ struct PlayerModelTests {
         var now = 0.0
         var engine: SilentPlaybackEngine?
         var savedFavorites: [Bool] = []
+        var plays = 0
 
         func advance(_ seconds: Double) {
             now += seconds
@@ -43,6 +44,7 @@ struct PlayerModelTests {
                 return engine
             },
             saveFavorite: { harness.savedFavorites.append($0) },
+            markPlayed: { harness.plays += 1 },
             preferences: preferences,
             tickInterval: nil
         )
@@ -61,6 +63,20 @@ struct PlayerModelTests {
         let youtube = try PlayerFixtures.synthetic(source: .youtube, sourceRef: "abc")
         let youtubeModel = try await makeModel(analysis: youtube, preferences: preferences)
         #expect(youtubeModel.visualizer == .video)
+    }
+
+    @Test func startingPlaybackMarksTheTrackPlayed() async throws {
+        let model = try await makeModel()
+        #expect(harness.plays == 0) // opening the player isn't a play
+        model.togglePlay()
+        #expect(harness.plays == 1)
+        harness.advance(1)
+        model.tick() // still playing: no new stamp
+        #expect(harness.plays == 1)
+        model.togglePlay() // pause
+        #expect(harness.plays == 1)
+        model.togglePlay() // resume is a new start
+        #expect(harness.plays == 2)
     }
 
     @Test func loadsTheTrack() async throws {

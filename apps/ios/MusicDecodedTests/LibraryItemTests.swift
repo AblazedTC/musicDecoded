@@ -85,6 +85,17 @@ struct LibraryItemTests {
         #expect(tombstone.updatedAt == deletedAt)
     }
 
+    @Test func markPlayedStampsBothTimes() throws {
+        let item = insert("a", createdAt: Date(timeIntervalSince1970: 100))
+        let playedAt = Date(timeIntervalSince1970: 300)
+        item.markPlayed(at: playedAt)
+        try context.save()
+
+        let row = try #require(try context.fetch(LibraryItem.withTrackId("a")).first)
+        #expect(row.lastPlayedAt == playedAt)
+        #expect(row.updatedAt == playedAt)
+    }
+
     @Test func hardDeleteRemovesTheRow() throws {
         let item = insert("track-1", createdAt: .now)
         try context.save()

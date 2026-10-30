@@ -15,4 +15,10 @@ enum LibraryActions {
         item.setFavorite(favorite)
         try? context.save()
     }
+
+    /// Playback went from stopped to playing.
+    static func markPlayed(_ item: LibraryItem, context: ModelContext) {
+        item.markPlayed()
+        try? context.save()
+    }
 }

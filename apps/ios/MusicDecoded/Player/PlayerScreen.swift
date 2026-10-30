@@ -80,6 +80,10 @@ struct PlayerScreen: View {
                 guard let item else { return }
                 LibraryActions.setFavorite(item, favorite, context: context)
             },
+            markPlayed: {
+                guard let item else { return }
+                LibraryActions.markPlayed(item, context: context)
+            },
             preferences: preferences
         )
     }

@@ -42,6 +42,7 @@ final class PlayerModel {
     typealias TrackLoader = @MainActor () async -> PlayerTrack?
     typealias EngineFactory = @MainActor (PlayerTrack) -> any PlaybackEngine
     typealias FavoriteSaver = @MainActor (Bool) -> Void
+    typealias PlayMarker = @MainActor () -> Void
 
     static let minSpeed = 0.5
     static let maxSpeed = 1.25
@@ -80,6 +81,7 @@ final class PlayerModel {
     private let voicings: ChordVoicings?
     private let makeEngine: EngineFactory
     private let saveFavorite: FavoriteSaver
+    private let markPlayed: PlayMarker
     private let preferences: PlayerPreferences
     private let tickInterval: Duration?
     @ObservationIgnored private var engine: (any PlaybackEngine)?
@@ -93,6 +95,7 @@ final class PlayerModel {
         voicings: ChordVoicings?,
         makeEngine: @escaping EngineFactory,
         saveFavorite: @escaping FavoriteSaver = { _ in },
+        markPlayed: @escaping PlayMarker = {},
         preferences: PlayerPreferences = PlayerPreferences(),
         tickInterval: Duration? = .milliseconds(16)
     ) {
@@ -100,6 +103,7 @@ final class PlayerModel {
         self.voicings = voicings
         self.makeEngine = makeEngine
         self.saveFavorite = saveFavorite
+        self.markPlayed = markPlayed
         self.preferences = preferences
         self.tickInterval = tickInterval
     }
@@ -208,8 +212,15 @@ final class PlayerModel {
             t = duration
         }
         setPosition(t)
-        if engine.isPlaying != isPlaying {
-            isPlaying = engine.isPlaying
+        publishPlaying(engine.isPlaying)
+    }
+
+    /// Publishes `playing`; a stopped → playing change counts as a play (`lastPlayedAt`).
+    private func publishPlaying(_ playing: Bool) {
+        guard playing != isPlaying else { return }
+        isPlaying = playing
+        if playing {
+            markPlayed()
         }
     }
 
@@ -246,7 +257,7 @@ final class PlayerModel {
             }
             engine.play()
         }
-        isPlaying = engine.isPlaying
+        publishPlaying(engine.isPlaying)
         tick()
         if isPlaying {
             startClock()
