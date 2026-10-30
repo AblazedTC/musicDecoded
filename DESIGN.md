@@ -49,7 +49,7 @@ Contrast (computed): white on violet 8.3, lime on violet 6.7, yellow on violet 6
 
 Source tiles (fill / icon): Files `lime`/ink, Media Library `blue`/ink, YouTube `orange`/ink, SoundCloud `yellow`/ink, Record `pink`/ink.
 
-Piano: white keys `cream` with ink 1.5pt separators, black keys `ink`, active white key `lime`, active black key `#9DBF2E`, bass note `pink`, keyboard frame 3pt black border + hard shadow.
+Piano: white keys `cream` with ink 1.5pt separators, black keys `ink`, active white key `lime`, active black key `#9DBF2E`, bass note `blue`, keyboard frame 3pt black border + hard shadow.
 
 ### Shape, borders & elevation
 - **Corners are square.** Radius 0 for cards, rows, buttons, chips, sheets and inputs. Only circular play/record buttons and avatars are round.
@@ -181,7 +181,7 @@ Mic state dot ("Microphone ready" / red "Recording"), a large timer `00:MM:SS` (
 
 **Owner revision 2 (T-215, 2026-10-30)** supersedes items 1, 5 and 6 below where they conflict:
 - **Header**: back · **view switcher** (centered segmented icon bar, replaces the expand/fullscreen button) · ⋯ (favorite moves into the ⋯ menu). The song title becomes a single compact line under the header (ellipsized).
-- **View switcher** (4 views, §3.7.1): **Timeline** (default, waveform icon) · **Beat grid** (grid icon) · **Chord sheet** (stacked-boxes icon) · **Piano focus** (piano-keys icon). Selected = lime fill, ink icon; others ink on `cardRaised`; 3pt black border around the bar; each segment ≥ 44pt wide. The choice persists per app (Settings "Default view" not required in v1).
+- **View switcher** (4 views, §3.7.1): **Timeline** (default, waveform icon) · **Beat grid** (grid icon) · **Chord sheet** (stacked-boxes icon) · **Piano focus** (piano-keys icon). Selected = lime fill, ink icon; others white on `cardRaised`; 3pt black border around the bar; each segment ≥ 44pt wide. The choice persists per app (Settings "Default view" not required in v1).
 - **Piano and media are separate stacked panels** (no Piano | Video tabs): the **piano panel** first, the **media panel** under it. Both visible together in the Timeline view.
 - **Piano panel**: a **fixed keyboard** from **C3 to B5** (3 octaves) spanning the full width; the layout **never scrolls or re-centers**: when the chord changes only the highlighted keys change. Above it: the active chord name (+ numeral). Highlights follow §4 "Piano voicing & inversions": **bass note** (left hand, octave 3) in `blue`, **right-hand** notes in `lime`; **finger numbers** printed on each highlighted key (ink, Space Grotesk Bold, near the key's bottom); note names under the keys in the same colors. Under the keyboard, **page dots** show the current inversion (one dot per inversion of the current chord).
 - **Inversions**: **swipe left/right on the piano panel** = next/previous inversion (clamped, with a light haptic); the selection is a player setting that applies to every chord (clamped to that chord's number of inversions) and is shown in the **Voicing** chip ("Root", "1st inv", "2nd inv", "3rd inv"), which also opens a picker. Default Root. Accessibility: the panel exposes adjustable actions "Next inversion" / "Previous inversion".
