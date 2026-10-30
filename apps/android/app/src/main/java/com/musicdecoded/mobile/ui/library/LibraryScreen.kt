@@ -34,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -122,7 +124,8 @@ private fun SearchField(text: String, onChange: (String) -> Unit) {
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = MusicDecodedColors.Text),
                 cursorBrush = SolidColor(MusicDecodedColors.Primary),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                modifier = Modifier.fillMaxWidth(),
+                // The placeholder is a sibling Text, so TalkBack needs the field's own label.
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search your library" },
             )
         }
         if (text.isNotEmpty()) {
