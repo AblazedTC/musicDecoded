@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -78,14 +82,10 @@ fun LibraryScreen(
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                LibraryHeader {
-                    SearchField(searchText, viewModel::setQuery)
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        LibraryFilter.entries.forEach { filter ->
-                            MdFilterChip(filter.label, selected = state.filter == filter, onClick = { viewModel.setFilter(filter) }, onColorBlock = true)
-                        }
-                    }
-                }
+                LibraryHeader(
+                    search = { SearchField(searchText, viewModel::setQuery) },
+                    filters = { LibraryFilterRow(state.filter, viewModel::setFilter) },
+                )
                 Column(Modifier.padding(horizontal = Spacing.gutter), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
                     SummaryCard(state.counts)
                     SectionHeader("Recently added")
@@ -111,10 +111,10 @@ fun LibraryScreen(
 
 /**
  * The lime header block (DESIGN.md §1 color map): ink eyebrow + LIBRARY title, a violet stripe
- * texture patch in the corner, then [controls] (search, filters).
+ * texture patch in the corner, then [search] and the edge-to-edge [filters] row.
  */
 @Composable
-private fun LibraryHeader(controls: @Composable () -> Unit) {
+private fun LibraryHeader(search: @Composable () -> Unit, filters: @Composable () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -123,12 +123,48 @@ private fun LibraryHeader(controls: @Composable () -> Unit) {
     ) {
         Box(Modifier.align(Alignment.TopEnd).size(StripePatch).stripes())
         Column(
-            Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xxl, bottom = Spacing.lg),
+            Modifier.padding(top = Spacing.xxl, bottom = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Sticker("Your collection", fill = MusicDecodedColors.Violet, contentColor = MusicDecodedColors.White)
-            PageHeader("Library", color = MusicDecodedColors.OnColor)
-            controls()
+            Column(Modifier.padding(horizontal = Spacing.gutter), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                Sticker("Your collection", fill = MusicDecodedColors.Violet, contentColor = MusicDecodedColors.White)
+                PageHeader("Library", color = MusicDecodedColors.OnColor)
+                search()
+            }
+            filters()
+        }
+    }
+}
+
+/**
+ * The filter chips, scrolling edge to edge under the gutter: the gutter is content padding (so the
+ * last chip can scroll fully clear of the screen edge), and a lime fade at the end shows there's
+ * more to scroll while there is.
+ */
+@Composable
+internal fun LibraryFilterRow(selected: LibraryFilter, onSelect: (LibraryFilter) -> Unit, modifier: Modifier = Modifier) {
+    val scroll = rememberScrollState()
+    Box(modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(scroll)
+                .padding(horizontal = Spacing.gutter),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            LibraryFilter.entries.forEach { filter ->
+                MdFilterChip(filter.label, selected = selected == filter, onClick = { onSelect(filter) }, onColorBlock = true)
+            }
+        }
+        if (scroll.canScrollForward) {
+            Box(
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .matchParentSize()
+                    .wrapContentWidth(Alignment.End)
+                    .width(Spacing.xxl)
+                    .background(Brush.horizontalGradient(listOf(Color.Transparent, MusicDecodedColors.Lime))),
+            )
         }
     }
 }
