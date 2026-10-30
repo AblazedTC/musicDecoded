@@ -31,7 +31,7 @@ Both apps implement the same screens and behavior. Platform conventions (navigat
 | `chordMuted` | bg `#463F32`, border `#645943` | inactive chord blocks on the timeline |
 | `text` | `#F5F8FB` | primary text |
 | `textSecondary` | `#9FB0C3` | secondary text |
-| `textMuted` | `#63778C` | captions, inactive nav |
+| `textMuted` | `#8396AA` | captions, inactive nav (≥ 4.5:1 on canvas, surface and transport; was #63778C, which failed WCAG AA) |
 | `record` | `#EC6478` (ring `#B94D5E`) | record button |
 | `transportBg` | `#152638` (border `#30465D`) | transport sheet, import sheet, mini player `#1B2D40` |
 | `timelineBg` | `#09101A` (border `#24384B`) | waveform container |

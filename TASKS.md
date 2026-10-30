@@ -472,8 +472,9 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes (android): done. Headings (page/section/player title/NOW PLAYING), row ⋯ "More options for <title>", row click labels, merged InfoChips, seek bar "Seek" + "0:16 of 4:23", timeline description + current chord + Zoom in/out actions, piano reads its note names. Font scale: chip labels/values wrap, timeline text bands grow with fontScale. Contrast (ContrastTest): DESIGN `textMuted` #63778C fails (3.3–4.1:1) → Android uses #8396AA (see T-506); `record` fails only on miniPlayerBg/surfaceSoft/primarySoft (not used for text there). ui/components/ErrorState (title, message, Retry, polite live region) on YouTube search/detail, Processing, Import sheet, SoundCloud dialog. Robolectric Compose tests: AccessibilityTest (adds ui-test-junit4 as a testImplementation from the existing catalog + includeAndroidResources).
 
 ### T-506 DESIGN: readable textMuted
-- Lane: design · Status: todo · Owner: — · Deps: —
+- Lane: design · Status: done · Owner: claude · Deps: —
 - Goal: `textMuted` #63778C is 3.3–4.1:1 on canvas/surface/transport (WCAG AA needs 4.5:1). Android (T-503a) uses #8396AA (5.5–6.3:1 there); pick the final value in DESIGN.md §1 so iOS matches.
+- Notes: DESIGN.md §1 now uses #8396AA (Android already does; iOS T-503i applies it).
 
 ### T-505 Decide: Tuner tab
 - Lane: design · Status: blocked · Owner: product owner · Deps: —
