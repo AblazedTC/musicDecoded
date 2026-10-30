@@ -353,6 +353,13 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes (android): done. Player ⋯ (Favorite / Re-analyze → Processing / Delete with confirm → back; PlayerViewModel.exit, tested). Seek bar: Slider with a 4dp rounded Canvas track + 14dp round thumb. ui/components/SongArt (thumbnail, else initial) shared by rows, mini player and Processing. Import is a full-screen nav `dialog` with its own bottom sheet over dimmed Home. Media Library: ACTION_OPEN_DOCUMENT with EXTRA_INITIAL_URI = media documents `audio_root` (API 26+); an in-app MediaStore list was rejected (needs READ_MEDIA_AUDIO/READ_EXTERNAL_STORAGE; the Photo Picker has no audio). Delete still dismisses NowPlaying (SongActions).
 - Notes (ios): iOS: player ⋯ menu, custom accessible SeekBar, shared InitialArt; import is already a sheet over Home and Media Library uses MPMediaPicker. CI green.
 
+### T-214a / T-214i Revisit the player layout
+- Lane: design / android / ios · Status: todo · Owner: product owner · Deps: Wrapped re-theme
+- Goal: The owner is not satisfied with the player layout after the Wrapped re-theme (2026-10-30). Get the specific concerns, update DESIGN.md §3.7, then implement on both apps.
+- Acceptance:
+  - [ ] Owner's concerns written into DESIGN.md §3.7
+  - [ ] Both apps updated and screenshotted
+
 ---
 
 ## M3 — YouTube sandbox
