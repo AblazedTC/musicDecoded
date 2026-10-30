@@ -70,7 +70,16 @@ import com.musicdecoded.mobile.ui.components.SegmentedToggle
 import com.musicdecoded.mobile.ui.components.formatDuration
 import com.musicdecoded.mobile.ui.components.keyName
 import com.musicdecoded.mobile.ui.library.SongListMessages
+
+import com.musicdecoded.mobile.ui.components.Eyebrow
+import com.musicdecoded.mobile.ui.components.WaveformBars
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.components.tilt
+import com.musicdecoded.mobile.ui.components.topRule
+import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
+import com.musicdecoded.mobile.ui.theme.Tilt
 import com.musicdecoded.mobile.ui.theme.MusicDecodedTheme
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
@@ -121,7 +130,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                 .padding(horizontal = Spacing.gutter),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            MetadataRow(analysis)
+            MetadataRow(analysis, Modifier.padding(top = Spacing.xs))
             ChordTimeline(
                 analysis = analysis,
                 position = { position.value },
@@ -131,7 +140,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                 onLoopSelected = viewModel::setLoop,
                 currentChord = currentLabel?.let(chords::name)?.ifEmpty { null },
             )
-            NowPlaying(currentLabel, chords)
+            NowPlaying(currentLabel, chords, state.isPlaying)
             ChipRow {
                 ControlChip(
                     "Chords",
@@ -154,7 +163,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                     PianoKeyboard(
                         notes = currentLabel?.let(chords::notes).orEmpty(),
                         bassNote = currentLabel?.let(chords::bassNote),
-                        modifier = Modifier.clip(Shapes.chip),
+
                         description = currentLabel?.let(chords::noteNames),
                     )
                 },
@@ -244,8 +253,8 @@ private fun PlayerPlaceholder(loading: Boolean, modifier: Modifier = Modifier) {
 
 /** Key · Time signature · BPM. */
 @Composable
-private fun MetadataRow(analysis: Analysis) {
-    ChipRow {
+private fun MetadataRow(analysis: Analysis, modifier: Modifier = Modifier) {
+    ChipRow(modifier) {
         InfoChip(Icons.Rounded.MusicNote, "Key", analysis.key?.let(::keyName) ?: "—", Modifier.weight(1f))
         InfoChip(
             Icons.Rounded.GraphicEq,
@@ -257,14 +266,29 @@ private fun MetadataRow(analysis: Analysis) {
     }
 }
 
+/**
+ * The now-playing card (DESIGN.md §1, portfolio `NowPlayingCard.tsx`): `card` fill, 3pt black
+ * border, pink `shadowXl`, tilted -1.5°; lime eyebrow + waveform bars, then the big lime chord.
+ */
 @Composable
-private fun NowPlaying(label: String?, chords: ChordDisplay) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-        Text("NOW PLAYING", style = TextStyles.overline, modifier = Modifier.semantics { heading() })
+private fun NowPlaying(label: String?, chords: ChordDisplay, isPlaying: Boolean) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.xs)
+            .tilt(Tilt.hero)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.xl, shadowColor = MusicDecodedColors.Secondary)
+            .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Eyebrow("Now playing", Modifier.weight(1f).semantics { heading() })
+            if (isPlaying) WaveformBars(Modifier.size(width = Spacing.xxl, height = Spacing.md), bars = 5)
+        }
         Text(label?.let(chords::name)?.ifEmpty { null } ?: "—", style = TextStyles.currentChord)
         val notes = label?.let(chords::noteNames).orEmpty()
         if (notes.isNotEmpty()) {
-            Text(notes, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.TextSecondary)
+            Text(notes, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
             Text("Representative root-position voicing", style = MaterialTheme.typography.labelSmall, color = MusicDecodedColors.TextMuted)
         }
     }
@@ -283,8 +307,7 @@ private fun VisualizerCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet)
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -304,7 +327,7 @@ private fun VisualizerCard(
         when (state.visualizer) {
             Visualizer.PIANO -> {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                    Text("CURRENT CHORD", style = TextStyles.overline)
+                    Eyebrow("Current chord")
                     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.Bottom) {
                         Text(
                             label?.let(state.chords::name)?.ifEmpty { null } ?: "—",
@@ -327,8 +350,8 @@ private fun TransportSheet(state: PlayerUiState, position: State<Double>, durati
     Column(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.TransportBg, Shapes.sheet)
-            .border(Sizes.hairline, MusicDecodedColors.TransportBorder, Shapes.sheet)
+            .background(MusicDecodedColors.Surface)
+            .topRule()
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
     ) {
         SeekBar(position, duration, viewModel::seekTo)
@@ -348,8 +371,8 @@ private fun TransportSheet(state: PlayerUiState, position: State<Double>, durati
 }
 
 /**
- * Seek bar per DESIGN.md §3.7: a thin rounded track (played = `primary`, rest = `surfaceSoft`) with
- * a small round thumb, plus current / total times. The touch target keeps the Slider's 48dp height.
+ * Seek bar per DESIGN.md §3.7: a thin square track (played = `primary`, rest = `surfaceRaised`) with
+ * a small square lime thumb, plus current / total times. The touch target keeps the Slider's 48dp height.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -365,12 +388,11 @@ internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double)
                 contentDescription = "Seek"
                 stateDescription = "${formatDuration(position.value)} of ${formatDuration(duration)}"
             },
-            thumb = { Box(Modifier.size(SeekThumb).background(MusicDecodedColors.Primary, CircleShape)) },
+            thumb = { Box(Modifier.size(SeekThumb).background(MusicDecodedColors.Primary).border(Borders.separator, MusicDecodedColors.Border)) },
             track = {
                 Canvas(Modifier.fillMaxWidth().height(Sizes.progressTrack)) {
-                    val radius = CornerRadius(size.height / 2)
-                    drawRoundRect(MusicDecodedColors.SurfaceSoft, cornerRadius = radius)
-                    drawRoundRect(MusicDecodedColors.Primary, size = Size(size.width * (value / total), size.height), cornerRadius = radius)
+                    drawRect(MusicDecodedColors.SurfaceRaised)
+                    drawRect(MusicDecodedColors.Primary, size = Size(size.width * (value / total), size.height))
                 }
             },
         )
@@ -382,7 +404,7 @@ internal fun SeekBar(position: State<Double>, duration: Double, onSeek: (Double)
     }
 }
 
-/** The seek bar's round thumb (a component size, not spacing). */
+/** The seek bar's square thumb (a component size, not spacing). */
 private val SeekThumb = 14.dp
 
 @Preview(heightDp = 1100)

@@ -50,7 +50,16 @@ import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.SecondaryButton
 import com.musicdecoded.mobile.ui.components.SongArt
+import com.musicdecoded.mobile.ui.components.WrappedProgressBar
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.components.halftone
+import com.musicdecoded.mobile.ui.components.hardShadow
+import com.musicdecoded.mobile.ui.components.tilt
+import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
+import com.musicdecoded.mobile.ui.theme.TextStyles
+import com.musicdecoded.mobile.ui.theme.Tilt
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -99,7 +108,8 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
     Column(
         Modifier
             .fillMaxSize()
-            .background(MusicDecodedColors.Canvas)
+            .background(MusicDecodedColors.Violet)
+            .halftone(MusicDecodedColors.White)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(horizontal = Spacing.gutter, vertical = Spacing.xs),
@@ -111,7 +121,13 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
             Box(Modifier.fillMaxWidth()) {
-                MdIconButton(Icons.Rounded.Close, contentDescription = "Continue in background", onClick = onBackground, modifier = Modifier.align(Alignment.CenterEnd))
+                MdIconButton(
+                    Icons.Rounded.Close,
+                    contentDescription = "Continue in background",
+                    onClick = onBackground,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    container = MusicDecodedColors.White,
+                )
             }
             OrbitArt(state.title)
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
@@ -120,7 +136,7 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
                         ProcessingPhase.COMPLETE -> "Your transcription is ready"
                         ProcessingPhase.FAILED -> "We couldn't decode this song"
                         else -> "Decoding your music"
-                    },
+                    }.uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MusicDecodedColors.Text,
                     textAlign = TextAlign.Center,
@@ -128,7 +144,7 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
                 )
                 val subtitle = listOfNotNull(state.title.takeIf { it.isNotBlank() }, state.artist).joinToString(" · ")
                 if (subtitle.isNotEmpty()) {
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondaryOnViolet, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
 
@@ -136,14 +152,22 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
                 ErrorState(state.error ?: TranscriptionRepository.GENERIC, onRetry = onRetry)
             } else {
                 OverallProgress(state)
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                // The step list sits on an ink card with a hard `shadowXl` (DESIGN.md §1 color map).
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(end = Shadows.xl, bottom = Shadows.xl)
+                        .block(MusicDecodedColors.Ink, shadow = Shadows.xl)
+                        .padding(Spacing.xs),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+                ) {
                     ProcessingStep.entries.forEach { StepRow(it, done = state.isDone(it), active = state.isActive(it)) }
                 }
             }
         }
         Column(Modifier.fillMaxWidth().padding(top = Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             when (state.phase) {
-                ProcessingPhase.COMPLETE -> PrimaryButton("Open transcription", onClick = onOpen)
+                ProcessingPhase.COMPLETE -> PrimaryButton("Open transcription", onClick = onOpen, shadowColor = MusicDecodedColors.Border)
                 ProcessingPhase.FAILED -> SecondaryButton("Back", onClick = onBackground)
                 else -> SecondaryButton("Continue in background", onClick = onBackground)
             }
@@ -152,22 +176,26 @@ private fun ProcessingContent(state: ProcessingUiState, onBackground: () -> Unit
 }
 
 private val OrbitOuter = 208.dp
-private val OrbitInner = 164.dp
 private val ArtSize = 120.dp
 
-/** Art (the title's initial) inside two orbit rings, with a wave badge. */
+/** Art (the title's initial) as a tilted sticker card over a white ring, with a lime wave badge. */
 @Composable
 private fun OrbitArt(title: String) {
     Box(Modifier.size(OrbitOuter), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(OrbitOuter).border(Sizes.hairline, MusicDecodedColors.Line, CircleShape))
-        Box(Modifier.size(OrbitInner).border(Sizes.hairline, MusicDecodedColors.PrimarySoft, CircleShape))
-        SongArt(title, Modifier.size(ArtSize), shape = Shapes.card, style = MaterialTheme.typography.headlineMedium)
+        Box(Modifier.size(OrbitOuter).border(Borders.thick, MusicDecodedColors.White.copy(alpha = 0.2f), CircleShape))
+        SongArt(
+            title,
+            Modifier.size(ArtSize).tilt(Tilt.hero * 2).hardShadow(Shadows.lg),
+            style = MaterialTheme.typography.displayMedium,
+            border = MusicDecodedColors.Border,
+        )
         Box(
             Modifier
                 .align(Alignment.BottomEnd)
                 .padding(Spacing.xl)
                 .size(Sizes.iconButton)
-                .background(MusicDecodedColors.Primary, CircleShape),
+                .tilt(Tilt.sticker)
+                .block(MusicDecodedColors.Primary, shadow = Shadows.sm),
             contentAlignment = Alignment.Center,
         ) {
             Icon(Icons.Rounded.GraphicEq, contentDescription = null, tint = MusicDecodedColors.OnPrimary, modifier = Modifier.size(Sizes.smallIcon))
@@ -179,15 +207,14 @@ private fun OrbitArt(title: String) {
 private fun OverallProgress(state: ProcessingUiState) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Row(Modifier.fillMaxWidth()) {
-            Text(state.step.label, Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = MusicDecodedColors.TextSecondary)
-            Text("${state.progress}%", style = MaterialTheme.typography.labelSmall.tabular(), color = MusicDecodedColors.Primary)
+            Text(state.step.label.uppercase(), Modifier.weight(1f), style = TextStyles.overline, color = MusicDecodedColors.Text)
+            Text("${state.progress}%", style = TextStyles.counter, color = MusicDecodedColors.Primary)
         }
-        LinearProgressIndicator(
-            progress = { state.progress / 100f },
-            modifier = Modifier.fillMaxWidth().height(Sizes.progressTrack).clip(CircleShape),
-            color = MusicDecodedColors.Primary,
-            trackColor = MusicDecodedColors.SurfaceSoft,
-            drawStopIndicator = {},
+        WrappedProgressBar(
+            state.progress / 100f,
+            Modifier.border(Borders.thick, MusicDecodedColors.Border),
+            trackColor = MusicDecodedColors.Ink,
+            height = Spacing.sm,
         )
     }
 }
@@ -197,8 +224,7 @@ private fun StepRow(step: ProcessingStep, done: Boolean, active: Boolean) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(if (done) MusicDecodedColors.PrimarySoft else MusicDecodedColors.Surface, Shapes.row)
-            .border(Sizes.hairline, if (active) MusicDecodedColors.Primary else MusicDecodedColors.Line, Shapes.row)
+            .background(if (active) MusicDecodedColors.SurfaceRaised else MusicDecodedColors.Ink)
             .padding(Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -206,7 +232,8 @@ private fun StepRow(step: ProcessingStep, done: Boolean, active: Boolean) {
         Box(
             Modifier
                 .size(Sizes.smallIconButton)
-                .background(if (done || active) MusicDecodedColors.Primary else MusicDecodedColors.SurfaceSoft, CircleShape),
+                .background(if (done || active) MusicDecodedColors.Primary else MusicDecodedColors.SurfaceRaised)
+                .border(Borders.separator, if (done || active) MusicDecodedColors.Border else MusicDecodedColors.Line),
             contentAlignment = Alignment.Center,
         ) {
             when {

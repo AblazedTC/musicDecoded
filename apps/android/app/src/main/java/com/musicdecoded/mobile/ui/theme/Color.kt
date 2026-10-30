@@ -2,59 +2,68 @@ package com.musicdecoded.mobile.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-/** DESIGN.md §1 color tokens. The app is dark-only in v1, so there is a single palette. */
+/**
+ * DESIGN.md §1 "Wrapped" color tokens: ink surfaces with loud color blocks. Dark-only in v1, so
+ * there is a single palette. Screens use the semantic names; the raw palette is for color blocks.
+ */
 object MusicDecodedColors {
-    val Ink = Color(0xFF07101C)
-    val Canvas = Color(0xFF0B1422)
-    val Surface = Color(0xFF111F30)
-    val SurfaceRaised = Color(0xFF182A3E)
-    val SurfaceSoft = Color(0xFF20354B)
-    val Line = Color(0xFF2A4057)
+    // Palette (exact portfolio values).
+    val Violet = Color(0xFF4100F5)
+    val Lime = Color(0xFFCFF56A)
+    val Pink = Color(0xFFF774C4)
+    val Yellow = Color(0xFFFAE62D)
+    val Orange = Color(0xFFFF6437)
+    val Blue = Color(0xFF509BF5)
+    val Ink = Color(0xFF121212)
+    val Card = Color(0xFF1C1C1C)
+    val CardRaised = Color(0xFF262626)
+    val White = Color(0xFFFFFFFF)
+    val Cream = Color(0xFFF0EDE4)
+    val Black = Color(0xFF000000)
 
-    val Primary = Color(0xFF62DCC4)
-    val OnPrimary = Color(0xFF08221E)
-    val PrimarySoft = Color(0xFF173D3D)
-    val Secondary = Color(0xFF91AFFF)
+    // Semantic tokens.
+    val Canvas = Ink
+    val Surface = Card
+    val SurfaceRaised = CardRaised
 
-    val Chord = Color(0xFFF2DFAF)
-    val OnChord = Color(0xFF322B1D)
-    val ChordMuted = Color(0xFF463F32)
-    val ChordMutedBorder = Color(0xFF645943)
+    val Primary = Lime
+    val OnPrimary = Ink
+    val Secondary = Pink
+    val OnSecondary = Ink
 
-    val Text = Color(0xFFF5F8FB)
-    val TextSecondary = Color(0xFF9FB0C3)
-    /**
-     * DESIGN.md says `#63778C`, which is only 3.6–4.1:1 on canvas/surface (WCAG AA needs 4.5:1 for
-     * text, T-503a). Lifted to `#8396AA` (5.5–6.3:1 on canvas, surface, transport); the DESIGN.md
-     * token change is logged as T-506. See ContrastTest.
-     */
-    val TextMuted = Color(0xFF8396AA)
+    val Chord = Lime
+    val OnChord = Ink
+    val ChordMuted = Color(0xFF2A2A2A)
+    val ChordMutedBorder = Color(0xFF3A3A3A)
 
-    val Record = Color(0xFFEC6478)
-    val RecordRing = Color(0xFFB94D5E)
+    /** Text on ink and violet. On lime/pink/yellow/orange/blue/cream use [OnColor]. */
+    val Text = White
+    /** Text on every light color block (lime, pink, yellow, orange, blue, cream). */
+    val OnColor = Ink
+    val TextSecondary = Color(0xFFB3B3B3)
+    val TextSecondaryOnViolet = Color(0xFFD6CCFF)
+    val TextSecondaryOnLime = Color(0xFF3A3A3A)
+    /** Captions and inactive tabs, on ink only. */
+    val TextMuted = Color(0xFF8A8A8A)
 
-    val TransportBg = Color(0xFF152638)
-    val TransportBorder = Color(0xFF30465D)
-    val MiniPlayerBg = Color(0xFF1B2D40)
-    val TimelineBg = Color(0xFF09101A)
-    val TimelineBorder = Color(0xFF24384B)
-    val WaveIdle = Color(0xFF4E6379).copy(alpha = 0.72f)
-    val WavePlayed = Primary.copy(alpha = 0.80f)
+    /** 3pt border on color blocks and cards on color blocks. */
+    val Border = Black
+    /** 3pt border around thumbnails/art on ink: white at 20%. */
+    val BorderOnInk = White.copy(alpha = 0.20f)
+    /** Hairline separators and quiet outlines on ink (same as the inactive chord border). */
+    val Line = ChordMutedBorder
 
-    // Source-icon tints (icon / background).
-    val MediaLibraryBg = Color(0xFF1D3153)
-    val YouTube = Color(0xFFFF8B8B)
-    val YouTubeBg = Color(0xFF452534)
-    val SoundCloud = Color(0xFFFFB56F)
-    val SoundCloudBg = Color(0xFF432F26)
-    val RecordSource = Color(0xFFFF9A9A)
-    val RecordSourceBg = Color(0xFF412534)
+    val Record = Orange
+    val Info = Blue
+    val Warning = Yellow
+
+    val WaveIdle = Color(0xFF3A3A3A)
+    val WavePlayed = Lime
 
     // Piano.
-    val PianoWhite = Color(0xFFE7EBEC)
-    val PianoWhiteBorder = Color(0xFF8D999D)
-    val PianoBlack = Color(0xFF0C1218)
-    val PianoWhiteActive = Color(0xFF9DE8DB)
-    val PianoBlackActive = Color(0xFF48BEA8)
-    val PianoBg = Color(0xFF0A111A)
+    val PianoWhite = Cream
+    val PianoBlack = Ink
+    val PianoWhiteActive = Lime
+    val PianoBlackActive = Color(0xFF9DBF2E)
+    val PianoBass = Pink
 }

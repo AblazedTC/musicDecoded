@@ -37,31 +37,52 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicdecoded.mobile.core.chordDisplayName
+import androidx.compose.ui.unit.dp
+import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
 import com.musicdecoded.mobile.ui.theme.TextStyles
 import kotlin.math.roundToInt
 
-/** Library filter pill (All songs · Favorites · Offline · Recordings). Selected = `primary` fill. */
+/**
+ * Square filter chip (Library filters, YouTube suggestions). On ink: selected = lime block with a
+ * violet shadow. With [onColorBlock] (e.g. the Library's lime header): white chips with black
+ * borders, selected = violet with white text and a black shadow.
+ */
 @Composable
-fun MdFilterChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun MdFilterChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, onColorBlock: Boolean = false) {
+    val fill = when {
+        onColorBlock && selected -> MusicDecodedColors.Violet
+        onColorBlock -> MusicDecodedColors.White
+        selected -> MusicDecodedColors.Primary
+        else -> MusicDecodedColors.Surface
+    }
+    val text = when {
+        onColorBlock && selected -> MusicDecodedColors.White
+        onColorBlock || selected -> MusicDecodedColors.OnColor
+        else -> MusicDecodedColors.Text
+    }
     Box(
         modifier
             .defaultMinSize(minHeight = Sizes.minTouchTarget)
-            .clip(Shapes.pill)
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick),
+            .selectable(selected = selected, interactionSource = null, indication = null, role = Role.Tab, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            label,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (selected) MusicDecodedColors.OnPrimary else MusicDecodedColors.TextSecondary,
+            label.uppercase(),
+            style = TextStyles.sticker,
+            color = text,
             modifier = Modifier
-                .background(if (selected) MusicDecodedColors.Primary else MusicDecodedColors.Surface, Shapes.pill)
-                .border(Sizes.hairline, if (selected) MusicDecodedColors.Primary else MusicDecodedColors.Line, Shapes.pill)
-                .padding(horizontal = Spacing.md, vertical = Spacing.xs),
+                .block(
+                    fill,
+                    shadow = if (selected) Shadows.sm else 0.dp,
+                    shadowColor = if (onColorBlock) MusicDecodedColors.Border else MusicDecodedColors.Violet,
+                    border = if (selected || onColorBlock) MusicDecodedColors.Border else MusicDecodedColors.BorderOnInk,
+                )
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         )
     }
 }
@@ -90,15 +111,15 @@ fun InfoChip(icon: ImageVector, label: String, value: String, modifier: Modifier
     Row(
         modifier
             .semantics(mergeDescendants = true) {} // read as one: "Key, B minor"
-            .background(MusicDecodedColors.Surface, Shapes.chip)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.chip)
+            .background(MusicDecodedColors.Surface)
+            .border(Borders.thick, MusicDecodedColors.BorderOnInk)
             .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, contentDescription = null, tint = MusicDecodedColors.Primary, modifier = Modifier.size(Sizes.smallIcon))
         Column {
-            Text(label.uppercase(), style = TextStyles.overline)
+            Text(label.uppercase(), style = TextStyles.chipLabel)
             Text(value, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
         }
     }
@@ -110,22 +131,19 @@ fun ControlChip(label: String, value: String, onClick: () -> Unit, modifier: Mod
     Row(
         modifier
             .defaultMinSize(minHeight = Sizes.minTouchTarget)
-            .clip(Shapes.chip)
-            .background(MusicDecodedColors.Surface)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.chip)
-            .clickable(role = Role.Button, onClick = onClick)
+            .block(MusicDecodedColors.Surface, border = MusicDecodedColors.BorderOnInk, onClick = onClick)
             .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(label.uppercase(), style = TextStyles.overline)
+            Text(label.uppercase(), style = TextStyles.chipLabel)
             Text(value, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
         }
-        Icon(Icons.Rounded.ExpandMore, contentDescription = null, tint = MusicDecodedColors.TextMuted, modifier = Modifier.size(Sizes.smallIcon))
+        Icon(Icons.Rounded.ExpandMore, contentDescription = null, tint = MusicDecodedColors.Primary, modifier = Modifier.size(Sizes.smallIcon))
     }
 }
 
-/** Two or more equal segments (e.g. Piano | Video). The selected segment gets `surfaceSoft`. */
+/** Two or more equal segments (e.g. Piano | Video). The selected segment is a lime block. */
 @Composable
 fun SegmentedToggle(
     options: List<String>,
@@ -136,8 +154,8 @@ fun SegmentedToggle(
 ) {
     Row(
         modifier
-            .background(MusicDecodedColors.Surface, Shapes.control)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.control)
+            .background(MusicDecodedColors.Surface)
+            .border(Borders.thick, MusicDecodedColors.BorderOnInk)
             .padding(Spacing.xxs)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
@@ -149,8 +167,7 @@ fun SegmentedToggle(
                 Modifier
                     .weight(1f)
                     .defaultMinSize(minHeight = Sizes.minTouchTarget)
-                    .clip(Shapes.chip)
-                    .background(if (selected) MusicDecodedColors.SurfaceSoft else MusicDecodedColors.Surface)
+                    .background(if (selected) MusicDecodedColors.Primary else MusicDecodedColors.Surface)
                     .selectable(selected = selected, enabled = isEnabled, role = Role.Tab) { onSelect(index) },
                 contentAlignment = Alignment.Center,
             ) {
@@ -159,7 +176,7 @@ fun SegmentedToggle(
                     style = MaterialTheme.typography.labelLarge,
                     color = when {
                         !isEnabled -> MusicDecodedColors.TextMuted
-                        selected -> MusicDecodedColors.Text
+                        selected -> MusicDecodedColors.OnPrimary
                         else -> MusicDecodedColors.TextSecondary
                     },
                 )

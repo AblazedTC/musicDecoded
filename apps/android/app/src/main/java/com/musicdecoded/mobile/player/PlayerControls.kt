@@ -40,7 +40,9 @@ import androidx.compose.ui.unit.Dp
 import com.musicdecoded.mobile.ui.components.ControlChip
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.formatDuration
+import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -86,21 +88,19 @@ internal fun PlayerHeader(
     }
 }
 
-/** The primary play/pause circle (56dp in the transport; larger in the learning view). */
+/** The pink play/pause circle with a black border and hard shadow (56dp in the transport; larger in the learning view). */
 @Composable
 internal fun PlayButton(isPlaying: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, size: Dp = Sizes.playButton) {
     Box(
         modifier
             .size(size)
-            .clip(CircleShape)
-            .background(MusicDecodedColors.Primary)
-            .clickable(role = Role.Button, onClick = onClick),
+            .block(MusicDecodedColors.Secondary, shadow = Shadows.sm, shape = CircleShape, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
             contentDescription = if (isPlaying) "Pause" else "Play",
-            tint = MusicDecodedColors.OnPrimary,
+            tint = MusicDecodedColors.OnSecondary,
         )
     }
 }
@@ -169,13 +169,12 @@ private fun <T> ChoiceMenu(expanded: Boolean, onDismiss: () -> Unit, choices: Li
     }
 }
 
-/** "Looping 1:04–1:20 · Clear", floating above the transport (chord fill). */
+/** "Looping 1:04–1:20 · Clear", floating above the transport (pink sticker block). */
 @Composable
 internal fun LoopPill(loop: OpenEndRange<Double>, onClear: () -> Unit, modifier: Modifier = Modifier) {
     Row(
         modifier
-            .clip(Shapes.pill)
-            .background(MusicDecodedColors.Chord)
+            .block(MusicDecodedColors.Secondary, shadow = Shadows.sm)
             .padding(start = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
@@ -183,7 +182,7 @@ internal fun LoopPill(loop: OpenEndRange<Double>, onClear: () -> Unit, modifier:
         Text(
             "Looping ${formatDuration(loop.start)}–${formatDuration(loop.endExclusive)} ·",
             style = MaterialTheme.typography.labelLarge.tabular(),
-            color = MusicDecodedColors.OnChord,
+            color = MusicDecodedColors.OnSecondary,
         )
         Box(
             Modifier
@@ -192,7 +191,7 @@ internal fun LoopPill(loop: OpenEndRange<Double>, onClear: () -> Unit, modifier:
                 .padding(end = Spacing.md, start = Spacing.xxs),
             contentAlignment = Alignment.Center,
         ) {
-            Text("Clear", style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.OnChord)
+            Text("Clear", style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.OnSecondary)
         }
     }
 }

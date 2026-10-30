@@ -69,7 +69,12 @@ import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.PolicyNote
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.musicdecoded.mobile.ui.components.Eyebrow
+import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -148,7 +153,7 @@ private fun RecorderContent(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             MdIconButton(Icons.AutoMirrored.Rounded.ArrowBack, "Back", onClose)
             Text(
-                "Record Audio",
+                "RECORD AUDIO",
                 style = MaterialTheme.typography.titleMedium,
                 color = MusicDecodedColors.Text,
                 modifier = Modifier.weight(1f).padding(start = Spacing.xs),
@@ -167,7 +172,7 @@ private fun RecorderContent(
         StateLabel(state.phase)
         Text(
             InputLevel.formatTimer(state.elapsedMs),
-            style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Light).tabular(),
+            style = MaterialTheme.typography.displayMedium.tabular(),
             color = MusicDecodedColors.Text,
             modifier = Modifier.padding(vertical = Spacing.md),
         )
@@ -206,13 +211,13 @@ private fun RecorderContent(
 private fun StateLabel(phase: RecorderPhase) {
     val (label, color) = when (phase) {
         RecorderPhase.RECORDING -> "Recording" to MusicDecodedColors.Record
-        RecorderPhase.PAUSED -> "Paused" to MusicDecodedColors.Chord
+        RecorderPhase.PAUSED -> "Paused" to MusicDecodedColors.Yellow
         RecorderPhase.STOPPED, RecorderPhase.STARTING -> "Recording finished" to MusicDecodedColors.TextSecondary
         RecorderPhase.IDLE -> "Microphone ready" to MusicDecodedColors.Primary
     }
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(Spacing.xs).background(color, CircleShape))
-        Text(label, style = MaterialTheme.typography.bodySmall, color = color)
+        Text(label.uppercase(), style = TextStyles.overline, color = color)
     }
 }
 
@@ -224,8 +229,7 @@ private fun LiveWaveform(levels: List<Float>, active: Boolean) {
         Modifier
             .fillMaxWidth()
             .aspectRatio(WAVEFORM_ASPECT)
-            .background(MusicDecodedColors.TimelineBg, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.TimelineBorder, Shapes.card)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet)
             .padding(Spacing.md),
     ) {
         val slot = size.width / RecorderViewModel.WAVEFORM_BARS
@@ -236,11 +240,10 @@ private fun LiveWaveform(levels: List<Float>, active: Boolean) {
         for (i in 0 until RecorderViewModel.WAVEFORM_BARS) {
             val level = levels.getOrNull(i - offset) ?: 0f
             val height = (level * size.height).coerceAtLeast(minHeight)
-            drawRoundRect(
+            drawRect(
                 color = barColor,
                 topLeft = Offset(i * slot + (slot - barWidth) / 2, (size.height - height) / 2),
                 size = Size(barWidth, height),
-                cornerRadius = CornerRadius(barWidth / 2),
             )
         }
     }
@@ -252,7 +255,7 @@ private fun LevelMeter(db: Float, active: Boolean) {
     val lit = if (active) InputLevel.litSegments(db) else 0
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Row(Modifier.fillMaxWidth()) {
-            Text("INPUT LEVEL", style = TextStyles.overline, modifier = Modifier.weight(1f))
+            Eyebrow("Input level", Modifier.weight(1f))
             Text(
                 if (active) "${db.roundToInt()} dB" else "— dB",
                 style = MaterialTheme.typography.labelSmall.tabular(),
@@ -265,9 +268,9 @@ private fun LevelMeter(db: Float, active: Boolean) {
         ) {
             repeat(InputLevel.SEGMENTS) { index ->
                 val color = when {
-                    index >= lit -> MusicDecodedColors.SurfaceSoft
+                    index >= lit -> MusicDecodedColors.SurfaceRaised
                     index >= InputLevel.SEGMENTS - 2 -> MusicDecodedColors.Record // clipping
-                    index >= InputLevel.SEGMENTS - 5 -> MusicDecodedColors.Chord
+                    index >= InputLevel.SEGMENTS - 5 -> MusicDecodedColors.Yellow
                     else -> MusicDecodedColors.Primary
                 }
                 Box(Modifier.weight(1f).aspectRatio(SEGMENT_ASPECT).background(color, Shapes.chip))
@@ -276,7 +279,7 @@ private fun LevelMeter(db: Float, active: Boolean) {
     }
 }
 
-/** The 84pt red ring: record, pause, or resume. */
+/** The 84pt orange record button (black border, hard shadow): record, pause, or resume. */
 @Composable
 private fun RecordButton(phase: RecorderPhase, onClick: () -> Unit) {
     val enabled = phase == RecorderPhase.IDLE || phase == RecorderPhase.RECORDING || phase == RecorderPhase.PAUSED
@@ -289,16 +292,21 @@ private fun RecordButton(phase: RecorderPhase, onClick: () -> Unit) {
         Box(
             Modifier
                 .size(Sizes.recordButton)
-                .border(Spacing.xxs, MusicDecodedColors.RecordRing, CircleShape)
-                .padding(Spacing.xs)
-                .background(if (enabled) MusicDecodedColors.Record else MusicDecodedColors.SurfaceSoft, CircleShape)
-                .clickable(enabled = enabled, role = Role.Button, onClickLabel = label, onClick = onClick),
+                .block(
+                    if (enabled) MusicDecodedColors.Record else MusicDecodedColors.SurfaceRaised,
+                    shadow = if (enabled) Shadows.md else 0.dp,
+                    shadowColor = MusicDecodedColors.Violet,
+                    shape = CircleShape,
+                    onClick = onClick,
+                    onClickLabel = label,
+                    enabled = enabled,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 if (phase == RecorderPhase.RECORDING) Icons.Rounded.Pause else Icons.Rounded.Mic,
                 contentDescription = label,
-                tint = MusicDecodedColors.Text,
+                tint = if (enabled) MusicDecodedColors.OnColor else MusicDecodedColors.TextMuted,
                 modifier = Modifier.size(Sizes.icon),
             )
         }
@@ -317,12 +325,12 @@ private fun LabeledAction(label: String, content: @Composable () -> Unit) {
 private fun PermissionDenied(action: String, onAction: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Box(
-            Modifier.size(Sizes.recordButton).background(MusicDecodedColors.RecordSourceBg, CircleShape),
+            Modifier.size(Sizes.recordButton).block(MusicDecodedColors.Record, shadow = Shadows.md, shadowColor = MusicDecodedColors.Violet, shape = CircleShape),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.MicOff, contentDescription = null, tint = MusicDecodedColors.RecordSource)
+            Icon(Icons.Rounded.MicOff, contentDescription = null, tint = MusicDecodedColors.OnColor)
         }
-        Text("Microphone access is off", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text)
+        Text("MICROPHONE ACCESS IS OFF", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text, textAlign = TextAlign.Center)
         Text(
             "MusicDecoded needs the microphone to record a performance and decode its chords.",
             style = MaterialTheme.typography.bodySmall,
@@ -337,8 +345,8 @@ private fun TitleDialog(defaultTitle: String, onSave: (String) -> Unit, onDismis
     var title by rememberSaveable { mutableStateOf(defaultTitle) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = MusicDecodedColors.TransportBg,
-        title = { Text("Name your recording", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text) },
+        containerColor = MusicDecodedColors.Surface,
+        title = { Text("Name your recording", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text) },
         text = {
             OutlinedTextField(
                 value = title,
@@ -349,7 +357,7 @@ private fun TitleDialog(defaultTitle: String, onSave: (String) -> Unit, onDismis
                     focusedTextColor = MusicDecodedColors.Text,
                     unfocusedTextColor = MusicDecodedColors.Text,
                     focusedBorderColor = MusicDecodedColors.Primary,
-                    unfocusedBorderColor = MusicDecodedColors.Line,
+                    unfocusedBorderColor = MusicDecodedColors.BorderOnInk,
                     cursorColor = MusicDecodedColors.Primary,
                 ),
             )

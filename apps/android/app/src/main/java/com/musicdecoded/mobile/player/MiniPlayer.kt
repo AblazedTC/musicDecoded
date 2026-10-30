@@ -33,7 +33,9 @@ import com.musicdecoded.mobile.ui.components.PreviewFixture
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.SongArt
 import com.musicdecoded.mobile.ui.components.keyName
+import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -67,18 +69,15 @@ fun MiniPlayer(
     Column(
         modifier
             .fillMaxWidth()
-            .padding(horizontal = Spacing.xs, vertical = Spacing.xxs)
-            .clip(Shapes.row)
-            .background(MusicDecodedColors.MiniPlayerBg)
-            .border(Sizes.hairline, MusicDecodedColors.TransportBorder, Shapes.row)
-            .clickable(role = Role.Button, onClickLabel = "Open player", onClick = onOpen),
+            .padding(start = Spacing.xs, end = Spacing.sm, top = Spacing.xxs, bottom = Spacing.xs)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.sm, shadowColor = MusicDecodedColors.Secondary, onClick = onOpen, onClickLabel = "Open player"),
     ) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .height(ProgressLine)
                 .drawBehind {
-                    drawRect(MusicDecodedColors.SurfaceSoft)
+                    drawRect(MusicDecodedColors.SurfaceRaised)
                     val fraction = if (state.durationSec > 0) (position() / state.durationSec).toFloat().coerceIn(0f, 1f) else 0f
                     drawRect(MusicDecodedColors.Primary, size = Size(size.width * fraction, size.height))
                 },
@@ -100,7 +99,7 @@ fun MiniPlayer(
                 if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = if (state.isPlaying) "Pause" else "Play",
                 onClick = onTogglePlay,
-                active = true,
+                container = MusicDecodedColors.Secondary,
             )
             MdIconButton(Icons.Rounded.Close, contentDescription = "Close player", onClick = onDismiss, small = true)
         }

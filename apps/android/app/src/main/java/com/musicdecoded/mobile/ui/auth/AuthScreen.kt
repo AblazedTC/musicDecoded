@@ -167,7 +167,7 @@ private fun AuthField(
         shape = Shapes.control,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MusicDecodedColors.Primary,
-            unfocusedBorderColor = MusicDecodedColors.Line,
+            unfocusedBorderColor = MusicDecodedColors.BorderOnInk,
             focusedContainerColor = MusicDecodedColors.Surface,
             unfocusedContainerColor = MusicDecodedColors.Surface,
             focusedTextColor = MusicDecodedColors.Text,

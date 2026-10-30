@@ -64,6 +64,7 @@ import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
 import com.musicdecoded.mobile.ui.theme.TextStyles
+import com.musicdecoded.mobile.ui.theme.Borders
 
 /** DESIGN.md §3.4 result thumbnail: 132×78. */
 private val ThumbWidth = 132.dp
@@ -132,7 +133,7 @@ private fun YouTubeSearchContent(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
             MdIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = onBack)
-            Text("YouTube", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text)
+            Text("YOUTUBE", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text)
         }
         LazyColumn(
             Modifier.weight(1f),
@@ -201,7 +202,7 @@ private fun SearchField(query: String, onQueryChange: (String) -> Unit, onSubmit
         colors = OutlinedTextFieldDefaults.colors(
             // Emphasized border (DESIGN.md §3.4).
             focusedBorderColor = MusicDecodedColors.Primary,
-            unfocusedBorderColor = MusicDecodedColors.Primary.copy(alpha = 0.5f),
+            unfocusedBorderColor = MusicDecodedColors.Primary,
             focusedContainerColor = MusicDecodedColors.Surface,
             unfocusedContainerColor = MusicDecodedColors.Surface,
             focusedTextColor = MusicDecodedColors.Text,
@@ -218,7 +219,7 @@ private fun ResultRow(video: VideoSummary, onClick: () -> Unit) {
         Modifier.fillMaxWidth().clip(Shapes.row).clickable(role = Role.Button, onClick = onClick).padding(Spacing.xxs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Box(Modifier.size(ThumbWidth, ThumbHeight).clip(Shapes.art)) {
+        Box(Modifier.size(ThumbWidth, ThumbHeight).border(Borders.thick, MusicDecodedColors.BorderOnInk)) {
             RemoteImage(video.thumbnailUrl, Modifier.matchParentSize())
             video.durationSec?.let { DurationBadge(it, Modifier.align(Alignment.BottomEnd).padding(Spacing.xxs)) }
         }
@@ -252,13 +253,13 @@ private fun PasteUrlCard(error: String?, onPaste: (String) -> Unit, onEdited: ()
         Modifier
             .fillMaxWidth()
             .padding(top = Spacing.xs)
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .background(MusicDecodedColors.Surface)
+            .border(Borders.thick, MusicDecodedColors.BorderOnInk)
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Rounded.Link, contentDescription = null, tint = MusicDecodedColors.YouTube, modifier = Modifier.size(Sizes.smallIcon))
+            Icon(Icons.Rounded.Link, contentDescription = null, tint = MusicDecodedColors.Orange, modifier = Modifier.size(Sizes.smallIcon))
             Text("Paste a video URL", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
         }
         OutlinedTextField(
@@ -274,7 +275,7 @@ private fun PasteUrlCard(error: String?, onPaste: (String) -> Unit, onEdited: ()
             shape = Shapes.control,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MusicDecodedColors.Primary,
-                unfocusedBorderColor = MusicDecodedColors.Line,
+                unfocusedBorderColor = MusicDecodedColors.BorderOnInk,
                 focusedTextColor = MusicDecodedColors.Text,
                 unfocusedTextColor = MusicDecodedColors.Text,
                 cursorColor = MusicDecodedColors.Primary,

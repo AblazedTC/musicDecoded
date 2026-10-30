@@ -1,6 +1,6 @@
 package com.musicdecoded.mobile.ui.theme
 
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 
 /**
@@ -21,27 +21,43 @@ object Spacing {
     val gutter = md
 }
 
-/** DESIGN.md §1 corner radii. */
-object Radius {
-    val card = 18.dp
-    val row = 15.dp
-    val control = 12.dp
-    val button = 13.dp
-    val chip = 10.dp
-    val art = 10.dp
-    val pill = 20.dp
-    val sheet = 22.dp
+/**
+ * DESIGN.md §1: corners are square everywhere. Only circular play/record buttons and avatars are
+ * round (they use `CircleShape` directly). The names stay so call sites read by role.
+ */
+object Shapes {
+    val card = RectangleShape
+    val row = RectangleShape
+    val control = RectangleShape
+    val button = RectangleShape
+    val chip = RectangleShape
+    val art = RectangleShape
+    val pill = RectangleShape
+    val sheet = RectangleShape
 }
 
-object Shapes {
-    val card = RoundedCornerShape(Radius.card)
-    val row = RoundedCornerShape(Radius.row)
-    val control = RoundedCornerShape(Radius.control)
-    val button = RoundedCornerShape(Radius.button)
-    val chip = RoundedCornerShape(Radius.chip)
-    val art = RoundedCornerShape(Radius.art)
-    val pill = RoundedCornerShape(Radius.pill)
-    val sheet = RoundedCornerShape(topStart = Radius.sheet, topEnd = Radius.sheet)
+/** DESIGN.md §1 borders: 3pt on blocks/cards/art, 2pt separators inside lists. */
+object Borders {
+    val thick = 3.dp
+    val separator = 2.dp
+}
+
+/** DESIGN.md §1 hard offset shadows (no blur, x = y). */
+object Shadows {
+    val sm = 3.dp
+    val md = 5.dp
+    val lg = 8.dp
+    val xl = 10.dp
+    /** Pressed state moves the block by this and shrinks the shadow by the same amount. */
+    val press = 2.dp
+}
+
+/** DESIGN.md §1 tilt in degrees. Decoration only; zero when the system disables animations. */
+object Tilt {
+    const val hero = -1.5f
+    const val listCard = 1f
+    const val sticker = -3f
+    const val stickerMax = -6f
 }
 
 /** Fixed component sizes (not spacing), from DESIGN.md §1 "component sizes". */

@@ -47,7 +47,12 @@ import com.musicdecoded.mobile.ui.components.ChipRow
 import com.musicdecoded.mobile.ui.components.ControlChip
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.formatDuration
+import androidx.compose.ui.unit.dp
+import com.musicdecoded.mobile.ui.components.Eyebrow
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.MusicDecodedTheme
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
@@ -88,7 +93,7 @@ fun PianoScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 next = next?.let { analysis.chords[it.chordIndex].label },
                 inBeats = next?.inBeats,
                 chords = chords,
-                modifier = Modifier.padding(horizontal = Spacing.gutter),
+                modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.xs),
             )
             // The video is the clock for youtube tracks without local audio, so it comes along.
             if (state.videoIsClock) {
@@ -106,6 +111,9 @@ fun PianoScreen(viewModel: PlayerViewModel, onBack: () -> Unit) {
                 height = PianoKeyboardDefaults.LargeHeight,
                 noteName = chords::noteName.takeIf { state.showNoteNames },
                 description = currentLabel?.let(chords::noteNames),
+                // Inset by the gutter so the frame's lime shadowLg stays on screen (DESIGN.md §1).
+                modifier = Modifier.padding(horizontal = Spacing.gutter),
+                frameShadow = Shadows.lg,
             )
             ProgressionStrip(analysis, chordIndex, chords, onSeek = viewModel::seekTo)
             LearningControls(state, viewModel, Modifier.padding(horizontal = Spacing.gutter))
@@ -137,20 +145,23 @@ private fun HeadCard(current: String?, next: String?, inBeats: Int?, chords: Cho
         modifier
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Pink)
             .padding(Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-            Text("CURRENT CHORD", style = TextStyles.overline)
-            Text(current?.let(chords::name)?.ifEmpty { null } ?: "—", style = TextStyles.currentChord)
+            Eyebrow("Current chord")
+            Text(
+                current?.let(chords::name)?.ifEmpty { null } ?: "—",
+                style = MaterialTheme.typography.displaySmall,
+                color = MusicDecodedColors.Chord,
+            )
             Text(current?.let(chords::noteNames).orEmpty(), style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
         }
-        Box(Modifier.fillMaxHeight().width(Sizes.hairline).background(MusicDecodedColors.Line))
+        Box(Modifier.fillMaxHeight().width(Borders.separator).background(MusicDecodedColors.Line))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-            Text("UP NEXT", style = TextStyles.overline)
-            Text(next?.let(chords::name) ?: "—", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text)
+            Eyebrow("Up next", color = MusicDecodedColors.TextMuted)
+            Text(next?.let(chords::name) ?: "—", style = MaterialTheme.typography.displaySmall, color = MusicDecodedColors.Text)
             if (inBeats != null) {
                 Text(
                     if (inBeats == 1) "in 1 beat" else "in $inBeats beats",
@@ -177,7 +188,7 @@ private fun ProgressionStrip(analysis: Analysis, chordIndex: Int?, chords: Chord
     }
     LazyRow(
         state = listState,
-        contentPadding = PaddingValues(horizontal = Spacing.gutter),
+        contentPadding = PaddingValues(horizontal = Spacing.gutter, vertical = Spacing.xxs),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         itemsIndexed(strip, key = { _, item -> item.index }) { position, item ->
@@ -185,10 +196,14 @@ private fun ProgressionStrip(analysis: Analysis, chordIndex: Int?, chords: Chord
             val isCurrent = position == current
             Column(
                 Modifier
-                    .clip(Shapes.chip)
-                    .background(if (isCurrent) MusicDecodedColors.Chord else MusicDecodedColors.Surface)
-                    .border(Sizes.hairline, if (isCurrent) MusicDecodedColors.Chord else MusicDecodedColors.Line, Shapes.chip)
-                    .clickable(role = Role.Button, onClickLabel = "Play from here") { onSeek(chord.start) }
+                    .block(
+                        if (isCurrent) MusicDecodedColors.Chord else MusicDecodedColors.Surface,
+                        shadow = if (isCurrent) Shadows.sm else 0.dp,
+                        shadowColor = MusicDecodedColors.Violet,
+                        border = if (isCurrent) MusicDecodedColors.Border else MusicDecodedColors.BorderOnInk,
+                        onClick = { onSeek(chord.start) },
+                        onClickLabel = "Play from here",
+                    )
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             ) {
                 Text(

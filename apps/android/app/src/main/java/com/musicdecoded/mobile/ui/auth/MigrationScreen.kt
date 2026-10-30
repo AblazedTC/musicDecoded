@@ -39,7 +39,12 @@ import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.PolicyNote
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.formatBytes
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.components.tilt
+import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
+import com.musicdecoded.mobile.ui.theme.Tilt
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -123,12 +128,12 @@ fun MigrationScreen(viewModel: MigrationViewModel, onDone: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
-                Modifier.size(Sizes.recordButton).background(MusicDecodedColors.PrimarySoft, Shapes.card),
+                Modifier.size(Sizes.recordButton).tilt(Tilt.sticker).block(MusicDecodedColors.Blue, shadow = Shadows.md, shadowColor = MusicDecodedColors.Violet),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.CloudUpload, contentDescription = null, tint = MusicDecodedColors.Primary)
+                Icon(Icons.Rounded.CloudUpload, contentDescription = null, tint = MusicDecodedColors.OnColor)
             }
-            Text("Bring your music with you", style = MaterialTheme.typography.headlineMedium, color = MusicDecodedColors.Text)
+            Text("BRING YOUR MUSIC WITH YOU", style = MaterialTheme.typography.headlineMedium, color = MusicDecodedColors.Text)
             Text(
                 "Move local music to your account.",
                 style = MaterialTheme.typography.bodySmall,
@@ -157,8 +162,8 @@ private fun CheckRow(checked: Boolean, title: String, subtitle: String) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.row)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.row)
+            .background(MusicDecodedColors.Surface)
+            .border(Borders.thick, MusicDecodedColors.BorderOnInk)
             .padding(Spacing.md)
             .semantics(mergeDescendants = true) { contentDescription = description },
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),

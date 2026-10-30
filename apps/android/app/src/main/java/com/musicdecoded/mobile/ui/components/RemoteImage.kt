@@ -24,7 +24,7 @@ private val thumbnails = object : LruCache<String, Bitmap>(8 * 1024 * 1024) {
 }
 
 /**
- * An https image (YouTube thumbnails) with a `surfaceSoft` placeholder while it loads or if it
+ * An https image (YouTube thumbnails) with a `surfaceRaised` placeholder while it loads or if it
  * fails. Platform only (HttpURLConnection + BitmapFactory): no image-loading library for a
  * handful of thumbnails.
  */
@@ -33,7 +33,7 @@ fun RemoteImage(url: String?, modifier: Modifier = Modifier, contentScale: Conte
     val bitmap by produceState(url?.let(thumbnails::get), url) {
         if (value == null && url != null && url.startsWith("https://")) value = load(url)
     }
-    Box(modifier.background(MusicDecodedColors.SurfaceSoft)) {
+    Box(modifier.background(MusicDecodedColors.SurfaceRaised)) {
         bitmap?.let { Image(it.asImageBitmap(), contentDescription = null, contentScale = contentScale, modifier = Modifier.matchParentSize()) }
     }
 }

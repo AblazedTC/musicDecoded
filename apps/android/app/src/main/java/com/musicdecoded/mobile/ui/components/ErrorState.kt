@@ -26,8 +26,7 @@ import com.musicdecoded.mobile.library.TranscriptionRepository
 import com.musicdecoded.mobile.ui.paywall.LocalOpenPaywall
 import com.musicdecoded.mobile.ui.paywall.opensPaywall
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
-import com.musicdecoded.mobile.ui.theme.Shapes
-import com.musicdecoded.mobile.ui.theme.Sizes
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Spacing
 
 /** The title [ErrorState] uses for a message: "You're offline" for the shared offline copy. */
@@ -53,8 +52,7 @@ fun ErrorState(
     Column(
         modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.md, shadowColor = MusicDecodedColors.Orange, border = MusicDecodedColors.Orange)
             .padding(Spacing.md)
             .semantics { liveRegion = LiveRegionMode.Polite },
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),

@@ -50,7 +50,10 @@ import com.musicdecoded.mobile.ui.components.PolicyNote
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.RemoteImage
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -139,7 +142,7 @@ private fun YouTubeDetailContent(
 @Composable
 private fun Hero(video: VideoSummary, playing: Boolean, onPlay: () -> Unit) {
     var error by remember(video.videoId) { mutableStateOf<String?>(null) }
-    Box(Modifier.fillMaxWidth().height(HeroHeight).clip(Shapes.card).background(MusicDecodedColors.Ink)) {
+    Box(Modifier.fillMaxWidth().height(HeroHeight).block(MusicDecodedColors.Ink, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Orange)) {
         if (playing) {
             YouTubeWebPlayer(video.videoId, Modifier.matchParentSize(), autoplay = true, onError = { error = youTubeErrorMessage(it) })
             error?.let {
@@ -178,8 +181,8 @@ private fun AvailabilityCard(state: YouTubeDetailUiState) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .background(MusicDecodedColors.Surface)
+            .border(Borders.thick, MusicDecodedColors.BorderOnInk)
             .padding(Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,

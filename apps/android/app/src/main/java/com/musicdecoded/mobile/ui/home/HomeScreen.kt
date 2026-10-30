@@ -46,7 +46,24 @@ import com.musicdecoded.mobile.ui.components.SourceCard
 import com.musicdecoded.mobile.ui.components.SourceKind
 import com.musicdecoded.mobile.ui.library.LibrarySongRow
 import com.musicdecoded.mobile.ui.library.SongListMessages
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.sp
+import com.musicdecoded.mobile.ui.components.Eyebrow
+import com.musicdecoded.mobile.ui.components.SourceIconTile
+import com.musicdecoded.mobile.ui.components.Sticker
+import com.musicdecoded.mobile.ui.components.WaveformBars
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.components.halftone
+import com.musicdecoded.mobile.ui.components.tilt
+import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.MusicDecodedTheme
+import com.musicdecoded.mobile.ui.theme.Shadows
+import com.musicdecoded.mobile.ui.theme.Tilt
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -76,70 +93,96 @@ fun HomeScreen(nav: HomeNavigation, modifier: Modifier = Modifier) {
     SongListMessages(message, viewModel::messageShown)
 
     Column(
-        modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xl),
     ) {
         BrandHeader(onSearch = nav.onSearch, onProfile = nav.onProfile)
 
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            SectionHeader("Recently Decoded", actionLabel = "See all", onAction = nav.onSeeAll)
-            if (!state.loading && state.recent.isEmpty()) {
-                Text(
-                    "Nothing decoded yet. Pick a source below to decode your first song.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MusicDecodedColors.TextSecondary,
-                )
+        Column(
+            Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xl),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                SectionHeader("Recently Decoded", actionLabel = "See all", onAction = nav.onSeeAll, numeral = "01")
+                if (!state.loading && state.recent.isEmpty()) {
+                    Text(
+                        "Nothing decoded yet. Pick a source below to decode your first song.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MusicDecodedColors.TextSecondary,
+                    )
+                }
+                state.recent.forEach { row ->
+                    LibrarySongRow(row, viewModel, nav.onOpenPlayer, nav.onOpenProcessing)
+                }
             }
-            state.recent.forEach { row ->
-                LibrarySongRow(row, viewModel, nav.onOpenPlayer, nav.onOpenProcessing)
+
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                SectionHeader("Transcribe Music", numeral = "02")
+                SourceGrid(soundcloudEnabled = state.soundcloudEnabled, nav = nav)
+                RecordCard(onClick = nav.onRecord)
             }
-        }
 
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            SectionHeader("Transcribe Music")
-            SourceGrid(soundcloudEnabled = state.soundcloudEnabled, nav = nav)
-            RecordCard(onClick = nav.onRecord)
+            TipCard()
         }
-
-        TipCard()
     }
 }
 
+/**
+ * The violet hero block (DESIGN.md §1 color map): halftone texture, logo sticker, search/profile,
+ * the "MUSIC / DECODED" display wordmark, tagline and lime waveform bars.
+ */
 @Composable
 private fun BrandHeader(onSearch: () -> Unit, onProfile: () -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Box(
-            Modifier.size(Sizes.iconButton).rotate(LOGO_TILT).background(MusicDecodedColors.Primary, Shapes.control),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Rounded.GraphicEq, contentDescription = null, tint = MusicDecodedColors.OnPrimary)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MusicDecodedColors.Violet)
+            .halftone(MusicDecodedColors.White)
+            .padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Box(
+                Modifier.size(Sizes.iconButton).tilt(LOGO_TILT).block(MusicDecodedColors.Primary, shadow = Shadows.sm),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Rounded.GraphicEq, contentDescription = null, tint = MusicDecodedColors.OnPrimary)
+            }
+            Sticker("Chord decoder", Modifier.padding(start = Spacing.xs), fill = MusicDecodedColors.Pink)
+            Spacer(Modifier.weight(1f))
+            MdIconButton(Icons.Rounded.Search, contentDescription = "Search your library", onClick = onSearch, container = MusicDecodedColors.White)
+            MdIconButton(Icons.Rounded.Person, contentDescription = "Profile and settings", onClick = onProfile, container = MusicDecodedColors.White)
         }
-        Column(Modifier.weight(1f)) {
-            Text("MusicDecoded", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Text)
-            Text("Your music, decoded.", style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
+        Column(Modifier.semantics(mergeDescendants = true) { heading() }) {
+            Text("MUSIC", style = MaterialTheme.typography.headlineMedium.copy(fontSize = WordmarkSize), color = MusicDecodedColors.Text)
+            Text("DECODED", style = MaterialTheme.typography.headlineMedium.copy(fontSize = WordmarkSize), color = MusicDecodedColors.Lime)
         }
-        MdIconButton(Icons.Rounded.Search, contentDescription = "Search your library", onClick = onSearch)
-        MdIconButton(Icons.Rounded.Person, contentDescription = "Profile and settings", onClick = onProfile)
+        Text("Your music, decoded.", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
+        WaveformBars(Modifier.fillMaxWidth().height(Spacing.xxxl), color = MusicDecodedColors.Lime)
     }
 }
 
 private const val LOGO_TILT = -4f
 
+/** The Home wordmark is bigger than a page title (hero only). */
+private val WordmarkSize = 56.sp
+
 /** 2×2 grid: Files · Media Library · YouTube · SoundCloud (only when the server enables it). */
 @Composable
 private fun SourceGrid(soundcloudEnabled: Boolean, nav: HomeNavigation) {
     val cards = buildList<@Composable (Modifier) -> Unit> {
-        add { SourceCard(SourceKind.FILES, "Files", "Import audio from this device", nav.onFiles, it) }
-        add { SourceCard(SourceKind.MEDIA_LIBRARY, "Media Library", "Choose local music", nav.onMediaLibrary, it) }
-        add { SourceCard(SourceKind.YOUTUBE, "YouTube", "Discover & play", nav.onYouTube, it) }
+        // List cards alternate -1°/+1° (DESIGN.md §1 tilt).
+        add { SourceCard(SourceKind.FILES, "Files", "Import audio from this device", nav.onFiles, it, tilt = -Tilt.listCard) }
+        add { SourceCard(SourceKind.MEDIA_LIBRARY, "Media Library", "Choose local music", nav.onMediaLibrary, it, tilt = Tilt.listCard) }
+        add { SourceCard(SourceKind.YOUTUBE, "YouTube", "Discover & play", nav.onYouTube, it, tilt = Tilt.listCard) }
         if (soundcloudEnabled) {
-            add { SourceCard(SourceKind.SOUNDCLOUD, "SoundCloud", "Find supported tracks", nav.onSoundCloud, it) }
+            add { SourceCard(SourceKind.SOUNDCLOUD, "SoundCloud", "Find supported tracks", nav.onSoundCloud, it, tilt = -Tilt.listCard) }
         }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         cards.chunked(2).forEach { pair ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                pair.forEach { card -> card(Modifier.weight(1f)) }
+            Row(Modifier.height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                pair.forEach { card -> card(Modifier.weight(1f).fillMaxHeight()) }
                 if (pair.size == 1) Spacer(Modifier.weight(1f))
             }
         }
@@ -151,25 +194,17 @@ private fun RecordCard(onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(Shapes.card)
-            .background(MusicDecodedColors.Surface)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
-            .clickable(role = Role.Button, onClick = onClick)
+            .block(SourceKind.RECORD.fill, shadow = Shadows.md, shadowColor = MusicDecodedColors.Violet, onClick = onClick)
             .padding(Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier.size(Sizes.sourceTile).background(SourceKind.RECORD.background, Shapes.control),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(SourceKind.RECORD.icon, contentDescription = null, tint = SourceKind.RECORD.tint)
-        }
+        SourceIconTile(SourceKind.RECORD, fill = MusicDecodedColors.White)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-            Text("Record Audio", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
-            Text("Capture a live performance", style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
+            Text("RECORD AUDIO", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.OnColor)
+            Text("Capture a live performance", style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.OnColor)
         }
-        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MusicDecodedColors.TextMuted)
+        Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MusicDecodedColors.OnColor)
     }
 }
 
@@ -196,13 +231,14 @@ private fun TipCard() {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .background(MusicDecodedColors.Surface)
+            .border(Borders.thick, MusicDecodedColors.BorderOnInk)
             .padding(Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MusicDecodedColors.Chord)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+            Eyebrow("Tip")
             Text(title, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Chord)
             Text(body, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
         }
@@ -211,7 +247,7 @@ private fun TipCard() {
 
 @Preview
 @Composable
-private fun HomeSectionsPreview() = PreviewSurface {
+private fun HomeSectionsPreview() = MusicDecodedTheme {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         BrandHeader(onSearch = {}, onProfile = {})
         RecordCard(onClick = {})

@@ -42,7 +42,10 @@ import com.musicdecoded.mobile.ui.components.ErrorState
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.SecondaryButton
+import com.musicdecoded.mobile.ui.components.SourceIconTile
 import com.musicdecoded.mobile.ui.components.SourceKind
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
@@ -87,18 +90,15 @@ private fun SoundCloudContent(
     Column(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.TransportBg, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.TransportBorder, Shapes.card)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Yellow)
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(Sizes.sourceTile).background(SourceKind.SOUNDCLOUD.background, Shapes.control), contentAlignment = Alignment.Center) {
-                Icon(SourceKind.SOUNDCLOUD.icon, contentDescription = null, tint = SourceKind.SOUNDCLOUD.tint)
-            }
+            SourceIconTile(SourceKind.SOUNDCLOUD)
             Text(
-                "Decode a SoundCloud track",
+                "DECODE A SOUNDCLOUD TRACK",
                 style = MaterialTheme.typography.titleMedium,
                 color = MusicDecodedColors.Text,
                 modifier = Modifier.weight(1f).semantics { heading() },
@@ -123,7 +123,7 @@ private fun SoundCloudContent(
             shape = Shapes.control,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MusicDecodedColors.Primary,
-                unfocusedBorderColor = MusicDecodedColors.Line,
+                unfocusedBorderColor = MusicDecodedColors.BorderOnInk,
                 focusedTextColor = MusicDecodedColors.Text,
                 unfocusedTextColor = MusicDecodedColors.Text,
                 focusedLabelColor = MusicDecodedColors.Primary,

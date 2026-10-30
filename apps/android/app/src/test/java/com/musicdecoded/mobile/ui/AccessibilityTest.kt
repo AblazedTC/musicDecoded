@@ -61,8 +61,9 @@ class AccessibilityTest {
             PageHeader("Library", overline = "Your collection")
             SectionHeader("Recently Decoded", actionLabel = "See all", onAction = {})
         }
-        compose.onNode(isHeading() and hasText("Library")).assertExists()
-        compose.onNode(isHeading() and hasText("Recently Decoded")).assertExists()
+        // Display titles are uppercase (DESIGN.md §1).
+        compose.onNode(isHeading() and hasText("LIBRARY")).assertExists()
+        compose.onNode(isHeading() and hasText("RECENTLY DECODED")).assertExists()
     }
 
     @Test fun songRowIsOneButtonWithALabelledMoreMenu() {
@@ -110,6 +111,15 @@ class AccessibilityTest {
         }
         compose.onNode(hasText("KEY") and hasText("F♯ minor")).assertExists()
         listOf("F♯ minor", "+6", "KEY", "TRANSPOSE").forEach { assertFullyShown(it) }
+    }
+
+    @Test fun removeAnimationsSettingTurnsOffTilt() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<Application>()
+        android.provider.Settings.Global.putFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        var reduceMotion: Boolean? = null
+        setContent { reduceMotion = com.musicdecoded.mobile.ui.theme.LocalReduceMotion.current }
+        compose.waitForIdle()
+        assertEquals(true, reduceMotion)
     }
 
     /** Every character is laid out (wrapping is fine): no height clip, no ellipsis, no dropped tail. */

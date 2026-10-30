@@ -168,6 +168,7 @@ fun LibrarySongRow(
     onOpenPlayer: (trackId: String) -> Unit,
     onOpenProcessing: (trackId: String) -> Unit,
     modifier: Modifier = Modifier,
+    numeral: String? = null,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -189,6 +190,7 @@ fun LibrarySongRow(
             offline = row.offline,
             onRetry = { viewModel.reanalyze(row.trackId) },
             thumbnailUrl = row.thumbnailUrl,
+            numeral = numeral,
         )
         // Anchored to the row's end, under the ⋯ button.
         Box(Modifier.align(Alignment.TopEnd)) {

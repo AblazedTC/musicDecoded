@@ -62,7 +62,10 @@ import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.SecondaryButton
 import com.musicdecoded.mobile.ui.components.formatDuration
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.components.topRule
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -146,15 +149,14 @@ private object PickMediaStoreAudio : ActivityResultContract<Unit, Uri?>() {
         intent?.data?.takeIf { resultCode == Activity.RESULT_OK }
 }
 
-/** DESIGN.md §3.3: `transportBg`, rounded top corners, a drag handle, above the nav bar and keyboard. */
+/** DESIGN.md §3.3: a `surface` sheet with a 3pt black top rule and a lime handle, above the nav bar and keyboard. */
 @Composable
 private fun ImportSheet(state: ImportUiState, onImport: () -> Unit, onChooseAnother: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(Shapes.sheet)
-            .background(MusicDecodedColors.TransportBg)
-            .border(Sizes.hairline, MusicDecodedColors.TransportBorder, Shapes.sheet)
+            .background(MusicDecodedColors.Surface)
+            .topRule()
             .clickable(interactionSource = null, indication = null, onClick = {}) // taps inside don't dismiss
             .navigationBarsPadding()
             .imePadding()
@@ -163,7 +165,7 @@ private fun ImportSheet(state: ImportUiState, onImport: () -> Unit, onChooseAnot
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Box(Modifier.size(SheetHandleWidth, Spacing.xxs).background(MusicDecodedColors.Line, CircleShape))
+        Box(Modifier.size(SheetHandleWidth, Spacing.xxs).background(MusicDecodedColors.Primary))
         ImportSheetContent(state, onImport, onChooseAnother)
     }
 }
@@ -218,10 +220,10 @@ private fun ImportSheetContent(state: ImportUiState, onImport: () -> Unit, onCho
 private fun FileHeader(draft: ImportDraft) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         Box(
-            Modifier.size(Sizes.sourceTile).background(MusicDecodedColors.PrimarySoft, Shapes.control),
+            Modifier.size(Sizes.sourceTile).block(MusicDecodedColors.Primary, shadow = Shadows.sm, shadowColor = MusicDecodedColors.Violet),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.AudioFile, contentDescription = null, tint = MusicDecodedColors.Primary)
+            Icon(Icons.Rounded.AudioFile, contentDescription = null, tint = MusicDecodedColors.OnPrimary)
         }
         Column(Modifier.weight(1f)) {
             Text(
@@ -243,7 +245,7 @@ private fun FileHeader(draft: ImportDraft) {
 @Preview
 @Composable
 private fun ImportSheetPreview() = PreviewSurface {
-    Box(Modifier.background(MusicDecodedColors.TransportBg, Shapes.sheet)) {
+    Box(Modifier.background(MusicDecodedColors.Surface)) {
         ImportSheetContent(
             ImportUiState(
                 pickerPending = false,

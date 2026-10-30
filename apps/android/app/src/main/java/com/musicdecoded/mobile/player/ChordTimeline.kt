@@ -52,7 +52,9 @@ import com.musicdecoded.mobile.core.chordDisplayName
 import com.musicdecoded.mobile.core.isNoChord
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.formatDuration
+import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -71,7 +73,7 @@ private object TimelineMetrics {
     val playhead = 1.5.dp
     val playheadGlow = 6.dp
     val playheadDot = 4.dp
-    val blockRadius = 6.dp
+    val blockRadius = 0.dp
     val minLabelWidth = 16.dp
 }
 
@@ -113,8 +115,7 @@ fun ChordTimeline(
     Column(
         modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.TimelineBg, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.TimelineBorder, Shapes.card)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet)
             .padding(vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
@@ -346,17 +347,17 @@ private fun DrawScope.drawLoop(viewport: TimelineViewport, loop: OpenEndRange<Do
     val left = viewport.x(loop.start)
     val right = viewport.x(loop.endExclusive)
     if (right < 0f || left > size.width) return
-    drawRect(MusicDecodedColors.Chord.copy(alpha = 0.14f), Offset(left, layout.chordTop), Size(right - left, layout.waveBottom - layout.chordTop))
+    drawRect(MusicDecodedColors.Secondary.copy(alpha = 0.18f), Offset(left, layout.chordTop), Size(right - left, layout.waveBottom - layout.chordTop))
     val stroke = Sizes.hairline.toPx() * 2
-    drawLine(MusicDecodedColors.Chord, Offset(left, layout.chordTop), Offset(left, layout.waveBottom), stroke)
-    drawLine(MusicDecodedColors.Chord, Offset(right, layout.chordTop), Offset(right, layout.waveBottom), stroke)
+    drawLine(MusicDecodedColors.Secondary, Offset(left, layout.chordTop), Offset(left, layout.waveBottom), stroke)
+    drawLine(MusicDecodedColors.Secondary, Offset(right, layout.chordTop), Offset(right, layout.waveBottom), stroke)
 }
 
 /** 1.5dp primary line with a dot on top and a soft glow (DESIGN.md §3.7). */
 private fun DrawScope.drawPlayhead(viewport: TimelineViewport, layout: TimelineLayout) {
     val x = viewport.center
     val top = layout.chordTop - TimelineMetrics.playheadDot.toPx()
-    drawLine(MusicDecodedColors.Primary.copy(alpha = 0.22f), Offset(x, top), Offset(x, layout.waveBottom), TimelineMetrics.playheadGlow.toPx(), StrokeCap.Round)
+    drawLine(MusicDecodedColors.Primary.copy(alpha = 0.22f), Offset(x, top), Offset(x, layout.waveBottom), TimelineMetrics.playheadGlow.toPx(), StrokeCap.Butt)
     drawLine(MusicDecodedColors.Primary, Offset(x, top), Offset(x, layout.waveBottom), TimelineMetrics.playhead.toPx())
     drawCircle(MusicDecodedColors.Primary, TimelineMetrics.playheadDot.toPx(), Offset(x, top))
 }

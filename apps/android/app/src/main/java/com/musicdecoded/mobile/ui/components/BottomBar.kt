@@ -14,7 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+
+import androidx.compose.ui.graphics.Color
+
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.TextStyles
 
 /** v1 ships 3 tabs; Tuner awaits T-505 (DESIGN.md §2). */
 enum class AppTab(val route: String, val label: String, val icon: ImageVector) {
@@ -23,20 +27,24 @@ enum class AppTab(val route: String, val label: String, val icon: ImageVector) {
     SETTINGS("settings", "Settings", Icons.Rounded.Settings),
 }
 
-/** Bottom navigation: selected = `primary`, inactive = `textMuted`, platform-default height. */
+/** Bottom navigation: ink with a 3pt black top border; selected = lime icon + label, inactive = `textMuted`, platform-default height. */
 @Composable
 fun MdBottomBar(selected: AppTab?, onSelect: (AppTab) -> Unit, modifier: Modifier = Modifier) {
-    NavigationBar(modifier = modifier, containerColor = MusicDecodedColors.Ink, contentColor = MusicDecodedColors.TextMuted) {
+    NavigationBar(
+        modifier = modifier.topRule(),
+        containerColor = MusicDecodedColors.Ink,
+        contentColor = MusicDecodedColors.TextMuted,
+    ) {
         AppTab.entries.forEach { tab ->
             NavigationBarItem(
                 selected = tab == selected,
                 onClick = { onSelect(tab) },
                 icon = { Icon(tab.icon, contentDescription = null) },
-                label = { Text(tab.label, style = MaterialTheme.typography.labelSmall) },
+                label = { Text(tab.label.uppercase(), style = TextStyles.overline.copy(color = Color.Unspecified)) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MusicDecodedColors.Primary,
                     selectedTextColor = MusicDecodedColors.Primary,
-                    indicatorColor = MusicDecodedColors.PrimarySoft,
+                    indicatorColor = Color.Transparent,
                     unselectedIconColor = MusicDecodedColors.TextMuted,
                     unselectedTextColor = MusicDecodedColors.TextMuted,
                 ),

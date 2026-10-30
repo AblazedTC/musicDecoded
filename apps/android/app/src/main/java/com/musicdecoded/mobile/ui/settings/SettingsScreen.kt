@@ -59,7 +59,11 @@ import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
-import com.musicdecoded.mobile.ui.theme.TextStyles
+import com.musicdecoded.mobile.ui.components.Eyebrow
+import com.musicdecoded.mobile.ui.components.Sticker
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.theme.Borders
+import com.musicdecoded.mobile.ui.theme.Shadows
 
 private enum class SettingsDialog { SPEED, CHORDS, ACCIDENTALS, VISUALIZER, PRIVACY, HELP }
 
@@ -145,61 +149,57 @@ private val Accidentals.label get() = when (this) {
 }
 private val Visualizer.label get() = if (this == Visualizer.PIANO) "Piano" else "Video"
 
+/** The profile card is a yellow block (DESIGN.md §1 screen color map): ink text, black border, violet shadow. */
 @Composable
 private fun ProfileCard(state: SettingsUiState, onAuth: (AuthMode) -> Unit, onLogout: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .block(MusicDecodedColors.Yellow, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet)
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.size(Sizes.songArt).background(MusicDecodedColors.SurfaceSoft, CircleShape),
+                Modifier.size(Sizes.songArt).background(MusicDecodedColors.White, CircleShape).border(Borders.thick, MusicDecodedColors.Border, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.Person, contentDescription = null, tint = MusicDecodedColors.Secondary)
+                Icon(Icons.Rounded.Person, contentDescription = null, tint = MusicDecodedColors.OnColor)
             }
             Column(Modifier.weight(1f)) {
                 if (state.isAccount) {
                     val email = state.session?.email
-                    Text(email?.substringBefore('@') ?: "Account", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
+                    Text(email?.substringBefore('@') ?: "Account", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.OnColor)
                     Text(
                         listOfNotNull(email, "Synced").joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MusicDecodedColors.TextSecondary,
+                        color = MusicDecodedColors.OnColor,
                     )
                 } else {
-                    Text("Guest account", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
-                    Text("Music is stored on this device", style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
+                    Text("Guest account", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.OnColor)
+                    Text("Music is stored on this device", style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.OnColor)
                 }
             }
             if (state.isPro) ProChip()
             if (state.isAccount) {
-                Icon(Icons.Rounded.CheckCircle, contentDescription = "Synced", tint = MusicDecodedColors.Primary)
+                Icon(Icons.Rounded.CheckCircle, contentDescription = "Synced", tint = MusicDecodedColors.OnColor)
             }
         }
         if (state.isAccount) {
             SecondaryButton("Log out", onClick = onLogout)
         } else {
-            PrimaryButton("Create account", onClick = { onAuth(AuthMode.SIGN_UP) })
-            TextButton(onClick = { onAuth(AuthMode.LOG_IN) }, modifier = Modifier.fillMaxWidth()) {
-                Text("I already have an account", style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Primary)
+            PrimaryButton("Create account", onClick = { onAuth(AuthMode.SIGN_UP) }, shadowColor = MusicDecodedColors.Border)
+            TextButton(onClick = { onAuth(AuthMode.LOG_IN) }, modifier = Modifier.fillMaxWidth(), shape = Shapes.button) {
+                Text("I already have an account", style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.OnColor)
             }
         }
     }
 }
 
+/** "PRO" sticker; pink because the profile card it sits on is already yellow. */
 @Composable
 private fun ProChip() {
-    Text(
-        "Pro",
-        style = MaterialTheme.typography.labelMedium,
-        color = MusicDecodedColors.OnPrimary,
-        modifier = Modifier.background(MusicDecodedColors.Primary, Shapes.chip).padding(horizontal = Spacing.xs, vertical = Spacing.xxs),
-    )
+    Sticker("Pro", fill = MusicDecodedColors.Pink)
 }
 
 @Composable
@@ -207,13 +207,12 @@ private fun SyncCard(onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.PrimarySoft, Shapes.card)
-            .clickable(role = Role.Button, onClick = onClick)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.md, shadowColor = MusicDecodedColors.Pink, border = MusicDecodedColors.BorderOnInk, onClick = onClick)
             .padding(Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MusicDecodedColors.Primary)
+        Icon(Icons.Rounded.Cloud, contentDescription = null, tint = MusicDecodedColors.Pink)
         Column(Modifier.weight(1f)) {
             Text("Sync your music", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
             Text(
@@ -229,12 +228,12 @@ private fun SyncCard(onClick: () -> Unit) {
 @Composable
 private fun SettingsGroup(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(title.uppercase(), style = TextStyles.overline)
+        Eyebrow(title)
         Column(
             Modifier
                 .fillMaxWidth()
-                .background(MusicDecodedColors.Surface, Shapes.card)
-                .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card),
+                .background(MusicDecodedColors.Surface)
+                .border(Borders.thick, MusicDecodedColors.BorderOnInk),
         ) { content() }
     }
 }
@@ -254,7 +253,7 @@ private fun SettingsRow(label: String, value: String? = null, onClick: (() -> Un
         Text(label, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text, modifier = Modifier.weight(1f))
         if (value != null) Text(value, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
         if (onClick != null) {
-            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MusicDecodedColors.TextMuted)
+            Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, contentDescription = null, tint = MusicDecodedColors.Primary)
         }
     }
 }
@@ -270,7 +269,7 @@ private fun <T> ChoiceDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = MusicDecodedColors.TransportBg,
+        containerColor = MusicDecodedColors.Surface,
         title = { Text(title, color = MusicDecodedColors.Text) },
         text = {
             Column(Modifier.selectableGroup()) {
@@ -306,7 +305,7 @@ private fun <T> ChoiceDialog(
 private fun InfoDialog(title: String, text: String, icon: ImageVector, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = MusicDecodedColors.TransportBg,
+        containerColor = MusicDecodedColors.Surface,
         icon = {
             Icon(icon, contentDescription = null, tint = MusicDecodedColors.Secondary)
         },

@@ -56,7 +56,13 @@ import com.musicdecoded.mobile.billing.RevenueCatBillingService
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.PrimaryButton
 import com.musicdecoded.mobile.ui.components.SecondaryButton
+import androidx.compose.ui.unit.dp
+import com.musicdecoded.mobile.ui.components.Sticker
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.components.tilt
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
+import com.musicdecoded.mobile.ui.theme.Tilt
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -96,7 +102,8 @@ fun PaywallSheet(viewModel: PaywallViewModel) {
         onDismissRequest = viewModel::dismiss,
         sheetState = sheetState,
         shape = Shapes.sheet,
-        containerColor = MusicDecodedColors.TransportBg,
+        containerColor = MusicDecodedColors.Violet,
+        dragHandle = { Box(Modifier.padding(vertical = Spacing.sm).size(SheetHandleWidth, Spacing.xxs).background(MusicDecodedColors.White)) },
         properties = ModalBottomSheetProperties(shouldDismissOnBackPress = state.dismissible),
     ) {
         PaywallContent(
@@ -133,6 +140,7 @@ fun PaywallContent(
             .padding(horizontal = Spacing.gutter)
             .padding(bottom = Spacing.lg)
             .navigationBarsPadding(),
+        // Violet sheet (DESIGN.md §1): white text, white plan cards, lime CTA with black shadows.
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -166,28 +174,28 @@ fun PaywallContent(
                 onClick = onSubscribe,
                 enabled = ready && state.selectedId != null,
                 loading = state.phase == PaywallPhase.PURCHASING,
+                shadowColor = MusicDecodedColors.Border,
             )
-            TextButton(onClick = onRestore, enabled = state.phase == PaywallPhase.READY, modifier = Modifier.fillMaxWidth()) {
-                Text("Restore purchases", style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Primary)
+            TextButton(onClick = onRestore, enabled = state.phase == PaywallPhase.READY, modifier = Modifier.fillMaxWidth(), shape = Shapes.button) {
+                Text("Restore purchases", style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Text)
             }
         }
-        Text(FINE_PRINT, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextMuted, textAlign = TextAlign.Center)
+        Text(FINE_PRINT, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondaryOnViolet, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun Header() {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Box(Modifier.size(Sizes.songArt).background(MusicDecodedColors.PrimarySoft, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MusicDecodedColors.Primary)
-        }
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Sticker("Pro", fill = MusicDecodedColors.Yellow)
         Text(
-            "MusicDecoded Pro",
-            style = MaterialTheme.typography.titleLarge,
+            "MUSICDECODED PRO",
+            style = MaterialTheme.typography.headlineMedium,
             color = MusicDecodedColors.Text,
+            textAlign = TextAlign.Center,
             modifier = Modifier.semantics { heading() },
         )
-        Text("Decode more, practice deeper.", style = MaterialTheme.typography.bodyMedium, color = MusicDecodedColors.TextSecondary)
+        Text("Decode more, practice deeper.", style = MaterialTheme.typography.bodyMedium, color = MusicDecodedColors.TextSecondaryOnViolet)
     }
 }
 
@@ -197,8 +205,7 @@ private fun Comparison(freeDailyJobs: Int?) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.card)
+            .block(MusicDecodedColors.White, shadow = Shadows.lg)
             .padding(Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -213,12 +220,12 @@ private fun Comparison(freeDailyJobs: Int?) {
 private fun ComparisonRow(label: String, free: String, pro: String, header: Boolean = false) {
     val valueStyle = if (header) TextStyles.overline else MaterialTheme.typography.bodySmall
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.Text, modifier = Modifier.weight(2f))
-        Text(free, style = valueStyle, color = MusicDecodedColors.TextSecondary, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.OnColor, modifier = Modifier.weight(2f))
+        Text(free.uppercase().takeIf { header } ?: free, style = valueStyle, color = MusicDecodedColors.OnColor, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         Text(
-            pro,
-            style = valueStyle,
-            color = if (header) MusicDecodedColors.Primary else MusicDecodedColors.Text,
+            pro.uppercase().takeIf { header } ?: pro,
+            style = if (header) valueStyle else MaterialTheme.typography.titleSmall,
+            color = if (header) MusicDecodedColors.Violet else MusicDecodedColors.OnColor,
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center,
         )
@@ -231,26 +238,25 @@ private fun PlanCardRow(card: PlanCard, selected: Boolean, enabled: Boolean, onC
         Modifier
             .fillMaxWidth()
             .height(Sizes.planCard)
-            .background(if (selected) MusicDecodedColors.PrimarySoft else MusicDecodedColors.Surface, Shapes.card)
-            .border(Sizes.hairline, if (selected) MusicDecodedColors.Primary else MusicDecodedColors.Line, Shapes.card)
+            .block(if (selected) MusicDecodedColors.Lime else MusicDecodedColors.White, shadow = if (selected) Shadows.lg else Shadows.md)
             .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .padding(horizontal = Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(card.title, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
-            Text(card.price, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
+            Text(card.title, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.OnColor)
+            Text(card.price, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.OnColor)
         }
         card.saving?.let {
             Text(
                 it,
-                style = MaterialTheme.typography.labelMedium,
-                color = MusicDecodedColors.OnChord,
-                modifier = Modifier.background(MusicDecodedColors.Chord, Shapes.chip).padding(horizontal = Spacing.xs, vertical = Spacing.xxs),
+                style = TextStyles.sticker,
+                color = MusicDecodedColors.OnColor,
+                modifier = Modifier.tilt(Tilt.sticker).block(MusicDecodedColors.Yellow, shadow = Shadows.sm).padding(horizontal = Spacing.xs, vertical = Spacing.xxs),
             )
         }
-        if (selected) Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MusicDecodedColors.Primary)
+        if (selected) Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MusicDecodedColors.OnColor)
     }
 }
 
@@ -260,7 +266,7 @@ private fun SkeletonCard() {
         Modifier
             .fillMaxWidth()
             .height(Sizes.planCard)
-            .background(MusicDecodedColors.SurfaceSoft, Shapes.card),
+            .background(MusicDecodedColors.White.copy(alpha = 0.2f)),
     )
 }
 
@@ -269,12 +275,11 @@ private fun Note(text: String) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
-        color = MusicDecodedColors.TextSecondary,
+        color = MusicDecodedColors.OnColor,
         textAlign = TextAlign.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.control)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.control)
+            .block(MusicDecodedColors.White, shadow = Shadows.md)
             .padding(Spacing.sm),
     )
 }
@@ -285,15 +290,14 @@ private fun ErrorNote(message: String, onRetry: (() -> Unit)?) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.control)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.control)
+            .block(MusicDecodedColors.White, shadow = Shadows.md)
             .padding(Spacing.sm)
             .semantics { liveRegion = LiveRegionMode.Polite },
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Icon(Icons.Rounded.ErrorOutline, contentDescription = null, tint = MusicDecodedColors.Record, modifier = Modifier.size(Sizes.smallIcon))
-            Text(message, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
+            Text(message, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.OnColor)
         }
         if (onRetry != null) SecondaryButton("Retry", onClick = onRetry, icon = Icons.Rounded.Refresh)
     }
@@ -306,19 +310,22 @@ private fun Success(onDone: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        Box(Modifier.size(Sizes.songArt).background(MusicDecodedColors.PrimarySoft, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MusicDecodedColors.Primary)
+        Box(Modifier.size(Sizes.songArt).tilt(Tilt.sticker).block(MusicDecodedColors.Lime, shadow = Shadows.md), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = MusicDecodedColors.OnColor)
         }
         Text(
-            "You're Pro",
-            style = MaterialTheme.typography.titleLarge,
+            "YOU'RE PRO",
+            style = MaterialTheme.typography.headlineMedium,
             color = MusicDecodedColors.Text,
             modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite },
         )
-        Text("Thanks for supporting MusicDecoded.", style = MaterialTheme.typography.bodyMedium, color = MusicDecodedColors.TextSecondary)
-        PrimaryButton("Done", onClick = onDone)
+        Text("Thanks for supporting MusicDecoded.", style = MaterialTheme.typography.bodyMedium, color = MusicDecodedColors.TextSecondaryOnViolet)
+        PrimaryButton("Done", onClick = onDone, shadowColor = MusicDecodedColors.Border)
     }
 }
+
+/** The sheet's drag handle (a component size). */
+private val SheetHandleWidth = 32.dp
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this

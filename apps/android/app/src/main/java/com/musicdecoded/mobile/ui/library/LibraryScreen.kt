@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -46,7 +46,13 @@ import com.musicdecoded.mobile.ui.components.MdFilterChip
 import com.musicdecoded.mobile.ui.components.PageHeader
 import com.musicdecoded.mobile.ui.components.PreviewSurface
 import com.musicdecoded.mobile.ui.components.SectionHeader
+import androidx.compose.ui.unit.dp
+import com.musicdecoded.mobile.ui.components.Sticker
+import com.musicdecoded.mobile.ui.components.block
+import com.musicdecoded.mobile.ui.components.stripes
+import com.musicdecoded.mobile.ui.components.topRule
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
 import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
@@ -67,20 +73,23 @@ fun LibraryScreen(
 
     LazyColumn(
         modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = Spacing.gutter, vertical = Spacing.lg),
+        contentPadding = PaddingValues(bottom = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                PageHeader("Library", overline = "Your collection")
-                SearchField(searchText, viewModel::setQuery)
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    LibraryFilter.entries.forEach { filter ->
-                        MdFilterChip(filter.label, selected = state.filter == filter, onClick = { viewModel.setFilter(filter) })
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                LibraryHeader {
+                    SearchField(searchText, viewModel::setQuery)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        LibraryFilter.entries.forEach { filter ->
+                            MdFilterChip(filter.label, selected = state.filter == filter, onClick = { viewModel.setFilter(filter) }, onColorBlock = true)
+                        }
                     }
                 }
-                SummaryCard(state.counts)
-                SectionHeader("Recently added")
+                Column(Modifier.padding(horizontal = Spacing.gutter), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                    SummaryCard(state.counts)
+                    SectionHeader("Recently added")
+                }
             }
         }
         if (!state.loading && state.rows.isEmpty()) {
@@ -90,39 +99,66 @@ fun LibraryScreen(
                     else "No songs match.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MusicDecodedColors.TextSecondary,
+                    modifier = Modifier.padding(horizontal = Spacing.gutter),
                 )
             }
         }
-        items(state.rows, key = { it.trackId }) { row ->
-            LibrarySongRow(row, viewModel, onOpenPlayer, onOpenProcessing)
+        itemsIndexed(state.rows, key = { _, row -> row.trackId }) { index, row ->
+            LibrarySongRow(row, viewModel, onOpenPlayer, onOpenProcessing, Modifier.padding(horizontal = Spacing.gutter), numeral = "%02d".format(index + 1))
         }
     }
 }
 
-/** "Songs, artists, keys..." (44 tall, `surface` fill). */
+/**
+ * The lime header block (DESIGN.md §1 color map): ink eyebrow + LIBRARY title, a violet stripe
+ * texture patch in the corner, then [controls] (search, filters).
+ */
+@Composable
+private fun LibraryHeader(controls: @Composable () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(MusicDecodedColors.Lime)
+            .topRule(),
+    ) {
+        Box(Modifier.align(Alignment.TopEnd).size(StripePatch).stripes())
+        Column(
+            Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xxl, bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Sticker("Your collection", fill = MusicDecodedColors.Violet, contentColor = MusicDecodedColors.White)
+            PageHeader("Library", color = MusicDecodedColors.OnColor)
+            controls()
+        }
+    }
+}
+
+/** The stripe texture patch in the Library header's corner (a decoration size). */
+private val StripePatch = 120.dp
+
+/** "Songs, artists, keys..." (44 tall): a white input with a black border and hard shadow, on the lime header. */
 @Composable
 private fun SearchField(text: String, onChange: (String) -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
             .height(Sizes.searchField)
-            .background(MusicDecodedColors.Surface, Shapes.control)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.control)
+            .block(MusicDecodedColors.White, shadow = Shadows.sm)
             .padding(start = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Icon(Icons.Rounded.Search, contentDescription = null, tint = MusicDecodedColors.TextMuted, modifier = Modifier.size(Sizes.smallIcon))
+        Icon(Icons.Rounded.Search, contentDescription = null, tint = MusicDecodedColors.OnColor, modifier = Modifier.size(Sizes.smallIcon))
         Box(Modifier.weight(1f)) {
             if (text.isEmpty()) {
-                Text("Songs, artists, keys...", style = MaterialTheme.typography.bodyMedium, color = MusicDecodedColors.TextMuted)
+                Text("Songs, artists, keys...", style = MaterialTheme.typography.bodyMedium, color = MusicDecodedColors.TextSecondaryOnLime)
             }
             BasicTextField(
                 value = text,
                 onValueChange = onChange,
                 singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MusicDecodedColors.Text),
-                cursorBrush = SolidColor(MusicDecodedColors.Primary),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MusicDecodedColors.OnColor),
+                cursorBrush = SolidColor(MusicDecodedColors.Violet),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 // The placeholder is a sibling Text, so TalkBack needs the field's own label.
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search your library" },
@@ -130,7 +166,7 @@ private fun SearchField(text: String, onChange: (String) -> Unit) {
         }
         if (text.isNotEmpty()) {
             IconButton(onClick = { onChange("") }) {
-                Icon(Icons.Rounded.Close, contentDescription = "Clear search", tint = MusicDecodedColors.TextSecondary)
+                Icon(Icons.Rounded.Close, contentDescription = "Clear search", tint = MusicDecodedColors.OnColor)
             }
         }
     }
@@ -142,8 +178,7 @@ private fun SummaryCard(counts: LibraryCounts) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(MusicDecodedColors.Surface, Shapes.row)
-            .border(Sizes.hairline, MusicDecodedColors.Line, Shapes.row)
+            .block(MusicDecodedColors.Surface, shadow = Shadows.md, shadowColor = MusicDecodedColors.Violet, border = MusicDecodedColors.BorderOnInk)
             .padding(Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
@@ -156,7 +191,7 @@ private fun SummaryCard(counts: LibraryCounts) {
 private fun SummaryCount(icon: ImageVector, count: Int, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Icon(icon, contentDescription = null, tint = MusicDecodedColors.Primary, modifier = Modifier.size(Sizes.smallIcon))
-        Text("$count", style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
+        Text("$count", style = MaterialTheme.typography.titleMedium, color = MusicDecodedColors.Primary)
         Text(label, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary)
     }
 }

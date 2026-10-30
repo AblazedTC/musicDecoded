@@ -9,7 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.CornerRadius
+
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -27,7 +27,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.musicdecoded.mobile.ui.components.PreviewSurface
+import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
+import com.musicdecoded.mobile.ui.theme.Shadows
+import com.musicdecoded.mobile.ui.theme.SpaceGrotesk
 import com.musicdecoded.mobile.ui.theme.Sizes
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -40,7 +43,8 @@ object PianoKeyboardDefaults {
     /** Edge to edge in the Piano learning view. */
     val LargeHeight = 190.dp
 
-    internal val KeyRadius = 3.dp
+    /** Key separators: ink, 1.5pt (DESIGN.md §1 piano). */
+    internal val Separator = 1.5.dp
     internal const val BLACK_KEY_HEIGHT = 0.62f
     internal const val BLACK_KEY_WIDTH = 0.6f
     internal val NoteNameSize = 11.sp
@@ -61,6 +65,9 @@ fun PianoKeyboard(
     noteName: ((Int) -> String)? = null,
     /** What TalkBack reads for the highlighted keys, e.g. "B · D · F♯" (the chord's note names). */
     description: String? = null,
+    /** Hard shadow of the keyboard frame (3pt black border); lime on ink (DESIGN.md §1). */
+    frameShadow: Dp = Shadows.md,
+    frameShadowColor: Color = MusicDecodedColors.Lime,
 ) {
     // Hold the last position while there's no chord, so the keyboard doesn't jump around.
     val lastStart = remember { intArrayOf(DEFAULT_START) }
@@ -74,24 +81,23 @@ fun PianoKeyboard(
         modifier
             .fillMaxWidth()
             .height(height)
+            .block(MusicDecodedColors.PianoBlack, shadow = frameShadow, shadowColor = frameShadowColor)
             .clipToBounds()
             .semantics { contentDescription = pianoDescription(notes.size, description) },
     ) {
-        drawRect(MusicDecodedColors.PianoBg)
         val whiteWidth = size.width / (octaves * WHITE_KEYS_PER_OCTAVE)
         val first = floor(firstWhite).toInt() - 1
         val last = ceil(firstWhite).toInt() + octaves * WHITE_KEYS_PER_OCTAVE + 1
-        val radius = CornerRadius(PianoKeyboardDefaults.KeyRadius.toPx())
-        val border = Sizes.hairline.toPx()
-        val nameStyle = TextStyle(fontSize = PianoKeyboardDefaults.NoteNameSize, fontWeight = FontWeight.SemiBold)
+        val separator = PianoKeyboardDefaults.Separator.toPx()
+        val nameStyle = TextStyle(fontFamily = SpaceGrotesk, fontSize = PianoKeyboardDefaults.NoteNameSize, fontWeight = FontWeight.Bold)
 
         for (index in first..last) {
             val midi = midiOfWhiteKey(index)
             if (midi !in PIANO_RANGE) continue
             val left = (index - firstWhite) * whiteWidth
             val color = keyColor(midi, active, bassNote, black = false)
-            drawRoundRect(color, Offset(left, 0f), Size(whiteWidth, size.height), radius)
-            drawRoundRect(MusicDecodedColors.PianoWhiteBorder, Offset(left, 0f), Size(whiteWidth, size.height), radius, style = Stroke(border))
+            drawRect(color, Offset(left, 0f), Size(whiteWidth, size.height))
+            drawRect(MusicDecodedColors.PianoBlack, Offset(left - separator / 2, 0f), Size(separator, size.height))
             if (noteName != null) {
                 val label = if (midi in active) noteName(midi) else whiteLabel(midi)
                 drawKeyLabel(textMeasurer, label, nameStyle.copy(color = MusicDecodedColors.PianoBlack), left, whiteWidth, size.height)
@@ -103,7 +109,7 @@ fun PianoKeyboard(
             val midi = midiOfWhiteKey(index) + 1
             if (!isBlackKey(midi) || midi !in PIANO_RANGE) continue
             val left = (index + 1 - firstWhite) * whiteWidth - blackWidth / 2
-            drawRoundRect(keyColor(midi, active, bassNote, black = true), Offset(left, 0f), Size(blackWidth, blackHeight), radius)
+            drawRect(keyColor(midi, active, bassNote, black = true), Offset(left, 0f), Size(blackWidth, blackHeight))
             if (noteName != null && midi in active) {
                 drawKeyLabel(textMeasurer, noteName(midi), nameStyle.copy(color = MusicDecodedColors.OnPrimary), left, blackWidth, blackHeight)
             }
@@ -112,7 +118,7 @@ fun PianoKeyboard(
 }
 
 private fun keyColor(midi: Int, active: Set<Int>, bassNote: Int?, black: Boolean): Color = when {
-    midi == bassNote -> MusicDecodedColors.Chord
+    midi == bassNote -> MusicDecodedColors.PianoBass
     midi in active -> if (black) MusicDecodedColors.PianoBlackActive else MusicDecodedColors.PianoWhiteActive
     else -> if (black) MusicDecodedColors.PianoBlack else MusicDecodedColors.PianoWhite
 }
