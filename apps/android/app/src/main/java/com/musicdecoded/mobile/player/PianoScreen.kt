@@ -43,6 +43,7 @@ import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.currentState
 import com.musicdecoded.mobile.core.isNoChord
 import com.musicdecoded.mobile.core.upNext
+import com.musicdecoded.mobile.ui.components.ChipRow
 import com.musicdecoded.mobile.ui.components.ControlChip
 import com.musicdecoded.mobile.ui.components.MdIconButton
 import com.musicdecoded.mobile.ui.components.formatDuration
@@ -209,7 +210,7 @@ private fun ProgressionStrip(analysis: Analysis, chordIndex: Int?, chords: Chord
 @Composable
 private fun LearningControls(state: PlayerUiState, viewModel: PlayerViewModel, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        ChipRow {
             SpeedChip(state.speed, viewModel::setSpeed, Modifier.weight(1f))
             ControlChip(
                 "Loop",
@@ -218,7 +219,7 @@ private fun LearningControls(state: PlayerUiState, viewModel: PlayerViewModel, m
                 Modifier.weight(1f),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        ChipRow {
             ControlChip("Note names", if (state.showNoteNames) "On" else "Off", onClick = viewModel::toggleNoteNames, Modifier.weight(1f))
             TransposeChip(state.transpose, viewModel::setTranspose, Modifier.weight(1f))
         }

@@ -53,6 +53,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.musicdecoded.mobile.MusicDecodedApplication
+import com.musicdecoded.mobile.ui.components.ChipRow
 import com.musicdecoded.mobile.ui.components.ErrorState
 import com.musicdecoded.mobile.ui.components.InfoChip
 import com.musicdecoded.mobile.ui.components.PolicyNote
@@ -187,7 +188,7 @@ private fun ImportSheetContent(state: ImportUiState, onImport: () -> Unit, onCho
             }
             draft != null -> {
                 FileHeader(draft)
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                ChipRow {
                     InfoChip(Icons.Rounded.Schedule, "Duration", draft.durationSec?.let(::formatDuration) ?: "—", Modifier.weight(1f))
                     InfoChip(Icons.Rounded.GraphicEq, "Quality", draft.bitrate?.let { "${it / 1000} kbps" } ?: draft.typeLabel, Modifier.weight(1f))
                     InfoChip(Icons.Rounded.PhoneAndroid, "Storage", "On device", Modifier.weight(1f))

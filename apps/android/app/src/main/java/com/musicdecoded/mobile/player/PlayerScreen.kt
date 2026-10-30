@@ -62,6 +62,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.currentState
+import com.musicdecoded.mobile.ui.components.ChipRow
 import com.musicdecoded.mobile.ui.components.ControlChip
 import com.musicdecoded.mobile.ui.components.InfoChip
 import com.musicdecoded.mobile.ui.components.MdIconButton
@@ -131,7 +132,7 @@ fun PlayerScreen(viewModel: PlayerViewModel, onBack: () -> Unit, onOpenPiano: ()
                 currentChord = currentLabel?.let(chords::name)?.ifEmpty { null },
             )
             NowPlaying(currentLabel, chords)
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            ChipRow {
                 ControlChip(
                     "Chords",
                     if (state.chordsMode == ChordsMode.BASIC) "Basic" else "Full",
@@ -244,7 +245,7 @@ private fun PlayerPlaceholder(loading: Boolean, modifier: Modifier = Modifier) {
 /** Key · Time signature · BPM. */
 @Composable
 private fun MetadataRow(analysis: Analysis) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    ChipRow {
         InfoChip(Icons.Rounded.MusicNote, "Key", analysis.key?.let(::keyName) ?: "—", Modifier.weight(1f))
         InfoChip(
             Icons.Rounded.GraphicEq,

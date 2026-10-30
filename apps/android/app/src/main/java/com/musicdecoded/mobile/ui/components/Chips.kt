@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -62,6 +65,24 @@ fun MdFilterChip(label: String, selected: Boolean, onClick: () -> Unit, modifier
         )
     }
 }
+
+/**
+ * A row of equal-width chips (children use `Modifier.weight(1f)`). At large font scales the chips
+ * stack one per line so their labels don't break mid-word.
+ */
+@Composable
+fun ChipRow(modifier: Modifier = Modifier, content: @Composable FlowRowScope.() -> Unit) {
+    val stacked = LocalDensity.current.fontScale >= STACKED_FONT_SCALE
+    FlowRow(
+        modifier,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        maxItemsInEachRow = if (stacked) 1 else Int.MAX_VALUE,
+        content = content,
+    )
+}
+
+private const val STACKED_FONT_SCALE = 1.5f
 
 /** Player metadata chip: icon + overline label + value (Key · Time signature · BPM). */
 @Composable
