@@ -96,6 +96,8 @@ class PlayerViewModel(
     private val deleteTrack: suspend () -> Unit = {},
     /** ⋯ Re-analyze: requests a new analysis (TranscriptionRepository.retry). */
     private val reanalyzeTrack: suspend () -> Unit = {},
+    /** Playback went from stopped to playing: stamps `LibraryItem.lastPlayedAt` (+ updatedAt). */
+    private val markPlayed: suspend () -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow(PlayerUiState(voicings = voicings))
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
@@ -142,7 +144,14 @@ class PlayerViewModel(
             t = duration
         }
         _position.value = t
-        if (engine.isPlaying != _state.value.isPlaying) _state.update { it.copy(isPlaying = engine.isPlaying) }
+        publishPlaying(engine.isPlaying)
+    }
+
+    /** Publishes [playing]; a stopped → playing change counts as a play (lastPlayedAt). */
+    private fun publishPlaying(playing: Boolean) {
+        if (playing == _state.value.isPlaying) return
+        _state.update { it.copy(isPlaying = playing) }
+        if (playing) viewModelScope.launch { runCatching { markPlayed() } }
     }
 
     fun togglePlay() {
@@ -153,7 +162,7 @@ class PlayerViewModel(
             if (_position.value >= duration - END_TOLERANCE) seekTo(_state.value.loop?.start ?: 0.0)
             engine.play()
         }
-        _state.update { it.copy(isPlaying = engine.isPlaying) }
+        publishPlaying(engine.isPlaying)
         tick()
     }
 
@@ -310,6 +319,7 @@ class PlayerViewModel(
                     preferences = { app.settingsStore.current().also { defaultSpeed = it.defaultSpeed } },
                     deleteTrack = { SongActions.from(app).delete(trackId) },
                     reanalyzeTrack = { app.transcriptionRepository.retry(trackId) },
+                    markPlayed = { dao.setLastPlayed(trackId, Instant.now()) },
                 )
             }
         }

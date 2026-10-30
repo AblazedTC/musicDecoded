@@ -81,6 +81,15 @@ class LibraryDaoTest {
         assertEquals(Instant.ofEpochSecond(200), row.updatedAt)
     }
 
+    @Test fun lastPlayedStampsBothTimes() = runTest {
+        dao.upsert(item("a", 100))
+        dao.setLastPlayed("a", Instant.ofEpochSecond(300))
+
+        val row = dao.get("a")!!
+        assertEquals(Instant.ofEpochSecond(300), row.lastPlayedAt)
+        assertEquals(Instant.ofEpochSecond(300), row.updatedAt)
+    }
+
     @Test fun withAnalysisCopiesListMetadataFromTheFixture() = runTest {
         val ready = item("fixture-bad", 100).withAnalysis(Contracts.sampleAnalysis(), Instant.ofEpochSecond(200))
         dao.upsert(ready)

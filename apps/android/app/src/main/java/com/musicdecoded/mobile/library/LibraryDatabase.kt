@@ -80,6 +80,10 @@ interface LibraryDao {
     @Query("UPDATE library_items SET favorite = :favorite, updatedAt = :now WHERE trackId = :trackId")
     suspend fun setFavorite(trackId: String, favorite: Boolean, now: Instant)
 
+    /** Playback started: stamps lastPlayedAt and bumps updatedAt so it syncs. */
+    @Query("UPDATE library_items SET lastPlayedAt = :now, updatedAt = :now WHERE trackId = :trackId")
+    suspend fun setLastPlayed(trackId: String, now: Instant)
+
     /**
      * Sync push candidates (T-404a): changed since their last sync, oldest change first. Only
      * finished rows and tombstones; a row still analyzing is pushed once its job completes.

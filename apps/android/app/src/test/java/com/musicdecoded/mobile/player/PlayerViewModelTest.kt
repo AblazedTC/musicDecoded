@@ -26,6 +26,7 @@ class PlayerViewModelTest {
     private var now = 0L
     private var engine: SilentPlaybackEngine? = null
     private val savedFavorites = mutableListOf<Boolean>()
+    private var plays = 0
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
     @After fun tearDown() = Dispatchers.resetMain()
@@ -40,7 +41,22 @@ class PlayerViewModelTest {
         voicings = Contracts.voicings(),
         createEngine = { SilentPlaybackEngine(it.analysis.meta.durationSec) { now }.also { engine = it } },
         saveFavorite = { savedFavorites += it },
+        markPlayed = { plays++ },
     )
+
+    @Test fun startingPlaybackMarksTheTrackPlayed() {
+        val vm = viewModel()
+        assertEquals(0, plays) // opening the player isn't a play
+        vm.togglePlay()
+        assertEquals(1, plays)
+        advance(1.0)
+        vm.tick() // still playing: no new stamp
+        assertEquals(1, plays)
+        vm.togglePlay() // pause
+        assertEquals(1, plays)
+        vm.togglePlay() // resume is a new start
+        assertEquals(2, plays)
+    }
 
     @Test fun loadsTheTrack() {
         val vm = viewModel()
