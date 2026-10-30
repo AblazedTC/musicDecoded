@@ -63,6 +63,8 @@ enum SyncTime {
 /// 3. Merge last-write-wins on `updatedAt` (a tie keeps the local row).
 /// 4. Fetch what synced rows are missing here: the analysis file, and the user's own audio
 ///    (file/recording with an `audioUploadId`). Streaming audio is never synced (R-1).
+/// Own-audio sync is Pro only (PLAN.md §9): free accounts push without `audioUploadId`, and the
+/// server returns it as null, so nothing is downloaded for them.
 /// Ports apps/android/.../library/SyncRepository.kt and SyncWorker.kt.
 @MainActor
 @Observable
@@ -151,18 +153,24 @@ final class SyncService {
         if state.userId != account.userId {
             state.save(userId: account.userId, cursor: nil)
         }
-        try await push(api, token: account.token)
+        try await push(api, token: account.token, syncsOwnAudio: session.isPro)
         try await pull(api, token: account.token, userId: account.userId)
         try await fetchMissing(api, token: account.token)
         return true
     }
 
-    private func push(_ api: APIClient, token: String) async throws {
+    private func push(_ api: APIClient, token: String, syncsOwnAudio: Bool) async throws {
         while true {
             let batch = pendingPush(limit: Self.page)
             if batch.isEmpty { return }
             let sentAt = batch.map(\.updatedAt)
-            let items = batch.map(\.syncItem)
+            let items = batch.map { (item: LibraryItem) -> SyncItem in
+                var synced = item.syncItem
+                if syncsOwnAudio == false {
+                    synced.audioUploadId = nil
+                }
+                return synced
+            }
             let response: SyncItems
             do {
                 response = try await api.pushLibrary(items, token: token)

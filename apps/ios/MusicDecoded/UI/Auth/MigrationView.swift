@@ -7,6 +7,8 @@ struct MigrationView: View {
     let onDone: () -> Void
 
     @Environment(SyncService.self) private var sync
+    @Environment(SessionStore.self) private var session
+    @Environment(\.openPaywall) private var openPaywall
     @State private var summary: MigrationSummary?
 
     var body: some View {
@@ -28,21 +30,33 @@ struct MigrationView: View {
 
                 if let summary {
                     VStack(spacing: Spacing.xs) {
-                        CheckRow(
+                        MigrationCheckRow(
                             isChecked: true,
                             title: AccountFormat.plural(summary.timelines, "chord timeline"),
                             subtitle: "Analysis, tempo and key data"
                         )
-                        CheckRow(
-                            isChecked: true,
-                            title: AccountFormat.plural(summary.ownAudio, "local audio file"),
-                            subtitle: "Eligible for private sync · \(AccountFormat.bytes(summary.ownAudioBytes))"
-                        )
-                        CheckRow(
+                        if summary.ownAudioSyncs {
+                            MigrationCheckRow(
+                                isChecked: true,
+                                title: AccountFormat.plural(summary.ownAudio, "local audio file"),
+                                subtitle: "Eligible for private sync · \(AccountFormat.bytes(summary.ownAudioBytes))"
+                            )
+                        } else {
+                            MigrationCheckRow(
+                                isChecked: false,
+                                title: AccountFormat.plural(summary.ownAudio, "local audio file"),
+                                subtitle: "Private audio sync · \(AccountFormat.bytes(summary.ownAudioBytes))",
+                                isPro: true
+                            )
+                        }
+                        MigrationCheckRow(
                             isChecked: false,
                             title: AccountFormat.plural(summary.restricted, "restricted track"),
                             subtitle: "Timelines sync; source audio stays local"
                         )
+                    }
+                    if summary.ownAudioSyncs == false {
+                        ProAudioNote(openPaywall: openPaywall)
                     }
                 }
 
@@ -68,15 +82,38 @@ struct MigrationView: View {
             }
         }
         .task {
-            summary = MigrationSummary.of(sync.unsyncedItems(), audioDirectory: sync.audioDirectory)
+            summary = MigrationSummary.of(sync.unsyncedItems(), audioDirectory: sync.audioDirectory, pro: session.isPro)
         }
     }
 }
 
-private struct CheckRow: View {
+/// Free accounts: own audio stays on this device. Tapping the note opens the paywall (when there
+/// is one to open, i.e. not already Pro).
+struct ProAudioNote: View {
+    let openPaywall: OpenPaywallAction?
+
+    static let text = "Syncing your own audio files is part of Pro. Their chord timelines still sync."
+
+    var body: some View {
+        if let openPaywall {
+            Button {
+                openPaywall()
+            } label: {
+                PolicyNote(text: Self.text + " Tap to see Pro.", systemImage: "sparkles")
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("See Pro")
+        } else {
+            PolicyNote(text: Self.text, systemImage: "sparkles")
+        }
+    }
+}
+
+struct MigrationCheckRow: View {
     let isChecked: Bool
     let title: String
     let subtitle: String
+    var isPro = false
 
     var body: some View {
         HStack(spacing: Spacing.sm) {
@@ -93,11 +130,18 @@ private struct CheckRow: View {
                     .foregroundStyle(Palette.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            if isPro {
+                Sticker(text: "Pro", fill: Palette.yellow)
+            }
         }
         .padding(Spacing.md)
         .inkCard()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title), \(subtitle), \(isChecked ? "included" : "not included")")
+        .accessibilityLabel(Self.accessibilityLabel(title: title, subtitle: subtitle, isChecked: isChecked, isPro: isPro))
+    }
+
+    static func accessibilityLabel(title: String, subtitle: String, isChecked: Bool, isPro: Bool) -> String {
+        "\(title), \(subtitle), \(isPro ? "Pro only, " : "")\(isChecked ? "included" : "not included")"
     }
 }
 
@@ -107,6 +151,7 @@ private struct CheckRow: View {
         MigrationView(onDone: {})
     }
     .environment(SyncService.preview())
+    .environment(SessionStore.preview())
     .preferredColorScheme(.dark)
 }
 #endif

@@ -116,9 +116,11 @@ struct MigrationSummary: Equatable, Sendable {
     var ownAudioBytes: Int64
     /// youtube/soundcloud rows: the timeline syncs, the audio never does.
     var restricted: Int
+    /// Own-audio sync is Pro only (PLAN.md §9); free accounts sync timelines only.
+    var ownAudioSyncs = true
 
     @MainActor
-    static func of(_ items: [LibraryItem], audioDirectory: URL) -> MigrationSummary {
+    static func of(_ items: [LibraryItem], audioDirectory: URL, pro: Bool = true) -> MigrationSummary {
         let own = items.filter { $0.source == .file || $0.source == .recording }
         var bytes: Int64 = 0
         for item in own {
@@ -131,7 +133,8 @@ struct MigrationSummary: Equatable, Sendable {
             timelines: items.count,
             ownAudio: own.count,
             ownAudioBytes: bytes,
-            restricted: items.filter { $0.source == .youtube || $0.source == .soundcloud }.count
+            restricted: items.filter { $0.source == .youtube || $0.source == .soundcloud }.count,
+            ownAudioSyncs: pro
         )
     }
 }

@@ -91,6 +91,16 @@ struct AccountTests {
         )
 
         #expect(summary == MigrationSummary(timelines: 4, ownAudio: 2, ownAudioBytes: 1500, restricted: 2))
+        // Free accounts: own audio isn't synced (Pro only, PLAN.md §9).
+        #expect(MigrationSummary.of([row("a", .file, "a.mp3")], audioDirectory: directory, pro: false).ownAudioSyncs == false)
+    }
+
+    @Test func migrationAudioRowSaysProOnlyForFreeAccounts() {
+        let free = MigrationCheckRow.accessibilityLabel(title: "2 local audio files", subtitle: "Private audio sync · 6.0 MB", isChecked: false, isPro: true)
+        #expect(free == "2 local audio files, Private audio sync · 6.0 MB, Pro only, not included")
+        let pro = MigrationCheckRow.accessibilityLabel(title: "2 local audio files", subtitle: "Eligible", isChecked: true, isPro: false)
+        #expect(pro == "2 local audio files, Eligible, included")
+        #expect(ProAudioNote.text.contains("part of Pro"))
     }
 
     // MARK: - Session

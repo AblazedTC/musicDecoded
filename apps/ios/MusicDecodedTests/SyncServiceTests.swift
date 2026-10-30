@@ -143,7 +143,7 @@ final class SyncDevice {
 
     var context: ModelContext { container.mainContext }
 
-    init(server: FakeSyncServer, root: URL, kind: AuthResponse.Kind = .account) throws {
+    init(server: FakeSyncServer, root: URL, kind: AuthResponse.Kind = .account, plan: Plan = .free) throws {
         let base = root.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         let container = try ModelContainer(
             for: LibraryItem.self,
@@ -155,6 +155,15 @@ final class SyncDevice {
         self.analysisStore = analysisStore
         self.audioDirectory = audioDirectory
         let defaults = UserDefaults(suiteName: "SyncServiceTests-\(UUID().uuidString)")!
+        // The cached `/config` decides Pro (`SessionStore.isPro`).
+        let config = ClientConfig(
+            offlineStreamAudio: false,
+            maxUploadBytes: 104_857_600,
+            soundcloudEnabled: nil,
+            plan: plan,
+            limits: ClientConfig.Limits(dailyJobs: nil, jobsUsedToday: 0)
+        )
+        defaults.set(try JSONEncoder().encode(config), forKey: "clientConfig")
         let session = SessionStore(
             api: server.client(),
             secureStore: InMemorySecureStore([
@@ -255,8 +264,8 @@ struct SyncServiceTests {
         server = FakeSyncServer(fixture: try Data(contentsOf: url))
     }
 
-    private func device(_ kind: AuthResponse.Kind = .account) throws -> SyncDevice {
-        try SyncDevice(server: server, root: root, kind: kind)
+    private func device(_ kind: AuthResponse.Kind = .account, plan: Plan = .free) throws -> SyncDevice {
+        try SyncDevice(server: server, root: root, kind: kind, plan: plan)
     }
 
     private func cleanUp() {
@@ -374,7 +383,7 @@ struct SyncServiceTests {
     @Test func aRejectedPushIsRetriedOnceWithoutAudioUploadIds() async throws {
         defer { cleanUp() }
         server.rejectAudioUploadIds = true
-        let a = try device()
+        let a = try device(plan: .pro)
         a.insert(localItem("rec", updatedAt: at(1), source: .recording, audioUploadId: "someone-elses"))
 
         try await a.sync.sync()
@@ -385,11 +394,44 @@ struct SyncServiceTests {
         #expect(a.sync.pendingPush(limit: 10).isEmpty)
     }
 
+    @Test func freeAccountsPushWithoutTheirAudioUploadId() async throws {
+        defer { cleanUp() }
+        let a = try device(plan: .free)
+        a.insert(localItem("rec", updatedAt: at(1), source: .recording, audioUploadId: "up-1"))
+
+        try await a.sync.sync()
+
+        let pushed = try #require(server.item("rec"))
+        #expect(pushed.audioUploadId == nil) // the timeline syncs, the audio doesn't
+    }
+
+    @Test func proAccountsPushTheirAudioUploadId() async throws {
+        defer { cleanUp() }
+        let a = try device(plan: .pro)
+        a.insert(localItem("rec", updatedAt: at(1), source: .recording, audioUploadId: "up-1"))
+
+        try await a.sync.sync()
+
+        #expect(server.item("rec")?.audioUploadId == "up-1")
+    }
+
+    @Test func aPulledNullAudioUploadIdDownloadsNoAudio() async throws {
+        defer { cleanUp() }
+        server.put(remoteItem("rec", updatedAt: at(1), source: .recording)) // a free account's row
+        let a = try device(plan: .free)
+
+        try await a.sync.sync()
+
+        #expect(a.item("rec")?.localAudioPath == nil)
+        #expect(server.calls.contains { $0.hasPrefix("GET /uploads/") } == false)
+        #expect(a.analysisStore.contains(trackId: "rec")) // the timeline still arrives
+    }
+
     @Test func ownAudioIsDownloadedStreamingAudioIsNot() async throws {
         defer { cleanUp() }
         server.put(remoteItem("rec", updatedAt: at(1), source: .recording, audioUploadId: "up-1"))
         server.put(remoteItem("yt", updatedAt: at(1), source: .youtube))
-        let a = try device()
+        let a = try device(plan: .pro)
 
         try await a.sync.sync()
 
