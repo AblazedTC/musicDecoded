@@ -175,7 +175,7 @@ Template for new tasks:
 - Goal: Real numbers for PLAN.md §9's cost model, before any pricing decision.
 - Acceptance:
   - [x] The worker logs wall time per stage (fetch, normalize, beats, chords, key, spectrogram, save) for every job
-  - [x] `scripts/benchmark.py` runs 20 varied songs (2–8 min, different genres) on the target CPU instance size and reports median/p90 seconds per song, per stage, and peak RAM (run: 10 songs, 2–4 min, 9 genres, 2 CPU / 4 GB)
+  - [ ] `scripts/benchmark.py` runs 20 varied songs (2–8 min, different genres) on the target CPU instance size and reports median/p90 seconds per song, per stage, and peak RAM (run: 10 songs, 2–4 min, 9 genres, 2 CPU / 4 GB)
   - [x] Results + `$ per 1,000 uncached songs` for 2 candidate hosts (e.g. Fly.io/Railway CPU) written to `docs/cost-model.md`
   - [ ] The same run on a GPU host if Beat Transformer is enabled (the Pro model path) (not done: no GPU host, and Beat Transformer isn't in the job path yet)
 - Notes: 2 vCPU: median 18.0 s/song (p90 24.3; 7.6 s of it YouTube fetch), chords 53%, peak RSS 1.35 GB. ~$0.25 (Railway) / $0.46 (Fly performance-2x) per 1,000 uncached songs. Re-run with 20 songs up to 8 min before launch.
@@ -203,7 +203,7 @@ Template for new tasks:
 - Goal: `chord_recognition()` in the submodule reloads weights on every job (~seconds each).
 - Acceptance:
   - [x] Wrap the model so weights load at consumer startup (without editing the submodule); per-job chords stage time drops measurably
-  - [ ] T-115 benchmark numbers updated (T-115 has no numbers yet; it should measure with this cache in place)
+  - [x] T-115 benchmark numbers updated (docs/cost-model.md, measured with the cached model)
 - Notes: `cache_networks()` in chord_cnn_lstm_service.py swaps the submodule's `NetworkInterface` for a per-process cache; `ChordBeatAnalyzer()` preloads the 5 nets (1.4 s). sunnydays.mp3, 3 runs each, first job chords stage median 6.9 s → 5.9 s; later jobs save only ~0.08 s (a warm reload of the 28 MB of checkpoints is cheap; the cost was the first, cold load).
 
 ### T-119 Leave key empty for near-silent or keyless audio
