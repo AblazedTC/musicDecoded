@@ -36,6 +36,21 @@ class PianoKeyboardTest {
 
     @Test fun noNotesHasNoStart() {
         assertNull(keyboardStart(emptyList(), octaves = 2))
+        assertNull(centeredFirstWhite(emptyList(), octaves = 2))
+    }
+
+    @Test fun fittedKeyboardCentersTheActiveNotes() {
+        // C4 E4 G4 = white keys 35..39 → 14-key window 31..44 (4 left, 5 right).
+        assertEquals(31, centeredFirstWhite(listOf(60, 64, 67), octaves = 2))
+        assertEquals(27, centeredFirstWhite(listOf(60, 64, 67), octaves = 3))
+        // Clamped to the 88 keys.
+        assertEquals(whiteKeyIndex(21), centeredFirstWhite(listOf(21, 24), octaves = 3))
+    }
+
+    @Test fun fittedOctavesFollowTheWidthButNeverFewerThanTwo() {
+        assertEquals(2, fittedOctaves(width = 380f, height = 200f)) // 40-wide keys → 9 keys, min 2
+        assertEquals(2, fittedOctaves(width = 380f, height = 96f)) // 19.2-wide → 19 keys
+        assertEquals(4, fittedOctaves(width = 600f, height = 96f))
     }
 
     @Test fun everyVoicingExampleFitsTwoOctavesWithoutItsBass() {

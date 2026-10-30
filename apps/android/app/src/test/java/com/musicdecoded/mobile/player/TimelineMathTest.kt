@@ -84,6 +84,59 @@ class TimelineMathTest {
         assertNull(snappedLoop(-5.0, -1.0, noBeats.copy(meta = noBeats.meta.copy(durationSec = 0.0))))
     }
 
+    /** One chord per start time (each lasting until the next), labels 50 px wide unless given. */
+    private fun chordsAt(vararg starts: Double, label: String = "C:maj") =
+        starts.mapIndexed { i, start -> Analysis.Chord(start, starts.getOrElse(i + 1) { start + 1 }, label) }
+
+    private fun layout(chords: List<Analysis.Chord>, pxPerSec: Float = 100f, current: Int? = null, width: Float = 50f) =
+        layoutChordLabels(chords, pxPerSec, width = { width }, current = current, gap = 4f)
+
+    @Test fun labelsThatFitStayInTheTopRow() {
+        val placed = layout(chordsAt(0.0, 1.0, 2.0))
+        assertEquals(listOf(0, 0, 0), placed.map { it.row })
+        assertEquals(listOf(0f, 100f, 200f), placed.map { it.left })
+    }
+
+    @Test fun anOverlappingLabelMovesToTheSecondRow() {
+        // 0.3 s apart at 100 px/s = 30 px < 50 + 4.
+        val placed = layout(chordsAt(0.0, 0.3, 1.0))
+        assertEquals(listOf(0 to 0, 1 to 1, 2 to 0), placed.map { it.index to it.row })
+    }
+
+    @Test fun theGapCountsAsOverlap() {
+        assertEquals(listOf(0, 1), layout(chordsAt(0.0, 0.52)).map { it.row }) // 52 < 54
+        assertEquals(listOf(0, 0), layout(chordsAt(0.0, 0.54)).map { it.row })
+    }
+
+    @Test fun aLabelThatFitsNeitherRowIsDropped() {
+        val placed = layout(chordsAt(0.0, 0.2, 0.4, 1.0))
+        assertEquals(listOf(0, 1, 3), placed.map { it.index })
+        assertTrue(placed.all { it.row < CHORD_LABEL_ROWS })
+    }
+
+    @Test fun theCurrentLabelIsNeverDropped() {
+        val placed = layout(chordsAt(0.0, 0.2, 0.4, 1.0), current = 2)
+        assertEquals(listOf(1, 2, 3), placed.map { it.index }) // replaced chord 0 (the row that ended first)
+        assertEquals(0, placed.first { it.index == 2 }.row)
+    }
+
+    @Test fun laterLabelsNeverDisplaceTheCurrentOne() {
+        val placed = layout(chordsAt(0.0, 0.2, 0.4, 0.45), current = 1)
+        assertEquals(listOf(0, 1), placed.map { it.index })
+    }
+
+    @Test fun noChordGetsNoLabel() {
+        assertEquals(listOf(0, 3), layout(synthetic.chords).map { it.index })
+    }
+
+    @Test fun zoomingInReLaysOutLabelsIntoOneRow() {
+        val chords = chordsAt(0.0, 0.2, 0.4, 0.6)
+        assertEquals(listOf(0, 1, 3), layout(chords, pxPerSec = 100f).map { it.index })
+        val zoomedIn = layout(chords, pxPerSec = 400f) // 80 px apart
+        assertEquals(listOf(0, 0, 0, 0), zoomedIn.map { it.row })
+        assertEquals(listOf(0f, 80f, 160f, 240f), zoomedIn.map { it.left })
+    }
+
     @Test fun labelStepKeepsLabelsApart() {
         assertEquals(1, timeLabelStep(pxPerSec = 120f, minSpacingPx = 56f))
         assertEquals(2, timeLabelStep(pxPerSec = 40f, minSpacingPx = 56f))

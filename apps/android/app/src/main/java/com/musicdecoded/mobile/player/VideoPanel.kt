@@ -69,8 +69,9 @@ internal fun PlayerVideoPanel(viewModel: PlayerViewModel, videoId: String, durat
 @Composable
 private fun YouTubeVideo(videoId: String, engine: YouTubePlaybackEngine, controls: Boolean, modifier: Modifier = Modifier) {
     var error by remember(videoId) { mutableStateOf<String?>(null) }
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Box(Modifier.fillMaxWidth().aspectRatio(VIDEO_ASPECT).clip(Shapes.chip).background(MusicDecodedColors.Ink)) {
+    // Without fillMaxWidth the 16:9 box letterboxes when the height is the tighter bound (player panel).
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.aspectRatio(VIDEO_ASPECT).clip(Shapes.chip).background(MusicDecodedColors.Ink)) {
             YouTubeWebPlayer(
                 videoId,
                 Modifier.matchParentSize(),

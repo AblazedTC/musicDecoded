@@ -29,6 +29,7 @@ import com.musicdecoded.mobile.player.SeekBar
 import com.musicdecoded.mobile.ui.components.ControlChip
 import com.musicdecoded.mobile.ui.components.ErrorState
 import com.musicdecoded.mobile.ui.components.InfoChip
+import com.musicdecoded.mobile.ui.components.MetaChip
 import com.musicdecoded.mobile.ui.components.PageHeader
 import com.musicdecoded.mobile.ui.components.SectionHeader
 import com.musicdecoded.mobile.ui.components.SongRow
@@ -111,6 +112,17 @@ class AccessibilityTest {
         }
         compose.onNode(hasText("KEY") and hasText("F♯ minor")).assertExists()
         listOf("F♯ minor", "+6", "KEY", "TRANSPOSE").forEach { assertFullyShown(it) }
+    }
+
+    @Test fun compactPlayerChipsReadTheirLabel() {
+        setContent {
+            androidx.compose.foundation.layout.Column {
+                MetaChip(Icons.Rounded.MusicNote, "Key", "D major")
+                ControlChip("Chords", "Full", onClick = {}, compact = true)
+            }
+        }
+        compose.onNodeWithContentDescription("Key, D major").assertExists()
+        compose.onNode(hasText("CHORDS") and hasText("Full")).assertHasClickAction()
     }
 
     @Test fun removeAnimationsSettingTurnsOffTilt() {

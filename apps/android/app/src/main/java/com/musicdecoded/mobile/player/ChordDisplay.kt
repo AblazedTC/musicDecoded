@@ -6,6 +6,7 @@ import com.musicdecoded.mobile.core.ChordLabel
 import com.musicdecoded.mobile.core.ChordVoicings
 import com.musicdecoded.mobile.core.PitchSpelling
 import com.musicdecoded.mobile.core.chordDisplayName
+import com.musicdecoded.mobile.core.romanNumeral
 import com.musicdecoded.mobile.core.triadFamily
 
 /**
@@ -24,6 +25,9 @@ data class ChordDisplay(
 
     /** `F#:min7` → `F♯m7` (Full) or `F♯m` (Basic); `""` for `N`/`X`. */
     fun name(label: String): String = chordDisplayName(label, transpose, accidentals, key, simplify = basic)
+
+    /** Roman numeral in the detected key (`III`, `viiø`); `null` for `N`/`X` or no key. Unaffected by transpose. */
+    fun numeral(label: String): String? = romanNumeral(label, key)
 
     /** MIDI notes from `chord-voicings.json`; Basic voices the triad family without the slash bass. */
     fun notes(label: String): List<Int> = voicings?.notes(voicedLabel(label), transpose).orEmpty()

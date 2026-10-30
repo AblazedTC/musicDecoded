@@ -71,6 +71,9 @@ object Sizes {
     val songArt = 56.dp
     val sourceTile = 44.dp
     val buttonHeight = 48.dp
+    /** Player control row chips and the visualizer tab header (DESIGN.md §3.7: ~44 / ~36). */
+    val compactControl = 44.dp
+    val compactTab = 36.dp
     val searchField = 44.dp
     val icon = 24.dp
     val smallIcon = 18.dp

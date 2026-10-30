@@ -1,6 +1,7 @@
 package com.musicdecoded.mobile.player
 
 import com.musicdecoded.mobile.core.Analysis
+import com.musicdecoded.mobile.core.isNoChord
 import com.musicdecoded.mobile.core.upperBound
 import kotlin.math.abs
 
@@ -75,3 +76,43 @@ fun timeLabelStep(pxPerSec: Float, minSpacingPx: Float): Int =
     LABEL_STEPS.firstOrNull { it * pxPerSec >= minSpacingPx } ?: LABEL_STEPS.last()
 
 private val LABEL_STEPS = listOf(1, 2, 5, 10, 15, 30, 60)
+
+/** Chord labels are stacked in at most this many staggered rows (DESIGN.md §3.7). */
+const val CHORD_LABEL_ROWS = 2
+
+/** A chord label box placed in [row] (0 = top), spanning `[left, left + width)` px. */
+data class PlacedLabel(val index: Int, val row: Int, val left: Float, val width: Float) {
+    val right: Float get() = left + width
+}
+
+/**
+ * Lays out one label per chord change (DESIGN.md §3.7 "Collision handling"). Each label's left edge
+ * is its start time × [pxPerSec] (content coordinates: the layout is the same wherever the playhead
+ * is, so it only changes with zoom and the current chord). In time order, a label goes in the first
+ * row where it starts at least [gap] after that row's previous label; if no row fits it's dropped,
+ * except the [current] chord's label, which replaces the neighbor that ends first. `N`/`X` get none.
+ */
+fun layoutChordLabels(
+    chords: List<Analysis.Chord>,
+    pxPerSec: Float,
+    width: (index: Int) -> Float,
+    current: Int?,
+    gap: Float,
+    rows: Int = CHORD_LABEL_ROWS,
+): List<PlacedLabel> {
+    val placed = List(rows) { ArrayList<PlacedLabel>() }
+    chords.forEachIndexed { index, chord ->
+        if (isNoChord(chord.label)) return@forEachIndexed
+        val label = PlacedLabel(index, 0, (chord.start * pxPerSec).toFloat(), width(index))
+        val row = placed.indexOfFirst { it.isEmpty() || label.left >= it.last().right + gap }
+        when {
+            row >= 0 -> placed[row].add(label.copy(row = row))
+            index == current -> {
+                // Time order means only each row's last label can overlap; free the row that ends first.
+                val freed = placed.indices.minBy { placed[it].last().right }
+                placed[freed][placed[freed].lastIndex] = label.copy(row = freed)
+            }
+        }
+    }
+    return placed.flatten().sortedBy { it.index }
+}

@@ -34,9 +34,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.musicdecoded.mobile.core.chordDisplayName
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
@@ -125,19 +128,46 @@ fun InfoChip(icon: ImageVector, label: String, value: String, modifier: Modifier
     }
 }
 
-/** Player control chip: label above value, plus a chevron (Chords · Voicing · Transpose). */
+/** Compact player metadata chip (DESIGN.md §3.7 item 2): small icon + value inline; [label] is read, not shown. */
 @Composable
-fun ControlChip(label: String, value: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun MetaChip(icon: ImageVector, label: String, value: String, modifier: Modifier = Modifier) {
     Row(
         modifier
-            .defaultMinSize(minHeight = Sizes.minTouchTarget)
-            .block(MusicDecodedColors.Surface, border = MusicDecodedColors.BorderOnInk, onClick = onClick)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+            .clearAndSetSemantics { contentDescription = "$label, $value" }
+            .background(MusicDecodedColors.Surface)
+            .border(Borders.thick, MusicDecodedColors.BorderOnInk)
+            .padding(horizontal = Spacing.xs, vertical = Spacing.xxs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(label.uppercase(), style = TextStyles.chipLabel)
-            Text(value, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
+        Icon(icon, contentDescription = null, tint = MusicDecodedColors.Primary, modifier = Modifier.size(Sizes.smallIcon))
+        Text(value, style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Text, maxLines = 1)
+    }
+}
+
+/**
+ * Player control chip: label above value, plus a chevron (Chords · Voicing · Transpose). [compact]
+ * (the player's control row) puts label and value on one line when the width allows, with tighter padding.
+ */
+@Composable
+fun ControlChip(label: String, value: String, onClick: () -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
+    Row(
+        modifier
+            .defaultMinSize(minHeight = if (compact) Sizes.compactControl else Sizes.minTouchTarget)
+            .block(MusicDecodedColors.Surface, border = MusicDecodedColors.BorderOnInk, onClick = onClick)
+            .padding(horizontal = if (compact) Spacing.xs else Spacing.sm, vertical = if (compact) Spacing.xxs else Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (compact) {
+            FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Text(label.uppercase(), style = TextStyles.chipLabel, modifier = Modifier.align(Alignment.CenterVertically))
+                Text(value, style = MaterialTheme.typography.labelLarge, color = MusicDecodedColors.Text, modifier = Modifier.align(Alignment.CenterVertically))
+            }
+        } else {
+            Column(Modifier.weight(1f)) {
+                Text(label.uppercase(), style = TextStyles.chipLabel)
+                Text(value, style = MaterialTheme.typography.titleSmall, color = MusicDecodedColors.Text)
+            }
         }
         Icon(Icons.Rounded.ExpandMore, contentDescription = null, tint = MusicDecodedColors.Primary, modifier = Modifier.size(Sizes.smallIcon))
     }
@@ -151,6 +181,8 @@ fun SegmentedToggle(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     enabled: (Int) -> Boolean = { true },
+    /** Minimum segment height; the player's compact tab header passes less than the touch target. */
+    segmentHeight: Dp = Sizes.minTouchTarget,
 ) {
     Row(
         modifier
@@ -166,7 +198,7 @@ fun SegmentedToggle(
             Box(
                 Modifier
                     .weight(1f)
-                    .defaultMinSize(minHeight = Sizes.minTouchTarget)
+                    .defaultMinSize(minHeight = segmentHeight)
                     .background(if (selected) MusicDecodedColors.Primary else MusicDecodedColors.Surface)
                     .selectable(selected = selected, enabled = isEnabled, role = Role.Tab) { onSelect(index) },
                 contentAlignment = Alignment.Center,

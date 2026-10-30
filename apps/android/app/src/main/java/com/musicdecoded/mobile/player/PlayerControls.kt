@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -61,17 +62,31 @@ internal fun PlayerHeader(
 ) {
     Row(modifier.fillMaxWidth().padding(horizontal = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
         MdIconButton(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", onClick = onBack)
-        Column(Modifier.weight(1f).semantics(mergeDescendants = true) { heading() }, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MusicDecodedColors.Text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-            )
-            if (artist != null) {
-                Text(artist, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Title on one line; the artist goes under it only if both fit the row's touch-target height.
+        Layout(
+            content = {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MusicDecodedColors.Text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                )
+                if (artist != null) {
+                    Text(artist, style = MaterialTheme.typography.bodySmall, color = MusicDecodedColors.TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            },
+            modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { heading() },
+        ) { measurables, constraints ->
+            val loose = constraints.copy(minWidth = 0, minHeight = 0)
+            val titlePlaceable = measurables[0].measure(loose)
+            val artistPlaceable = measurables.getOrNull(1)?.measure(loose)
+                ?.takeIf { titlePlaceable.height + it.height <= Sizes.minTouchTarget.roundToPx() }
+            val width = constraints.maxWidth
+            layout(width, titlePlaceable.height + (artistPlaceable?.height ?: 0)) {
+                titlePlaceable.place((width - titlePlaceable.width) / 2, 0)
+                artistPlaceable?.place((width - artistPlaceable.width) / 2, titlePlaceable.height)
             }
         }
         if (onFavorite != null) {
@@ -132,10 +147,10 @@ internal fun SpeedButton(speed: Float, onToggle: () -> Unit, onSelect: (Float) -
 
 /** Transpose chip −6…+6 (display only). */
 @Composable
-internal fun TransposeChip(transpose: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+internal fun TransposeChip(transpose: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, compact: Boolean = false) {
     var menu by remember { mutableStateOf(false) }
     Box(modifier) {
-        ControlChip("Transpose", formatTranspose(transpose), onClick = { menu = true }, Modifier.fillMaxWidth())
+        ControlChip("Transpose", formatTranspose(transpose), onClick = { menu = true }, Modifier.fillMaxWidth(), compact = compact)
         val range = -PlayerViewModel.MAX_TRANSPOSE..PlayerViewModel.MAX_TRANSPOSE
         ChoiceMenu(menu, onDismiss = { menu = false }, choices = range.toList(), label = ::formatTranspose) {
             onSelect(it)

@@ -202,6 +202,19 @@ class PlayerViewModelTest {
         assertEquals("C · E · G", chords.noteNames("A:maj"))
     }
 
+    @Test fun numeralsFollowTheKeyNotTransposeOrChordsMode() {
+        val key = Analysis.Key("C#", Analysis.Mode.MINOR)
+        val vm = viewModel(SyntheticAnalysis.make().copy(key = key))
+        assertEquals("III", vm.state.value.chords.numeral("E:maj"))
+        vm.setTranspose(4)
+        assertEquals("A♭", vm.state.value.chords.name("E:maj")) // F minor spells flats
+        assertEquals("III", vm.state.value.chords.numeral("E:maj"))
+        vm.toggleChordsMode()
+        assertEquals("iv", vm.state.value.chords.numeral("F#:min7"))
+        assertNull(vm.state.value.chords.numeral("N"))
+        assertNull(viewModel().state.value.chords.numeral("A:maj")) // synthetic has no key
+    }
+
     @Test fun basicChordsSimplifyNamesAndNotes() {
         val vm = viewModel()
         assertEquals("F♯m7", vm.state.value.chords.name("F#:min7"))
