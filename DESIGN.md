@@ -1,9 +1,7 @@
 # DESIGN.md — Screens, tokens & player spec
 
-> **Source of truth for visuals**: Figma Make file **"Music Transcription Learning App"**
-> https://www.figma.com/make/EEN7dqUVB7LlQFTNiFKvHz/Music-Transcription-Learning-App
-> It's a React prototype: `src/App.tsx` (screens) and `src/index.css` (tokens). Read it through the Figma MCP (`get_design_context`, fileKey `EEN7dqUVB7LlQFTNiFKvHz`, nodeId `0:1`), then the `src/*` resources.
-> This doc translates it for native SwiftUI / Compose. **The prototype is a reference, not code to port.** Rebuild with native components and layout. Prototype sample data (DAY6 "Somehow", Unsplash art, "Alex Morgan") is placeholder only.
+> **Visual style: "Wrapped"**, taken from the owner's portfolio (https://jordanjerkins.dev, repo `SpotiPortfolioJordan/spotiwrap`: `tailwind.config.ts`, `src/styles/globals.css`, `src/components/story/*`, esp. `Sticker.tsx` and `NowPlayingCard.tsx`). Neo-brutalist Spotify-Wrapped look: flat saturated color blocks, thick black borders, hard offset shadows, tilted stickers, huge uppercase display type.
+> **Layout and screen content** still come from the Figma Make prototype (fileKey `EEN7dqUVB7LlQFTNiFKvHz`, section 3 below). Where the two disagree on *looks*, section 1 wins; on *what is on a screen*, section 3 wins.
 
 Both apps implement the same screens and behavior. Platform conventions (navigation, sheets, back gestures, haptics) follow each OS.
 
@@ -11,46 +9,62 @@ Both apps implement the same screens and behavior. Platform conventions (navigat
 
 ## 1. Design tokens
 
-**The app is dark-only in v1** (the prototype has no light theme; the Settings "Appearance" row is post-v1).
+**Dark-only in v1**, but "dark" here means **ink surfaces with loud color blocks**, not a navy UI. Every pairing below was checked for WCAG AA (4.5:1 for text); keep to the contrast rules.
 
 ### Colors
-| Token | Hex | Use |
+Palette (exact portfolio values):
+
+| Token | Hex | Role |
 |---|---|---|
-| `ink` | `#07101C` | window background behind everything |
-| `canvas` | `#0B1422` | screen background |
-| `surface` | `#111F30` | cards, rows, chips |
-| `surfaceRaised` | `#182A3E` | pressed/hover, gradient top of source cards |
-| `surfaceSoft` | `#20354B` | selected segment, progress track, avatar bg |
-| `line` | `#2A4057` | 1px borders |
-| `primary` | `#62DCC4` | accent: playhead, play button, selected nav, progress, links |
-| `onPrimary` | `#08221E` | text/icons on primary |
-| `primarySoft` | `#173D3D` | tinted backgrounds (offline badge, sync card, done steps) |
-| `secondary` | `#91AFFF` | secondary accent (media library, avatar icon, link icons) |
-| `chord` | `#F2DFAF` | chord names, current chord fill, loop pill |
-| `onChord` | `#322B1D` | text on chord fill |
-| `chordMuted` | bg `#463F32`, border `#645943` | inactive chord blocks on the timeline |
-| `text` | `#F5F8FB` | primary text |
-| `textSecondary` | `#9FB0C3` | secondary text |
-| `textMuted` | `#8396AA` | captions, inactive nav (≥ 4.5:1 on canvas, surface and transport; was #63778C, which failed WCAG AA) |
-| `record` | `#EC6478` (ring `#B94D5E`) | record button |
-| `transportBg` | `#152638` (border `#30465D`) | transport sheet, import sheet, mini player `#1B2D40` |
-| `timelineBg` | `#09101A` (border `#24384B`) | waveform container |
-| `waveIdle` | `#4E6379` @72% | unplayed waveform bars (played = `primary` @80%) |
+| `violet` | `#4100F5` | hero/brand blocks (Home header, paywall, Processing) |
+| `lime` | `#CFF56A` | main accent: playhead, progress, current chord, selected tab, eyebrow text on dark |
+| `pink` | `#F774C4` | second accent: play button, loop pill, now-playing highlights, piano bass note |
+| `yellow` | `#FAE62D` | tags/badges ("PRO"), offline badge, warnings |
+| `orange` | `#FF6437` | record button, destructive actions, errors |
+| `blue` | `#509BF5` | links, info states, Media Library source |
+| `ink` | `#121212` | default screen background; text on color blocks |
+| `card` | `#1C1C1C` | cards/rows on ink |
+| `cardRaised` | `#262626` | pressed state, inputs, progress track |
+| `white` | `#FFFFFF` | text on ink/violet; white cards on violet |
+| `cream` | `#F0EDE4` | piano white keys, light paper cards |
 
-Source-icon tints (icon / bg): Files `primary`/`primarySoft` · Media Library `secondary`/`#1D3153` · YouTube `#FF8B8B`/`#452534` · SoundCloud `#FFB56F`/`#432F26` · Record `#FF9A9A`/`#412534`.
+Semantic tokens (apps keep these names; values change):
 
-Piano: white key `#E7EBEC` (border `#8D999D`), black key `#0C1218`, active white `#9DE8DB`, active black `#48BEA8`, keyboard bg `#0A111A`.
+| Token | Value | Notes |
+|---|---|---|
+| `canvas` | `ink` | screen background |
+| `surface` / `surfaceRaised` | `card` / `cardRaised` | rows, sheets, chips on dark |
+| `primary` / `onPrimary` | `lime` / `ink` | |
+| `secondary` / `onSecondary` | `pink` / `ink` | |
+| `chord` / `onChord` | `lime` / `ink` | current chord block, big chord name on dark |
+| `chordMuted` | bg `#2A2A2A`, border `#3A3A3A` | inactive chord blocks |
+| `text` | `white` on ink/violet; `ink` on lime/pink/yellow/orange/blue/cream | |
+| `textSecondary` | `#B3B3B3` on ink (8.9:1), `#D6CCFF` on violet (5.5:1), `#3A3A3A` on lime (9.2:1) | |
+| `textMuted` | `#8A8A8A`, on ink only (5.4:1) | captions, inactive tabs |
+| `border` | black 3pt on color blocks; white at 20% (3pt) around art/thumbnails on ink | |
+| `record` | `orange` | |
+| `waveIdle` / `wavePlayed` | `#3A3A3A` / `lime` | waveform bars |
 
-### Shape & elevation
-| Token | Value |
-|---|---|
-| `radiusCard` | 18 (cards, timeline, visualizer) |
-| `radiusRow` | 15 (song rows, mini player, summary) |
-| `radiusControl` | 12 (search, buttons 13, chips 10) |
-| `radiusPill` | 20 (filter chips) |
-| `radiusSheet` | 22–24 top corners (transport, import sheet) |
-| `shadowCard` | y12 blur30 black 20% |
-| `shadowPlayer` | y−14 blur35 black 28% |
+Contrast (computed): white on violet 8.3, lime on violet 6.7, yellow on violet 6.5, ink on lime 15.1, ink on pink 7.4, ink on yellow 14.7, ink on orange 6.4, ink on blue 6.6; lime/pink/yellow/blue/orange on ink all at least 6.4. **Never** pink text on violet (3.2): pink on violet only as a filled shape with ink text.
+
+Source tiles (fill / icon): Files `lime`/ink, Media Library `blue`/ink, YouTube `orange`/ink, SoundCloud `yellow`/ink, Record `pink`/ink.
+
+Piano: white keys `cream` with ink 1.5pt separators, black keys `ink`, active white key `lime`, active black key `#9DBF2E`, bass note `pink`, keyboard frame 3pt black border + hard shadow.
+
+### Shape, borders & elevation
+- **Corners are square.** Radius 0 for cards, rows, buttons, chips, sheets and inputs. Only circular play/record buttons and avatars are round.
+- **Border**: 3pt black on any color block or card on a color block; 3pt white at 20% around thumbnails/art on ink. Separators inside lists: 2pt.
+- **Hard shadow** (no blur, offset x = y): `shadowSm` 3pt (chips, small buttons), `shadowMd` 5pt (stickers, buttons, rows on color), `shadowLg` 8pt (cards, timeline, visualizer), `shadowXl` 10pt (hero cards: player now-playing card, paywall). Black on color blocks; on ink use an **accent-colored** shadow (`violet` or `pink`) so it stays visible.
+- **Tilt**: hero cards -1.5 deg, list cards alternate -1/+1 deg, stickers -3 deg (default) to -6 deg. Decoration only: never tilt the timeline, piano, inputs or anything draggable. No tilt when Reduce Motion is on.
+- **Pressed state**: move by (+2, +2) and shrink the hard shadow by 2pt (the "pushed sticker" feel); no ripple tint on color blocks.
+
+### Signature elements (shared components)
+- **Sticker** (portfolio `Sticker.tsx`): accent fill, 3pt black border, `shadowMd`, uppercase heavy body font, +0.04em tracking, tilted -3 deg. For section eyebrows ("YOUR LIBRARY", "NOW PLAYING"), status badges, "PRO".
+- **Eyebrow label**: uppercase, at least 11pt, bold, tracking +0.25em; `lime` on ink, `white` on violet.
+- **Display headline**: Archivo Black, uppercase, line height 0.95, tracking -0.01em.
+- **Big numerals**: oversized numbers at 8% opacity ("01", "#1") behind section titles and Library rows; decorative, hidden from accessibility.
+- **Waveform bars**: simple vertical bars (portfolio `Waveform.tsx`) for idle/now-playing indicators.
+- **Textures** (at most one per screen): halftone dot grid (2pt dots, 12pt pitch, 20% opacity), diagonal stripes (violet at 50% on lime blocks).
 
 ### Spacing
 **4-point scale. Every margin, padding and gap uses one of these values and nothing else.**
@@ -74,21 +88,34 @@ The prototype uses off-grid values. **Round to the nearest token; on a tie, roun
 Fixed **component sizes** (heights, icon tiles, buttons) aren't spacing and keep the prototype values, rounded to whole points: icon button 40, small icon button 32, play button 56 (prototype 58), record button 84, song art 56, source icon tile 44 (prototype 43), primary button height 48 (prototype 50), search field 44 (prototype 43), tab bar = platform default. **Minimum touch target 44pt (iOS) / 48dp (Android)**, so pad smaller visuals up to it.
 
 ### Typography
-The prototype uses Inter, falling back to SF Pro. **Native: use the system font** (SF Pro / Roboto) and map onto platform text styles so Dynamic Type and font scaling work.
-The prototype's sizes are tuned for a ~400px web frame and some go as small as 8px. **Native minimum is 11pt/sp.** Scale up the prototype's 8–10px captions to the platform's `caption2`/`labelSmall`.
+Bundle two Google Fonts (SIL Open Font License, free to ship in apps): **Archivo Black** (display) and **Space Grotesk** (body; weights 400/500/700). Keep **Dynamic Type / font scaling**: `Font.custom(_:size:relativeTo:)` on iOS, sp-based `TextUnit` with a `FontFamily` on Android. Minimum size 11pt/sp.
 
-| Role | Prototype | iOS | Android |
+| Role | Font | Default size | Notes |
 |---|---|---|---|
-| Page title | 28 / -0.05em, bold | `.largeTitle` bold | `headlineMedium` |
-| Current chord (player) | 34, chord color | `.system(size: 34, weight: .bold)` | 34sp bold |
-| Section header | 18 bold | `.title3` bold | `titleMedium` |
-| Row title | 14 semibold | `.subheadline` semibold | `titleSmall` |
-| Body / secondary | 12 | `.footnote` | `bodySmall` |
-| Caption / overline | 8–10, often uppercase +0.1em tracking | `.caption2` | `labelSmall` |
-| Times / counters | tabular numbers | `.monospacedDigit()` | `fontFeatureSettings = "tnum"` |
+| Page title | Archivo Black | 44 | uppercase, line height 0.95 |
+| Section title | Archivo Black | 28 | uppercase |
+| Current chord (player) | Archivo Black | 56 | lime on ink |
+| Card / row title | Space Grotesk Bold | 17 | song titles in sentence case |
+| Body | Space Grotesk Regular | 15 | |
+| Secondary | Space Grotesk Medium | 13 | `textSecondary` |
+| Eyebrow / caption | Space Grotesk Bold | 11 | uppercase, tracking +0.25em |
+| Times / counters / BPM | Space Grotesk Medium | 13 | tabular figures |
 
 ### Icons
-Line icons, 24 grid, 1.8 stroke, round caps (custom set in `App.tsx` `Icon`). Native: **SF Symbols** on iOS and **Material Symbols Rounded** on Android with the closest match. Exact SVG parity isn't required. YouTube and SoundCloud marks must follow their brand guidelines.
+Bold line icons (2pt stroke): closest SF Symbol / Material Symbols **Sharp** (square ends match the brutalist look). Icons on color blocks are `ink`. YouTube/SoundCloud marks follow their brand rules.
+
+### Screen color map
+| Screen | Background | Accent |
+|---|---|---|
+| Home | violet hero block (title, stickers, waveform), then ink body with source tiles in their fills | lime |
+| Library | lime header block (ink text, stripe texture), ink list | violet |
+| Processing | violet; step list on an ink card with `shadowXl` | lime progress |
+| Player | ink; now-playing card (`card`, 3pt black border, pink `shadowXl`, tilted -1.5 deg) | lime chords/playhead, pink play |
+| Piano learning view | ink; keyboard frame with lime `shadowLg` | lime |
+| Recorder | ink; orange record button with black border + `shadowMd` | orange |
+| Settings / Auth / Migration | ink; profile card as a yellow block | lime |
+| Paywall | violet; white plan cards (black border + `shadowLg`); yellow "PRO" sticker | lime CTA |
+| Tab bar | ink with 3pt black top border; selected = lime icon + label, unselected `textMuted` | |
 
 ---
 
@@ -108,7 +135,7 @@ Bottom navigation with 4 tabs: **Home · Library · Tuner · Settings**.
 ### 3.1 Home (`HomeScreen`)
 - **Brand header**: logo mark (wave icon on a `primary` rounded square, rotated -4°), the "MusicDecoded" wordmark, tagline "Your music, decoded.", plus Search and Profile (→ Settings) buttons.
 - **Recently Decoded**: up to 3 song rows plus "See all" → Library.
-  - **Song row**: 56×56 art (radius 10) · title · artist · meta line `duration · key · BPM` · offline badge (download icon on `primarySoft`) when audio is local · ⋯ menu (Delete, Favorite, Re-analyze).
+  - **Song row**: 56×56 art (square, white-20% 3pt border) · title · artist · meta line `duration · key · BPM` · offline badge (yellow sticker with download icon) when audio is local · ⋯ menu (Delete, Favorite, Re-analyze).
 - **Transcribe Music**: a 2×2 grid of **source cards** (icon tile, title, description):
   Files ("Import audio from this device"), Media Library ("Choose local music"), YouTube ("Discover & play"), SoundCloud ("Find supported tracks"; hidden unless `soundcloudEnabled`).
 - **Record card** (full width): mic icon, "Record Audio", "Capture a live performance", chevron.
