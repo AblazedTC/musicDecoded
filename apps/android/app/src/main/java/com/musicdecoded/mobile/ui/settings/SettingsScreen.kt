@@ -47,8 +47,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.musicdecoded.mobile.MusicDecodedApplication
 import com.musicdecoded.mobile.core.Accidentals
 import com.musicdecoded.mobile.player.ChordsMode
-import com.musicdecoded.mobile.player.Visualizer
+import com.musicdecoded.mobile.player.PlayerView
 import com.musicdecoded.mobile.player.formatSpeed
+import com.musicdecoded.mobile.player.label
 import com.musicdecoded.mobile.settings.PlayerPreferences
 import com.musicdecoded.mobile.ui.auth.AuthMode
 import com.musicdecoded.mobile.ui.components.PageHeader
@@ -65,7 +66,7 @@ import com.musicdecoded.mobile.ui.components.block
 import com.musicdecoded.mobile.ui.theme.Borders
 import com.musicdecoded.mobile.ui.theme.Shadows
 
-private enum class SettingsDialog { SPEED, CHORDS, ACCIDENTALS, VISUALIZER, PRIVACY, HELP }
+private enum class SettingsDialog { SPEED, CHORDS, ACCIDENTALS, VIEW, PRIVACY, HELP }
 
 /** DESIGN.md §3.9 (v1 rows only): profile card, guest sync card, preferences, storage, about. */
 @Composable
@@ -96,7 +97,7 @@ fun SettingsScreen(onAuth: (AuthMode) -> Unit, onGoPro: (() -> Unit)? = null) {
         SettingsGroup("Music analysis") {
             SettingsRow("Chord notation", prefs.chordsMode.label) { dialog = SettingsDialog.CHORDS }
             SettingsRow("Accidentals", prefs.accidentals.label) { dialog = SettingsDialog.ACCIDENTALS }
-            SettingsRow("Default visualization", prefs.visualizer.label) { dialog = SettingsDialog.VISUALIZER }
+            SettingsRow("Default view", prefs.playerView.label) { dialog = SettingsDialog.VIEW }
         }
         SettingsGroup("Storage") {
             SettingsRow("Local storage", formatBytes(state.storageBytes))
@@ -119,8 +120,8 @@ fun SettingsScreen(onAuth: (AuthMode) -> Unit, onGoPro: (() -> Unit)? = null) {
         SettingsDialog.ACCIDENTALS -> ChoiceDialog("Accidentals", Accidentals.entries, prefs.accidentals, { it.label }, close) { v ->
             viewModel.update { it.copy(accidentals = v) }
         }
-        SettingsDialog.VISUALIZER -> ChoiceDialog("Default visualization", Visualizer.entries, prefs.visualizer, { it.label }, close) { v ->
-            viewModel.update { it.copy(visualizer = v) }
+        SettingsDialog.VIEW -> ChoiceDialog("Default view", PlayerView.entries, prefs.playerView, { it.label }, close) { v ->
+            viewModel.update { it.copy(playerView = v) }
         }
         SettingsDialog.PRIVACY -> InfoDialog(
             "Privacy & data",
@@ -147,7 +148,6 @@ private val Accidentals.label get() = when (this) {
     Accidentals.SHARP -> "♯"
     Accidentals.FLAT -> "♭"
 }
-private val Visualizer.label get() = if (this == Visualizer.PIANO) "Piano" else "Video"
 
 /** The profile card is a yellow block (DESIGN.md §1 screen color map): ink text, black border, violet shadow. */
 @Composable

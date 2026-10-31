@@ -232,7 +232,7 @@ For practicing. Header with title/artist.
 - Guest only: a **Sync card** ("Sync your music — Keep eligible chord timelines and files available across your devices.").
 - Groups (rows: label · value · chevron):
   - **Playback**: Default speed · Autoplay next song · Remember loop regions
-  - **Music analysis**: Chord notation (Standard) · Accidentals (Auto/♯/♭) · Default visualization (Piano/Video)
+  - **Music analysis**: Chord notation (Standard) · Accidentals (Auto/♯/♭) · Default view (Timeline/Beat grid/Chord sheet/Piano focus)
   - **Storage**: Local storage (size) · Offline files (count) · Clear cache
   - **Application**: Notifications · Privacy & data · Help & support (Appearance is hidden in v1 because the app is dark-only)
 - v1 builds only the rows backed by behavior: Default speed, Chord notation, Accidentals, Default visualization, Local storage, Offline files, Privacy & data, Help. Hide the rest.

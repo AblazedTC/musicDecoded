@@ -47,7 +47,6 @@ enum class ChordsMode { BASIC, FULL }
 
 /** Why the player screen should close (header ⋯ menu). */
 enum class PlayerExit { DELETED, REANALYZING }
-enum class Visualizer { PIANO, VIDEO }
 
 /** The player's middle region (DESIGN.md §3.7.1), picked in the header view switcher. */
 enum class PlayerView { TIMELINE, BEAT_GRID, CHORD_SHEET, PIANO_FOCUS }
@@ -99,7 +98,7 @@ class PlayerViewModel(
     private val saveFavorite: suspend (Boolean) -> Unit = {},
     /** `false` when the engine belongs to the app-level [NowPlaying] (playback outlives this screen). */
     private val ownsEngine: Boolean = true,
-    /** Settings defaults (chords, accidentals, visualizer); default speed is applied by [createEngine]. */
+    /** Settings defaults (chords, accidentals, view); default speed is applied by [createEngine]. */
     private val preferences: suspend () -> PlayerPreferences = { PlayerPreferences() },
     /** ⋯ Delete: removes the library item (and clears the mini player). */
     private val deleteTrack: suspend () -> Unit = {},

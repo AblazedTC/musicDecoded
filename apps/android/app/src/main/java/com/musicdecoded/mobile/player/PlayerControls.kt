@@ -94,7 +94,7 @@ internal fun ViewSwitcher(selected: PlayerView, onSelect: (PlayerView) -> Unit, 
     }
 }
 
-private val PlayerView.label: String
+internal val PlayerView.label: String
     get() = when (this) {
         PlayerView.TIMELINE -> "Timeline"
         PlayerView.BEAT_GRID -> "Beat grid"
