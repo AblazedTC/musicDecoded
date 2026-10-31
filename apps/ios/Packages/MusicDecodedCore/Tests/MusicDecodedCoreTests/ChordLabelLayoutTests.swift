@@ -40,6 +40,38 @@ struct ChordLabelLayoutTests {
         #expect(rows[3] == nil)
     }
 
+    @Test func labelsThatFitNeedOneRow() {
+        #expect(ChordLabelLayout.rowCount([box(0, 0), box(1, 44), box(2, 100)]) == 1)
+    }
+
+    @Test func anOverlapAnywhereNeedsTheSecondRow() {
+        #expect(ChordLabelLayout.rowCount([box(0, 0), box(1, 44), box(2, 60), box(3, 500)]) == 2)
+    }
+
+    @Test func noLabelsStillHaveOneRow() {
+        #expect(ChordLabelLayout.rowCount([]) == 1)
+    }
+
+    @Test func theRowCountFollowsTheZoom() {
+        let chords = [
+            Analysis.Chord(start: 0, end: 0.2, label: "A:maj"),
+            Analysis.Chord(start: 0.2, end: 0.4, label: "D:maj"),
+        ]
+        let narrow = ChordLabelLayout.boxes(for: chords, pointsPerSecond: 60) { _ in 40 }
+        #expect(ChordLabelLayout.rowCount(narrow) == 2)
+        let wide = ChordLabelLayout.boxes(for: chords, pointsPerSecond: 400) { _ in 40 }
+        #expect(ChordLabelLayout.rowCount(wide) == 1)
+    }
+
+    /// The band mustn't jump during playback: when one row is enough, no current chord uses another.
+    @Test func noCurrentChordUsesARowTheBandDoesntHave() {
+        let boxes = [box(0, 0), box(1, 44), box(2, 100)]
+        #expect(ChordLabelLayout.rowCount(boxes) == 1)
+        for current in boxes.map(\.id) {
+            #expect(ChordLabelLayout.layout(boxes, current: current).values.allSatisfy { $0 == 0 })
+        }
+    }
+
     @Test func zoomingInBringsDroppedLabelsBack() {
         let chords = [
             Analysis.Chord(start: 0, end: 0.2, label: "A:maj"),

@@ -6,7 +6,8 @@ import SwiftUI
 /// waveform, downbeat gridlines and a fixed center playhead. Content scrolls under the playhead.
 /// Drag the waveform to scrub, drag the first label row to select a loop (snapped to beats), tap
 /// a label to seek to its chord, pinch to zoom (60–400 pt/s). Only the visible window is drawn.
-/// It fills the height its parent gives it.
+/// It fills the height its parent gives it. The label band has a second row only when a label needs
+/// it at the current zoom; otherwise the waveform takes that height.
 ///
 /// While playing, a `TimelineView(.animation)` redraws every frame from `livePosition` (the
 /// engine clock, not observed); while paused it draws `pausedPosition`, so seeks still redraw.
@@ -213,13 +214,13 @@ private enum TimelineMetrics {
 }
 
 /// Label sizes and layout, reused across frames: sizes are measured once per text, the layout is
-/// re-run only when the zoom, current chord or chord display changes. Also keeps the label frames
-/// of the last frame for tap hit-testing.
+/// re-run only when the zoom, current chord or chord display changes, and the band's row count only
+/// when the zoom or chord display does. Also keeps the label frames of the last frame for tap
+/// hit-testing.
 @MainActor
 final class TimelineLabelCache {
     struct LayoutKey: Equatable {
         var pointsPerSecond: CGFloat
-        var current: Int?
         var transpose: Int
         var basic: Bool
         var accidentals: Accidentals
@@ -230,7 +231,11 @@ final class TimelineLabelCache {
     private var sizes: [String: CGSize] = [:]
     private var sizesTypeSize: DynamicTypeSize?
     private var layoutKey: LayoutKey?
-    private var rows: [Int: Int] = [:]
+    private var boxes: [ChordLabelBox] = []
+    private var bandRows = 1
+    /// The rows for `rowsCurrent`; `nil` until laid out for this key.
+    private var rows: [Int: Int]?
+    private var rowsCurrent: Int?
     /// Label frames drawn last, by chord index.
     var frames: [Int: CGRect] = [:]
     /// The first label row, where a drag selects a loop.
@@ -247,11 +252,24 @@ final class TimelineLabelCache {
         return size
     }
 
-    func layout(for key: LayoutKey, compute: () -> [Int: Int]) -> [Int: Int] {
-        if layoutKey == key { return rows }
-        rows = compute()
-        layoutKey = key
-        return rows
+    func layout(
+        for key: LayoutKey,
+        current: Int?,
+        boxes makeBoxes: () -> [ChordLabelBox]
+    ) -> (rows: [Int: Int], bandRows: Int) {
+        if layoutKey != key {
+            layoutKey = key
+            boxes = makeBoxes()
+            bandRows = ChordLabelLayout.rowCount(boxes)
+            rows = nil
+        }
+        if let rows, rowsCurrent == current {
+            return (rows, bandRows)
+        }
+        let placed = ChordLabelLayout.layout(boxes, current: current)
+        rows = placed
+        rowsCurrent = current
+        return (placed, bandRows)
     }
 
     func chordIndex(at point: CGPoint) -> Int? {
@@ -275,7 +293,12 @@ private struct TimelineRenderer {
 
     func draw(in context: inout GraphicsContext) {
         let boxHeight = labelBoxHeight(context)
-        let waveTop = min(TimelineMetrics.labelTop + boxHeight + Spacing.xs, height - TimelineMetrics.minWaveform)
+        let current: Int? = currentState(at: viewport.playhead, in: analysis).chordIndex.flatMap { index in
+            isNoChord(analysis.chords[index].label) ? nil : index
+        }
+        let layout = labelLayout(current: current, context)
+        let band = TimelineMath.labelBandHeight(rows: layout.bandRows, boxHeight: boxHeight, rowGap: CGFloat(ChordLabelLayout.gap))
+        let waveTop = min(TimelineMetrics.labelTop + band + Spacing.xs, height - TimelineMetrics.minWaveform)
         let waveBottom = height - Spacing.xxs
         labels.loopBand = TimelineMetrics.labelTop...(TimelineMetrics.labelTop + boxHeight)
 
@@ -285,7 +308,7 @@ private struct TimelineRenderer {
         if let loop {
             drawLoop(loop, in: &context, bottom: waveBottom)
         }
-        drawChordLabels(&context, boxHeight: boxHeight, waveTop: waveTop)
+        drawChordLabels(&context, rows: layout.rows, current: current, boxHeight: boxHeight, waveTop: waveTop)
         drawPlayhead(&context, bottom: waveBottom)
     }
 
@@ -413,29 +436,32 @@ private struct TimelineRenderer {
         return textWidth + TimelineMetrics.labelPaddingH * 2 + TimelineMetrics.labelBorder * 2
     }
 
-    private func drawChordLabels(_ context: inout GraphicsContext, boxHeight: CGFloat, waveTop: CGFloat) {
+    private func labelLayout(current: Int?, _ context: GraphicsContext) -> (rows: [Int: Int], bandRows: Int) {
         let chordList = analysis.chords
-        let current: Int? = currentState(at: viewport.playhead, in: analysis).chordIndex.flatMap { index in
-            isNoChord(chordList[index].label) ? nil : index
-        }
-
-        let measuring = context
         let key = TimelineLabelCache.LayoutKey(
             pointsPerSecond: viewport.pointsPerSecond,
-            current: current,
             transpose: chords.transpose,
             basic: chords.basic,
             accidentals: chords.accidentals,
             chordCount: chordList.count,
             typeSize: typeSize
         )
-        let rows = labels.layout(for: key) {
-            let boxes = ChordLabelLayout.boxes(for: chordList, pointsPerSecond: Double(viewport.pointsPerSecond)) { index in
-                Double(labelWidth(index, measuring))
+        return labels.layout(for: key, current: current) {
+            ChordLabelLayout.boxes(for: chordList, pointsPerSecond: Double(viewport.pointsPerSecond)) { index in
+                Double(labelWidth(index, context))
             }
-            return ChordLabelLayout.layout(boxes, current: current)
         }
+    }
 
+    private func drawChordLabels(
+        _ context: inout GraphicsContext,
+        rows: [Int: Int],
+        current: Int?,
+        boxHeight: CGFloat,
+        waveTop: CGFloat
+    ) {
+        let chordList = analysis.chords
+        let measuring = context
         let lookBehind = Double(TimelineMetrics.labelLookBehind / viewport.pointsPerSecond)
         var frames: [Int: CGRect] = [:]
         var ticks = Path()

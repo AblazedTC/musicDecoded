@@ -12,6 +12,11 @@ struct TimelineMathTests {
         synthetic = try PlayerFixtures.synthetic()
     }
 
+    @Test func oneLabelRowLeavesTheWaveformTheSecondRowsHeight() {
+        #expect(TimelineMath.labelBandHeight(rows: 1, boxHeight: 50, rowGap: 4) == 50)
+        #expect(TimelineMath.labelBandHeight(rows: 2, boxHeight: 50, rowGap: 4) == 104)
+    }
+
     @Test func viewportKeepsThePlayheadAtTheCenter() {
         let viewport = TimelineViewport(width: 400, playhead: 10, pointsPerSecond: 100)
         #expect(abs(viewport.x(10) - 200) < 0.001)

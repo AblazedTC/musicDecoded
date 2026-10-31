@@ -97,6 +97,11 @@ enum TimelineMath {
         min(max(available * 0.32, 150), 220)
     }
 
+    /// Height of a chord-label band of `rows` rows; the waveform gets what's under it.
+    static func labelBandHeight(rows: Int, boxHeight: CGFloat, rowGap: CGFloat) -> CGFloat {
+        CGFloat(rows) * boxHeight + CGFloat(max(rows - 1, 0)) * rowGap
+    }
+
     private static func clamp(_ value: Double, _ low: Double, _ high: Double) -> Double {
         min(max(value, low), high)
     }

@@ -36,6 +36,13 @@ public enum ChordLabelLayout {
         }
     }
 
+    /// How many rows the label band needs at this zoom, at least 1. Depends only on the boxes (the
+    /// analysis and zoom), never on the playhead: a current chord only ever takes the place of a
+    /// label in a row that's already in use, so the band can't change during playback.
+    public static func rowCount(_ boxes: [ChordLabelBox], rows: Int = rows, gap: Double = gap) -> Int {
+        (layout(boxes, current: nil, rows: rows, gap: gap).values.max() ?? 0) + 1
+    }
+
     /// Row (0-based) per placed box id; dropped ids are missing.
     public static func layout(
         _ boxes: [ChordLabelBox],
