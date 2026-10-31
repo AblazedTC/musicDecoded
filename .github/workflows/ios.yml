@@ -1,0 +1,91 @@
+name: ios
+
+on:
+  # push only on main; branches are covered by pull_request, so PR commits don't run twice.
+  push:
+    branches: [main]
+    paths:
+      - "apps/ios/**"
+      - "contracts/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "apps/ios/**"
+      - "contracts/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-linux:
+    name: MusicDecodedCore (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift --version
+      - name: swift test
+        working-directory: apps/ios/Packages/MusicDecodedCore
+        run: swift test
+
+  app-macos:
+    name: App (iOS Simulator)
+    runs-on: macos-15
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: apps/ios
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Pick an iPhone simulator
+        id: simulator
+        # Runner images change their simulator set and can ship iOS runtimes newer than the active Xcode
+        # (-showdestinations only lists placeholders before simulators load), so pick the newest iPhone
+        # whose iOS version is <= the Xcode simulator SDK.
+        run: |
+          set -o pipefail
+          sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          if ! udid=$(xcrun simctl list devices available --json | python3 -c '
+          import json, re, sys
+          sdk = tuple(int(x) for x in sys.argv[1].split(".")[:2])
+          best = None
+          for runtime, devices in json.load(sys.stdin)["devices"].items():
+              m = re.search(r"SimRuntime\.iOS-(\d+)-(\d+)", runtime)
+              if not m or (v := (int(m[1]), int(m[2]))) > sdk:
+                  continue
+              for d in devices:
+                  if d["name"].startswith("iPhone") and (best is None or v > best[0]):
+                      best = (v, d["udid"])
+          print(best[1] if best else "")
+          ' "$sdk"); then
+            echo "::error::Failed to list or parse simulators (simctl or JSON error above)"
+            exit 1
+          fi
+          if [ -z "$udid" ]; then
+            echo "::error::No iPhone simulator with iOS <= $sdk (the Xcode simulator SDK)"
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "Using simulator $udid"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project MusicDecoded.xcodeproj \
+            -scheme MusicDecoded \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            build test

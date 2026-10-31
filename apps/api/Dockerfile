@@ -1,19 +1,16 @@
-# Stage 1: Build the JAR using Maven
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM python:3.13-slim
+
+COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /bin/uv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# Copy Maven wrapper and pom first (layer caching - only re-downloads deps if pom changes)
-COPY .mvn .mvn
-COPY mvnw pom.xml ./
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+# Dependencies first so code changes don't reinstall them.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-# Copy source and build
-COPY src ./src
-RUN ./mvnw package -DskipTests -B
+COPY app ./app
 
-# Stage 2: Minimal runtime image
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# One worker keeps memory low (PLAN.md: hosting cost). Scale with more containers, not more workers.
+CMD ["/app/.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

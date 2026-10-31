@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: en-US
+reviews:
+  profile: chill
+  high_level_summary: true
+  poem: false
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!contracts/fixtures/**"
+    - "!**/uv.lock"
+    - "!apps/worker/models/**"
+    - "!apps/worker/data/**"
+  path_instructions:
+    - path: "**"
+      instructions: |
+        MusicDecoded: native iOS (SwiftUI) + Android (Compose) apps, a FastAPI API, and a Python ML worker.
+        contracts/ is the single source of truth for the API and the analysis file format.
+        Flag any secret, API key, token, or hardcoded credential default (dev-only defaults behind APP_ENV=dev are allowed).
+    - path: "contracts/**"
+      instructions: |
+        Contracts are consumed by four codebases. Flag breaking changes (renamed/removed fields, narrowed enums,
+        new required fields) and require that fixtures still validate (python contracts/validate.py).
+    - path: "apps/api/**"
+      instructions: |
+        Routes, status codes, JSON field names (camelCase) and enum values must match contracts/openapi.yaml exactly.
+        Errors must use ApiError and the openapi Error shape {code, message}; never FastAPI's default {"detail"}.
+        Every resource lookup must be scoped to the current user (another user's resource -> 404).
+        Plan/Pro limits are enforced here server-side; never trust a client-supplied plan.
+        Keep memory low: no heavy dependencies (pandas, numpy) in the API.
+    - path: "apps/worker/**"
+      instructions: |
+        No model or library whose weights/data are licensed non-commercially (e.g. madmom's CC BY-NC-SA models).
+        Every new model must be listed in apps/worker/MODELS.md with code and weights licenses.
+        Temp media must be deleted on success and failure. Analysis output must validate against contracts/analysis.schema.json.
+        Streaming-source audio (YouTube/SoundCloud) may only be stored when OFFLINE_STREAM_AUDIO is true.
+    - path: "apps/{android,ios}/**"
+      instructions: |
+        UI must use the theme tokens from DESIGN.md section 1 (colors, 4-pt spacing scale, radii, type); flag hardcoded
+        hex colors and raw padding numbers in screens. Touch targets >= 44pt (iOS) / 48dp (Android).
+        Apps talk only to the API (plus presigned URLs). The player must keep working offline when the analysis file exists.
+        Shared behavior must stay identical between the iOS and Android apps (DESIGN.md section 4).
+chat:
+  auto_reply: true

@@ -1,7 +1,7 @@
 FROM python:3.9-slim
 
 # System dependencies (ffmpeg for audio, libsndfile for audio file reading,
-# gcc/g++ needed to compile native extensions like madmom)
+# gcc/g++ for any dependency that has no prebuilt wheel)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsndfile1 \
@@ -10,9 +10,6 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-# Cython and numpy must be installed before madmom (it builds C extensions at install time)
-RUN pip install --no-cache-dir Cython numpy
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

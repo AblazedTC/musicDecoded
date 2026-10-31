@@ -1,19 +1,66 @@
+# Local dev stack. Credentials below are dev-only defaults; override them in a
+# gitignored .env (see .env.example). Never put real secrets here.
 services:
   db:
     image: postgres:16
     environment:
       POSTGRES_DB: musicdecoded
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432" # localhost only: dev credentials are public
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  redis:
+    image: redis:7.4.2-alpine
+    ports:
+      - "127.0.0.1:6379:6379" # localhost only: no password
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Official minio/minio images are no longer published on Docker Hub/quay.io,
+  # so we use Bitnami's frozen archive builds (pinned).
+  minio:
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "127.0.0.1:9000:9000" # S3 API, localhost only (minioadmin is public)
+      - "127.0.0.1:9001:9001" # web console, localhost only
+    volumes:
+      - minio_data:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-shot: creates the bucket (idempotent) and exits.
+  minio-init:
+    image: bitnamilegacy/minio-client:2025.7.21-debian-12-r3
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - >-
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" &&
+        mc mb --ignore-existing "local/$$S3_BUCKET" &&
+        mc ls local
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: ${S3_BUCKET:-musicdecoded}
+    depends_on:
+      minio:
+        condition: service_healthy
 
   api:
     build:
@@ -21,17 +68,34 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/musicdecoded
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      APP_ENV: dev # dev supplies a local JWT_SECRET default; anywhere else JWT_SECRET is required
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/musicdecoded
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET:-musicdecoded}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      OFFLINE_STREAM_AUDIO: "false"
+      SOUNDCLOUD_ENABLED: "false"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
   worker:
     build:
       context: ./apps/worker
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/musicdecoded
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: ${S3_BUCKET:-musicdecoded}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      OFFLINE_STREAM_AUDIO: "false"
     volumes:
       # Mount local data/outputs folders so files persist outside the container
       - ./apps/worker/data:/app/data
@@ -39,6 +103,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
+  minio_data:

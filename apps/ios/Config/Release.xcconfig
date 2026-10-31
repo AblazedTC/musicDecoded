@@ -1,0 +1,6 @@
+// Release settings for every target (wired up in project.yml `configFiles`).
+// `//` starts a comment in xcconfig files, hence `/$()/` in URLs.
+
+// The production API host isn't decided yet. Set it before the first release build,
+// e.g. API_BASE_URL = https:/$()/api.example.com
+API_BASE_URL =

@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated analysis output
+outputs/
+
+# Audio clips: only the small test clip is tracked
+data/*.mp3
+!data/sunnydays.mp3
