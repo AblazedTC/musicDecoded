@@ -60,3 +60,16 @@ straight from the repo, so contract changes are tested immediately.
 - **core-linux**: `swift test` for `MusicDecodedCore` in the `swift:6.0` container.
 - **app-macos**: generates the project with XcodeGen, then builds the app and runs its tests on
   an iPhone simulator. This is how the app gets built when no Mac is around.
+
+## TestFlight (no Mac needed)
+
+`.github/workflows/testflight.yml` archives a Release build on a GitHub Mac, signs it with Xcode
+cloud signing and uploads it to App Store Connect. Run it from the Actions tab (**testflight →
+Run workflow**); `api_base_url` is the backend baked into that build. The build number is the run
+number.
+
+One-time setup: register the bundle ID `com.musicdecoded.app` and create the app in App Store
+Connect, create an App Store Connect API key with the **Admin** role, and add the repo secrets
+`ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the `.p8` file's contents) and `APPLE_TEAM_ID`.
+Optional: `REVENUECAT_IOS_KEY` (RevenueCat's public iOS SDK key); without it, purchases are unavailable
+in that build.
