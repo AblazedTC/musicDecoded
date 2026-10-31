@@ -167,6 +167,24 @@ class TimelineMathTest {
         assertEquals(1, relayouts)
     }
 
+    @Test fun bandNeedsOneRowOnlyWhenEveryLabelFitsInRowZero() {
+        assertEquals(1, chordLabelRowsNeeded(emptyList()))
+        assertEquals(1, chordLabelRowsNeeded(layout(chordsAt(0.0, 1.0, 2.0))))
+        assertEquals(2, chordLabelRowsNeeded(layout(chordsAt(0.0, 0.3, 1.0))))
+    }
+
+    @Test fun bandRowsFollowZoomButNotTheCurrentChord() {
+        val chords = chordsAt(0.0, 1.0, 2.0, 3.0)
+        val rowsAt = { pxPerSec: Float -> chordLabelRowsNeeded(layout(chords, pxPerSec = pxPerSec, width = 50f)) }
+        assertEquals(1, rowsAt(100f))
+        assertEquals(2, rowsAt(40f))
+        // One row: every label is already in the base, so no chord change can move anything.
+        val base = layout(chords, pxPerSec = 100f, width = 50f)
+        for (current in chords.indices) {
+            assertTrue(withCurrentLabel(base, current) { layout(chords, pxPerSec = 100f, current = it, width = 50f) } === base)
+        }
+    }
+
     @Test fun labelRowsLooksUpEachChordsRow() {
         val rows = LabelRows(layout(chordsAt(0.0, 0.3, 1.0)), chordCount = 4)
         assertEquals(listOf(0, 1, 0, -1, -1), listOf(0, 1, 2, 3, 99).map(rows::rowOf))

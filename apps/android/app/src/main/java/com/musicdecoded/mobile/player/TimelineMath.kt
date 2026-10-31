@@ -137,6 +137,13 @@ fun layoutChordLabels(
 fun withCurrentLabel(base: List<PlacedLabel>, current: Int?, layout: (current: Int?) -> List<PlacedLabel>): List<PlacedLabel> =
     if (current == null || base.any { it.index == current }) base else layout(current)
 
+/**
+ * Label rows the band must reserve, from the layout with no current chord ([layoutChordLabels] with
+ * `current = null`). One row only if every label fits in row 0, in which case no current chord can
+ * change the layout, so this depends on the analysis and zoom alone and never changes during playback.
+ */
+fun chordLabelRowsNeeded(base: List<PlacedLabel>): Int = (base.maxOfOrNull { it.row } ?: 0) + 1
+
 /** Row of each chord's placed label (`-1` = none), for constant-time lookups while drawing. */
 class LabelRows(labels: List<PlacedLabel>, chordCount: Int) {
     private val rows = IntArray(chordCount) { -1 }.also { rows -> labels.forEach { if (it.index in rows.indices) rows[it.index] = it.row } }

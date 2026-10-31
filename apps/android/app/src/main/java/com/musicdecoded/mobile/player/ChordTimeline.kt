@@ -75,8 +75,8 @@ private enum class Gesture { NONE, SCRUB, LOOP, ZOOM, IGNORE }
 
 /**
  * The player timeline (DESIGN.md §3.7 item 3), edge to edge: a time-label row, chord-label boxes
- * (name + Roman numeral) at each chord change in up to 2 staggered rows with a tick down to the
- * waveform, the waveform with downbeat gridlines, and a fixed center playhead. Content scrolls under
+ * (name + Roman numeral) at each chord change in up to 2 staggered rows (the band shrinks to 1 when
+ * the zoom needs no second row) with a tick down to the waveform, the waveform with downbeat gridlines, and a fixed center playhead. Content scrolls under
  * the playhead. Drag the waveform to scrub, drag the label area to select a loop (snapped to beats),
  * tap a label to seek to its chord, pinch to zoom (60–400 dp/s). Fills the height it's given.
  *
@@ -135,6 +135,7 @@ fun ChordTimeline(
         { current: Int? -> layoutChordLabels(analysis.chords, pxPerSec, width = { boxes.items[it]?.width ?: 0f }, current = current, gap = gapPx) }
     }
     val baseLabels = remember(layout) { layout(null) }
+    val labelRows = chordLabelRowsNeeded(baseLabels)
     val currentIndex = currentIndex()
     val labels = remember(baseLabels, currentIndex) { withCurrentLabel(baseLabels, currentIndex, layout) }
     val labelTops = remember(labels) { LabelRows(labels, analysis.chords.size) }
@@ -143,6 +144,7 @@ fun ChordTimeline(
     val currentLabels by rememberUpdatedState(labels)
     val currentBoxes by rememberUpdatedState(boxes)
     val latestIndex by rememberUpdatedState(currentIndex)
+    val latestRows by rememberUpdatedState(labelRows)
 
     Canvas(
         modifier
@@ -165,7 +167,7 @@ fun ChordTimeline(
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val pps = zoom * density
                     val startViewport = TimelineViewport(size.width.toFloat(), currentPosition(), pps)
-                    val bands = TimelineBands(this, size.height.toFloat(), currentBoxes.height)
+                    val bands = TimelineBands(this, size.height.toFloat(), currentBoxes.height, latestRows)
                     val onLabels = down.position.y < bands.labelsBottom
                     var gesture = Gesture.NONE
                     var lastSpan = 0f
@@ -225,7 +227,7 @@ fun ChordTimeline(
             },
     ) {
         val viewport = TimelineViewport(size.width, currentPosition(), pxPerSec)
-        val bands = TimelineBands(this, size.height, boxes.height)
+        val bands = TimelineBands(this, size.height, boxes.height, labelRows)
         drawTimeLabels(viewport, analysis, bands) { second -> timeTexts.getOrPut(second) { textMeasurer.measure(formatDuration(second.toDouble()), timeStyle) } }
         drawDownbeats(viewport, analysis, bands)
         drawWaveform(viewport, analysis, bands)
@@ -268,11 +270,11 @@ private fun Density.scaled(height: Dp): Float = max(height.toPx(), height.value.
 private const val ZOOM_STEP = 1.5f
 
 /**
- * Vertical bands of the canvas, in px: time labels, 2 label rows, then the waveform down to the
- * bottom. When the height is short the waveform keeps at least [TimelineMetrics.minWaveform] and the
+ * Vertical bands of the canvas, in px: time labels, [labelRows] label rows, then the waveform down to
+ * the bottom. When the height is short the waveform keeps at least [TimelineMetrics.minWaveform] and the
  * lower label row overlaps its top.
  */
-private class TimelineBands(density: Density, height: Float, boxHeight: Float) {
+private class TimelineBands(density: Density, height: Float, boxHeight: Float, labelRows: Int) {
     val timeBottom: Float
     private val rowsTop: Float
     private val rowStep: Float
@@ -286,7 +288,7 @@ private class TimelineBands(density: Density, height: Float, boxHeight: Float) {
             timeBottom = scaled(TimelineMetrics.timeLabels)
             rowsTop = timeBottom + gap
             rowStep = boxHeight + gap
-            labelsBottom = rowsTop + CHORD_LABEL_ROWS * rowStep
+            labelsBottom = rowsTop + labelRows * rowStep
             waveBottom = height - gap
             waveTop = min(labelsBottom, waveBottom - TimelineMetrics.minWaveform.toPx())
         }
