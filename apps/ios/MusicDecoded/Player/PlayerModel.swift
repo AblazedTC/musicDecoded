@@ -98,6 +98,8 @@ final class PlayerModel {
     /// chord's own number of inversions.
     private(set) var inversion = 0
     private(set) var visualizer = Visualizer.piano
+    /// The view switcher's view; starts at Settings → Default view.
+    var viewMode = PlayerViewMode.timeline
     /// Settings → Accidentals.
     private(set) var accidentals = Accidentals.auto
     /// Playhead in seconds, published on every tick and seek.
@@ -226,7 +228,7 @@ final class PlayerModel {
         // (PlayerScreen), so a track that's still playing keeps its speed.
         chordsMode = preferences.chordsMode
         accidentals = preferences.accidentals
-        visualizer = preferences.visualizer == .video && videoAvailable ? .video : .piano
+        viewMode = preferences.defaultView
         isLoading = false
         updateDerived()
         tick()

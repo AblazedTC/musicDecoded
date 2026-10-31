@@ -122,8 +122,6 @@ struct PlayerView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.openPaywall) private var openPaywall
-    /// The view switcher's choice, kept for the whole app (DESIGN.md §3.7).
-    @AppStorage("player.viewMode") private var viewMode: PlayerViewMode = .timeline
     @State private var showMediaSheet = false
     @State private var confirmDelete = false
     @State private var actionError: String?
@@ -144,7 +142,7 @@ struct PlayerView: View {
             .toolbar(.hidden, for: .tabBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    PlayerViewSwitcher(selection: $viewMode)
+                    PlayerViewSwitcher(selection: Bindable(model).viewMode)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     PlayerMoreMenu(
@@ -233,7 +231,7 @@ struct PlayerView: View {
 
     @ViewBuilder
     private func middle(_ analysis: Analysis, height: CGFloat) -> some View {
-        switch viewMode {
+        switch model.viewMode {
         case .timeline:
             TimelineRegion(model: model, height: height) {
                 showMediaSheet = true

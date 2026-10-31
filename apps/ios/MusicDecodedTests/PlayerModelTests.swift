@@ -53,16 +53,16 @@ struct PlayerModelTests {
     }
 
     @Test func settingsDefaultsApplyWhenATrackOpens() async throws {
-        let preferences = PlayerPreferences(defaultSpeed: 1, chordsMode: .basic, accidentals: .flat, visualizer: .video)
+        let preferences = PlayerPreferences(defaultSpeed: 1, chordsMode: .basic, accidentals: .flat, defaultView: .chordSheet)
         let model = try await makeModel(preferences: preferences)
         #expect(model.chordsMode == .basic)
         #expect(model.chords.accidentals == .flat)
-        // Video isn't available for a file source, so the piano stays.
-        #expect(model.visualizer == .piano)
+        #expect(model.viewMode == .chordSheet)
+    }
 
-        let youtube = try PlayerFixtures.synthetic(source: .youtube, sourceRef: "abc")
-        let youtubeModel = try await makeModel(analysis: youtube, preferences: preferences)
-        #expect(youtubeModel.visualizer == .video)
+    @Test func theSwitcherStartsAtTimelineByDefault() async throws {
+        let model = try await makeModel()
+        #expect(model.viewMode == .timeline)
     }
 
     @Test func startingPlaybackMarksTheTrackPlayed() async throws {

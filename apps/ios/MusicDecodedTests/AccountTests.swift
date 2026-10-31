@@ -195,10 +195,25 @@ struct AccountTests {
             $0.defaultSpeed = 0.75
             $0.chordsMode = .basic
             $0.accidentals = .flat
-            $0.visualizer = .video
+            $0.defaultView = .beatGrid
         }
 
         let reopened = SettingsStore(defaults: defaults)
-        #expect(reopened.preferences == PlayerPreferences(defaultSpeed: 0.75, chordsMode: .basic, accidentals: .flat, visualizer: .video))
+        #expect(reopened.preferences == PlayerPreferences(defaultSpeed: 0.75, chordsMode: .basic, accidentals: .flat, defaultView: .beatGrid))
+    }
+
+    @Test func defaultVisualizationMigratesToDefaultView() {
+        let defaults = makeDefaults()
+        defaults.set("video", forKey: "settings.visualizer")
+        #expect(SettingsStore(defaults: defaults).preferences.defaultView == .timeline)
+        #expect(defaults.object(forKey: "settings.visualizer") == nil)
+    }
+
+    @Test func theLastSwitcherViewSeedsDefaultView() {
+        let defaults = makeDefaults()
+        defaults.set("pianoFocus", forKey: "player.viewMode")
+        #expect(SettingsStore(defaults: defaults).preferences.defaultView == .pianoFocus)
+        #expect(defaults.object(forKey: "player.viewMode") == nil)
+        #expect(SettingsStore(defaults: defaults).preferences.defaultView == .pianoFocus)
     }
 }

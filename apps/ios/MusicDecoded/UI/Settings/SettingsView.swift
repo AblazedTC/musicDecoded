@@ -80,12 +80,12 @@ struct SettingsView: View {
                         }
                         RowDivider()
                         ChoiceRow(
-                            label: "Default visualization",
-                            options: Visualizer.allCases,
-                            selected: prefs.visualizer,
+                            label: "Default view",
+                            options: PlayerViewMode.allCases,
+                            selected: prefs.defaultView,
                             title: { $0.title }
                         ) { value in
-                            settings.update { $0.visualizer = value }
+                            settings.update { $0.defaultView = value }
                         }
                     }
                     SettingsGroup(title: "Storage") {
