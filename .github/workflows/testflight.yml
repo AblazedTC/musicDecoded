@@ -3,6 +3,7 @@ name: testflight
 # Builds a Release archive on a GitHub Mac and uploads it to TestFlight. Run it by hand from the Actions tab.
 # Needs repo secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8 (App Store Connect API key, Admin role, so
 # Xcode cloud signing can create the distribution certificate and profile) and APPLE_TEAM_ID.
+# Optional: REVENUECAT_IOS_KEY.
 on:
   workflow_dispatch:
     inputs:
@@ -30,6 +31,8 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       API_BASE_URL: ${{ inputs.api_base_url }}
+      # Optional: RevenueCat public iOS SDK key (appl_...). Empty = purchases unavailable in that build.
+      REVENUECAT_API_KEY: ${{ secrets.REVENUECAT_IOS_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Check secrets
@@ -54,6 +57,7 @@ jobs:
             -archivePath "$RUNNER_TEMP/MusicDecoded.xcarchive" \
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" \
             API_BASE_URL="$API_BASE_URL" \
+            REVENUECAT_API_KEY="$REVENUECAT_API_KEY" \
             DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGNING_ALLOWED=NO
       - name: Sign and upload to App Store Connect
         run: |

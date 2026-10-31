@@ -71,3 +71,5 @@ number.
 One-time setup: register the bundle ID `com.musicdecoded.app` and create the app in App Store
 Connect, create an App Store Connect API key with the **Admin** role, and add the repo secrets
 `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8` (the `.p8` file's contents) and `APPLE_TEAM_ID`.
+Optional: `REVENUECAT_IOS_KEY` (RevenueCat's public iOS SDK key); without it, purchases are unavailable
+in that build.
