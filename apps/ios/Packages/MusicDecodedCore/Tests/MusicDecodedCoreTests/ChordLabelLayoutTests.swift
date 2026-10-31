@@ -72,6 +72,17 @@ struct ChordLabelLayoutTests {
         }
     }
 
+    /// The timeline lays out once per zoom and re-runs only for a current chord that was dropped.
+    @Test func aCurrentChordThatFitsChangesNothing() {
+        let boxes = [box(0, 0), box(1, 10), box(2, 20), box(3, 60)]
+        let base = ChordLabelLayout.layout(boxes, current: nil)
+        for current in base.keys {
+            #expect(ChordLabelLayout.layout(boxes, current: current) == base)
+        }
+        #expect(base[2] == nil)
+        #expect(ChordLabelLayout.layout(boxes, current: 2) != base)
+    }
+
     @Test func zoomingInBringsDroppedLabelsBack() {
         let chords = [
             Analysis.Chord(start: 0, end: 0.2, label: "A:maj"),

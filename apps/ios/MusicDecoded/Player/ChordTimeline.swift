@@ -213,10 +213,10 @@ private enum TimelineMetrics {
     static let labelTop: CGFloat = timeRow + Spacing.xxs
 }
 
-/// Label sizes and layout, reused across frames: sizes are measured once per text, the layout is
-/// re-run only when the zoom, current chord or chord display changes, and the band's row count only
-/// when the zoom or chord display does. Also keeps the label frames of the last frame for tap
-/// hit-testing.
+/// Label sizes and layout, reused across frames: sizes are measured once per text; the boxes, the
+/// layout and the band's row count once per zoom and chord display. A chord change re-runs the
+/// layout only when that chord's label had been dropped (otherwise placing it changes nothing).
+/// Also keeps the label frames of the last frame for tap hit-testing.
 @MainActor
 final class TimelineLabelCache {
     struct LayoutKey: Equatable {
@@ -233,7 +233,9 @@ final class TimelineLabelCache {
     private var layoutKey: LayoutKey?
     private var boxes: [ChordLabelBox] = []
     private var bandRows = 1
-    /// The rows for `rowsCurrent`; `nil` until laid out for this key.
+    /// The layout with no current chord.
+    private var baseRows: [Int: Int] = [:]
+    /// The layout for `rowsCurrent`, a chord dropped from `baseRows`; `nil` until needed.
     private var rows: [Int: Int]?
     private var rowsCurrent: Int?
     /// Label frames drawn last, by chord index.
@@ -260,8 +262,12 @@ final class TimelineLabelCache {
         if layoutKey != key {
             layoutKey = key
             boxes = makeBoxes()
+            baseRows = ChordLabelLayout.layout(boxes, current: nil)
             bandRows = ChordLabelLayout.rowCount(boxes)
             rows = nil
+        }
+        guard let current, baseRows[current] == nil else {
+            return (baseRows, bandRows)
         }
         if let rows, rowsCurrent == current {
             return (rows, bandRows)

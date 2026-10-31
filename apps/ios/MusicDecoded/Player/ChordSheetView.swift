@@ -17,12 +17,15 @@ struct ChordSheetView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Spacing.sm) {
                     ForEach(lines.indices, id: \.self) { lineIndex in
+                        let line = lines[lineIndex]
+                        // Plain values (no closures), and only the line holding the current box gets
+                        // it, so a chord change redraws just the lines it enters or leaves.
                         SheetLine(
-                            bars: lines[lineIndex],
+                            bars: line,
                             labels: analysis.chords,
                             chords: chords,
-                            current: current,
-                            onSeek: { model.seek(to: $0) }
+                            current: current.flatMap { box in line.contains { $0.number == box.barNumber } ? box : nil },
+                            model: model
                         )
                         .id(lineIndex)
                     }
@@ -84,7 +87,8 @@ private struct SheetLine: View {
     let labels: [Analysis.Chord]
     let chords: ChordDisplay
     let current: SheetPosition?
-    let onSeek: (Double) -> Void
+    /// For seeking only; the line reads no model state.
+    let model: PlayerModel
 
     var body: some View {
         HStack(alignment: .center, spacing: Spacing.xxs) {
@@ -124,7 +128,7 @@ private struct SheetLine: View {
                     spoken: "Bar \(bar.number), \(chords.spokenName(entry.label))",
                     isCurrent: current == SheetPosition(barNumber: bar.number, entry: index)
                 ) {
-                    onSeek(entry.time)
+                    model.seek(to: entry.time)
                 }
             }
         }

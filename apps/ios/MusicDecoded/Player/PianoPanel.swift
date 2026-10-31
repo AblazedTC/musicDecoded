@@ -5,6 +5,8 @@ import SwiftUI
 /// fixed C3–B5 keyboard (bass `blue`, right hand `lime`, finger numbers, note names under the
 /// keys) and one page dot per inversion. Swipe left/right = next/previous inversion; VoiceOver
 /// gets the same as adjustable actions. Natural height: `keysHeight + PlayerLayout.pianoPanelChrome`.
+/// Reads only chord-level model state (current chord, display settings, inversion), never the
+/// playhead, so the clock doesn't redraw it.
 struct PianoPanel: View {
     let model: PlayerModel
     var keysHeight: CGFloat = ComponentSize.fixedKeyboardCompact
@@ -33,7 +35,7 @@ struct PianoPanel: View {
                 voicing: voicing,
                 keysHeight: keysHeight,
                 namesHeight: showsNoteNames ? ComponentSize.pianoPanelNamesRow : 0,
-                noteName: { chords.noteName($0) }
+                names: FixedKeyboard.names(voicing, chords: chords)
             )
             PageDots(count: voicing?.inversions ?? 0, current: voicing?.inversion ?? 0)
                 .frame(height: ComponentSize.pianoPanelDotsRow)
@@ -110,18 +112,16 @@ struct PianoPanel: View {
 
 /// The fixed C3–B5 keyboard (DESIGN.md §3.7): 21 white keys spanning the width. Its layout never
 /// scrolls or re-centers; only the highlights change. Decorative for VoiceOver (the panel speaks).
+/// Its inputs are plain values (no closures), so SwiftUI skips it while they're unchanged.
 struct FixedKeyboard: View {
     let voicing: PianoVoicing?
     let keysHeight: CGFloat
     var namesHeight: CGFloat = ComponentSize.pianoPanelNamesRow
-    let noteName: (Int) -> String
+    /// Name per highlighted MIDI note.
+    let names: [Int: String]
 
     var body: some View {
-        let renderer = FixedKeyboardRenderer(
-            voicing: voicing,
-            keysHeight: keysHeight,
-            names: Dictionary(Self.highlighted(voicing).map { ($0, noteName($0)) }, uniquingKeysWith: { first, _ in first })
-        )
+        let renderer = FixedKeyboardRenderer(voicing: voicing, keysHeight: keysHeight, names: names)
         Canvas { context, size in
             renderer.draw(in: &context, size: size)
         }
@@ -132,6 +132,10 @@ struct FixedKeyboard: View {
     static func highlighted(_ voicing: PianoVoicing?) -> [Int] {
         guard let voicing else { return [] }
         return [voicing.bass] + voicing.rightHand
+    }
+
+    static func names(_ voicing: PianoVoicing?, chords: ChordDisplay) -> [Int: String] {
+        Dictionary(highlighted(voicing).map { ($0, chords.noteName($0)) }, uniquingKeysWith: { first, _ in first })
     }
 }
 

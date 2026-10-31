@@ -40,14 +40,17 @@ struct BeatGridView: View {
             ScrollView {
                 LazyVStack(spacing: Spacing.xxs) {
                     ForEach(bars, id: \.number) { bar in
+                        let isCurrentBar = currentBar.map { bars[$0].number == bar.number } ?? false
+                        // Rows get plain values (no closures) and only the current bar sees the beat,
+                        // so a beat redraws just the bars it enters or leaves.
                         BeatGridRow(
                             bar: bar,
                             perBar: perBar,
                             labels: analysis.chords,
                             chords: chords,
-                            currentBeat: currentBeat,
-                            isCurrentBar: currentBar.map { bars[$0].number == bar.number } ?? false,
-                            onSeek: { model.seek(to: $0) }
+                            currentBeat: isCurrentBar ? currentBeat : nil,
+                            isCurrentBar: isCurrentBar,
+                            model: model
                         )
                         .id(bar.number)
                     }
@@ -90,7 +93,8 @@ private struct BeatGridRow: View {
     let chords: ChordDisplay
     let currentBeat: Int?
     let isCurrentBar: Bool
-    let onSeek: (Double) -> Void
+    /// For seeking only; the row reads no model state.
+    let model: PlayerModel
 
     var body: some View {
         HStack(spacing: Spacing.xxs) {
@@ -129,7 +133,7 @@ private struct BeatGridRow: View {
         let numeral = label.flatMap(chords.numeral)
         let spoken = label.map(chords.spokenName) ?? (cell.continues ? "Chord continues" : "No chord")
         return Button {
-            onSeek(cell.time)
+            model.seek(to: cell.time)
         } label: {
             VStack(spacing: 0) {
                 if name.isEmpty == false {

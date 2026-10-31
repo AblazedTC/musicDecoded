@@ -34,10 +34,13 @@ extension PlaybackEngine {
 /// Plays the local `audio/{trackId}` file with `AVPlayer`, time-stretched without changing pitch
 /// (`audioTimePitchAlgorithm = .timeDomain`, DESIGN.md §4). Once the item has ended the position
 /// reads as `durationSec` (the analysis length), so the clock's end/loop logic always fires.
+/// While playing, the position goes through a `PositionSmoother`, so the 60 Hz timeline moves
+/// every frame even if `currentTime()` advances in steps.
 @MainActor
 final class AVPlaybackEngine: PlaybackEngine {
     private let player: AVPlayer
     private let durationSec: Double
+    private var smoother = PositionSmoother()
     /// The target of a seek still in flight: `currentTime()` can lag behind until it completes.
     private var pendingSeek: Double?
     private var seekGeneration = 0
@@ -60,7 +63,11 @@ final class AVPlaybackEngine: PlaybackEngine {
         if let item = player.currentItem, item.duration.isNumeric, t >= item.duration.seconds - Self.endTolerance {
             return max(durationSec, t)
         }
-        return t
+        guard player.rate != 0 else {
+            smoother.reset()
+            return t
+        }
+        return smoother.position(raw: t, now: ProcessInfo.processInfo.systemUptime, speed: Double(player.rate))
     }
 
     var isPlaying: Bool {
@@ -71,14 +78,17 @@ final class AVPlaybackEngine: PlaybackEngine {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default)
         try? session.setActive(true)
+        smoother.reset()
         player.play()
     }
 
     func pause() {
+        smoother.reset()
         player.pause()
     }
 
     func seek(to seconds: Double) {
+        smoother.reset()
         seekGeneration += 1
         let generation = seekGeneration
         pendingSeek = seconds
@@ -93,6 +103,7 @@ final class AVPlaybackEngine: PlaybackEngine {
 
     func setSpeed(_ speed: Double) {
         self.speed = speed
+        smoother.reset()
         // `defaultRate` is the rate `play()` uses; a playing player switches right away.
         player.defaultRate = Float(speed)
         if player.rate != 0 {
