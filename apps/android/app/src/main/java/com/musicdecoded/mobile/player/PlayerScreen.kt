@@ -236,8 +236,7 @@ private fun PianoPanel(state: PlayerUiState, label: String?, viewModel: PlayerVi
         Modifier
             .fillMaxWidth()
             .padding(start = Spacing.gutter, end = Spacing.gutter, bottom = Shadows.lg)
-            // block() re-applies its receiver chain, so start it from a fresh Modifier (else the padding doubles).
-            .then(Modifier.block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet))
+            .block(MusicDecodedColors.Surface, shadow = Shadows.lg, shadowColor = MusicDecodedColors.Violet)
             .padding(Spacing.xs),
     ) {
         val keysHeight = if (compact) {

@@ -69,7 +69,7 @@ fun MiniPlayer(
     Column(
         modifier
             .fillMaxWidth()
-            .padding(start = Spacing.xs, end = Spacing.sm, top = Spacing.xxs, bottom = Spacing.xs)
+            .padding(start = Spacing.gutter, end = Spacing.xl, top = Spacing.xs, bottom = Spacing.md)
             .block(MusicDecodedColors.Surface, shadow = Shadows.sm, shadowColor = MusicDecodedColors.Secondary, onClick = onOpen, onClickLabel = "Open player"),
     ) {
         Box(

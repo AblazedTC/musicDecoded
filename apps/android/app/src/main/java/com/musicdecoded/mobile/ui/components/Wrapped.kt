@@ -96,7 +96,8 @@ fun Modifier.block(
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val push = if (pressed && onClick != null && shadow > 0.dp) Shadows.press else 0.dp
-    val base = graphicsLayer {
+    // Built from a fresh Modifier: chaining on the receiver here would apply it twice via then().
+    val base = Modifier.graphicsLayer {
         translationX = push.toPx()
         translationY = push.toPx()
     }
