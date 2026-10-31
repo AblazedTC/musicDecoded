@@ -51,6 +51,10 @@ targets:
       path: Generated/MusicDecoded-Info.plist
       properties:
         CFBundleDisplayName: MusicDecoded
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Standard HTTPS only, so TestFlight/App Store skip the export-compliance question.
+        ITSAppUsesNonExemptEncryption: false
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
         # Bundled "Wrapped" faces (DESIGN.md §1), SIL OFL: Resources/Licenses.
@@ -75,6 +79,10 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.musicdecoded.app
+        MARKETING_VERSION: "1.0"
+        # CI overrides this with the run number for TestFlight uploads (testflight.yml).
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         PRODUCT_NAME: MusicDecoded
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: NO
