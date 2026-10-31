@@ -7,6 +7,8 @@ plugins {
 
 /** `-PlocalRelease`: sign the release with the debug key as `….local` (see the release build type). */
 val localRelease = project.hasProperty("localRelease")
+/** Backend for `-PlocalRelease`: the emulator's host by default, or a LAN address via `-PapiBaseUrl`. */
+val localApiUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8080"
 
 android {
     namespace = "com.musicdecoded.mobile"
@@ -51,7 +53,7 @@ android {
                 applicationIdSuffix = ".local"
                 versionNameSuffix = "-local"
                 signingConfig = signingConfigs.getByName("debug")
-                buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080\"")
+                buildConfigField("String", "API_BASE_URL", "\"$localApiUrl\"")
                 resValue("string", "app_name", "MusicDecoded R")
             }
         }
@@ -74,7 +76,21 @@ android {
         // also get the fixtures, so the player can be tried without the backend.
         getByName("main").assets.srcDir("../../../contracts")
         // The local release talks to the dev backend over HTTP, like debug.
-        if (localRelease) getByName("release").res.srcDir("src/debug/res")
+        if (localRelease) {
+            // Cleartext only for the configured backend host (and presigned storage URLs on it).
+            val generated = layout.buildDirectory.dir("generated/localRelease/res").get().asFile
+            generated.resolve("xml").mkdirs()
+            generated.resolve("xml/network_security_config.xml").writeText(
+                """<?xml version="1.0" encoding="utf-8"?>
+                |<network-security-config>
+                |    <domain-config cleartextTrafficPermitted="true">
+                |        <domain includeSubdomains="false">${localApiUrl.substringAfter("//").substringBefore(":").substringBefore("/")}</domain>
+                |    </domain-config>
+                |</network-security-config>
+                |""".trimMargin(),
+            )
+            getByName("release").res.srcDir(generated)
+        }
     }
 }
 
