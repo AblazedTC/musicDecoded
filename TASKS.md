@@ -354,22 +354,33 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes (ios): iOS: player ⋯ menu, custom accessible SeekBar, shared InitialArt; import is already a sheet over Home and Media Library uses MPMediaPicker. CI green.
 
 ### T-214a / T-214i Revisit the player layout
-- Lane: design / android / ios · Status: todo · Owner: product owner · Deps: Wrapped re-theme
+- Lane: design / android / ios · Status: done · Owner: claude · Deps: Wrapped re-theme
 - Goal: The owner is not satisfied with the player layout after the Wrapped re-theme (2026-10-30). Get the specific concerns, update DESIGN.md §3.7, then implement on both apps.
 - Acceptance:
-  - [ ] Owner's concerns written into DESIGN.md §3.7
-  - [ ] Both apps updated and screenshotted
+  - [x] Owner's concerns written into DESIGN.md §3.7
+  - [x] Both apps updated and screenshotted
+- Notes: Single-screen layout per DESIGN §3.7; Android on emulator, iOS via CI.
 
 ### T-215a / T-215i Player revision 2: view switcher, separate piano/media panels, fixed keyboard, inversions, fingering
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-214
+- Lane: android / ios · Status: done · Owner: claude · Deps: T-214
 - Goal: DESIGN.md §3.7 "Owner revision 2" + §3.7.1 Views + §4 "Piano voicing & inversions".
 - Acceptance:
-  - [ ] Header view switcher with Timeline / Beat grid / Chord sheet / Piano focus; expand button removed
-  - [ ] Piano and media as separate stacked panels; media = YouTube video or artwork; collapses to a strip on short screens
-  - [ ] Fixed C3–B5 keyboard that never scrolls; bass in blue, right hand in lime; finger numbers; note names; page dots
-  - [ ] Swipe left/right changes inversion (also via the Voicing chip); every case in `contracts/fixtures/piano-voicings.json` passes
-  - [ ] Beat grid and chord sheet views with current-beat/chord highlight, auto-scroll and tap-to-seek
-  - [ ] Single screen without scrolling (Timeline view) at default text size
+  - [x] Header view switcher with Timeline / Beat grid / Chord sheet / Piano focus; expand button removed
+  - [x] Piano and media as separate stacked panels; media = YouTube video or artwork; collapses to a strip on short screens
+  - [x] Fixed C3–B5 keyboard that never scrolls; bass in blue, right hand in lime; finger numbers; note names; page dots
+  - [x] Swipe left/right changes inversion (also via the Voicing chip); every case in `contracts/fixtures/piano-voicings.json` passes
+  - [x] Beat grid and chord sheet views with current-beat/chord highlight, auto-scroll and tap-to-seek
+  - [x] Single screen without scrolling (Timeline view) at default text size
+- Notes: View switcher, stacked panels, fixed C3-B5 keyboard, inversions, fingering. Android on emulator, iOS via CI (213 app, 83 core tests).
+
+### T-216a / T-216i Player follow-ups
+- Lane: android / ios · Status: todo · Owner: — · Deps: T-215
+- Goal: Remaining player polish after revision 2.
+- Acceptance:
+  - [ ] Chord-label band shrinks to one row when no label needs the second row at the current zoom, giving the waveform the space; no jumps during playback
+  - [ ] Settings "Default visualization" becomes "Default view" (Timeline / Beat grid / Chord sheet / Piano focus) and sets the switcher's initial view
+  - [ ] Android: `Modifier.block()` no longer re-applies modifiers placed before it; spacing checked on all screens
+  - [ ] iOS: playback position is smooth between AVPlayer updates; chord labels, keyboard and bars redraw only when their inputs change
 
 ---
 
