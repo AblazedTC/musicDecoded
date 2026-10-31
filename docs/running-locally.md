@@ -126,7 +126,7 @@ npx @redocly/cli@1 lint contracts/openapi.yaml
 | MinIO S3 API  | http://localhost:9000 (bucket `musicdecoded`) | `minioadmin` / `minioadmin` |
 | MinIO console | http://localhost:9001                         | `minioadmin` / `minioadmin` |
 
-Postgres, Redis and MinIO listen on `127.0.0.1` only, because their dev credentials are public. The Android emulator (`10.0.2.2`) and iOS simulator still reach them; a physical phone on your Wi-Fi can reach the API (the Docker `api` service listens on all interfaces; a host-run API needs `--host 0.0.0.0` and a firewall rule for port 8080) but not MinIO, so file uploads need an emulator/simulator for now.
+The API, Postgres, Redis and MinIO all listen on `127.0.0.1` only, because their dev secrets are public. The Android emulator (`10.0.2.2`) and iOS simulator still reach them; a physical phone cannot.
 
 These are dev-only defaults from `docker-compose.yml`. To change them, copy `.env.example` to `.env`
 (gitignored) and edit it; compose works with no `.env` at all.
