@@ -1,0 +1,30 @@
+{
+  "api_version": "1.0",
+  "event": {
+    "aliases": ["00000000-0000-0000-0000-000000000000"],
+    "app_id": "app1a2b3c4d5e",
+    "app_user_id": "00000000-0000-0000-0000-000000000000",
+    "country_code": "US",
+    "currency": "USD",
+    "entitlement_id": null,
+    "entitlement_ids": ["pro"],
+    "environment": "PRODUCTION",
+    "event_timestamp_ms": 1764374520000,
+    "expiration_at_ms": 1764374400000,
+    "grace_period_expiration_at_ms": 1765670400000,
+    "id": "6C5B4A39-2817-4F6E-9D5C-4B3A29180706",
+    "is_family_share": false,
+    "original_app_user_id": "00000000-0000-0000-0000-000000000000",
+    "original_transaction_id": "GPA.3312-4521-8876-01234",
+    "period_type": "NORMAL",
+    "presented_offering_id": null,
+    "price": 0,
+    "price_in_purchased_currency": 0,
+    "product_id": "musicdecoded_pro_monthly:monthly",
+    "purchased_at_ms": 1761696000000,
+    "store": "PLAY_STORE",
+    "subscriber_attributes": {},
+    "transaction_id": "GPA.3312-4521-8876-01234",
+    "type": "BILLING_ISSUE"
+  }
+}

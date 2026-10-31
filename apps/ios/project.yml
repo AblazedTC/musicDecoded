@@ -21,6 +21,10 @@ settings:
 packages:
   MusicDecodedCore:
     path: Packages/MusicDecodedCore
+  # The only third-party dependency (PLAN.md §9): App Store purchases with a cross-store entitlement backend.
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios-spm
+    exactVersion: 5.95.0
 
 targets:
   MusicDecoded:
@@ -28,21 +32,46 @@ targets:
     platform: iOS
     sources:
       - path: MusicDecoded
+      # Contracts are referenced from the repo, not copied. The voicing table ships in every build;
+      # the analysis fixtures are for Debug runs and previews only (Release excludes them below).
+      - path: ../../contracts/chord-voicings.json
+        buildPhase: resources
+        group: Contracts
+      - path: ../../contracts/fixtures/sunnydays.analysis.json
+        buildPhase: resources
+        group: Contracts
+      - path: ../../contracts/fixtures/sample.analysis.json
+        buildPhase: resources
+        group: Contracts
     dependencies:
       - package: MusicDecodedCore
+      - package: RevenueCat
+        product: RevenueCat
     info:
       path: Generated/MusicDecoded-Info.plist
       properties:
         CFBundleDisplayName: MusicDecoded
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
+        # Bundled "Wrapped" faces (DESIGN.md §1), SIL OFL: Resources/Licenses.
+        UIAppFonts:
+          - ArchivoBlack-Regular.ttf
+          - SpaceGrotesk-Regular.ttf
+          - SpaceGrotesk-Medium.ttf
+          - SpaceGrotesk-Bold.ttf
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
+        # Landscape gives the Piano learning view a wider keyboard (DESIGN.md §3.8).
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         NSMicrophoneUsageDescription: "MusicDecoded records audio so it can transcribe the chords."
+        NSAppleMusicUsageDescription: "MusicDecoded imports songs you choose from your music library so it can decode their chords."
         # Read at runtime via Bundle.main.object(forInfoDictionaryKey: "APIBaseURL").
         APIBaseURL: $(API_BASE_URL)
+        # RevenueCat public SDK key (T-602i); empty = "Purchases aren't available in this build".
+        RevenueCatAPIKey: $(REVENUECAT_API_KEY)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.musicdecoded.app
@@ -51,6 +80,10 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         # The ATS script below edits the built Info.plist, which the script sandbox forbids.
         ENABLE_USER_SCRIPT_SANDBOXING: NO
+      configs:
+        Release:
+          # Debug-only fixtures (DebugFixtures); keeps them out of shipped builds.
+          EXCLUDED_SOURCE_FILE_NAMES: "*.analysis.json"
     postBuildScripts:
       # The Info.plist is generated once for all configurations, so the Debug-only
       # ATS exception (plain HTTP to http://localhost:8080) is added to the built copy here.
@@ -76,6 +109,9 @@ targets:
       - path: MusicDecodedTests
       # Contracts are referenced from the repo, not copied (T-003).
       - path: ../../contracts/fixtures/sample.analysis.json
+        buildPhase: resources
+        group: Contracts
+      - path: ../../contracts/fixtures/sunnydays.analysis.json
         buildPhase: resources
         group: Contracts
       - path: ../../contracts/chord-voicings.json

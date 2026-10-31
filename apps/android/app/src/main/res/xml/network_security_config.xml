@@ -1,6 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><!-- Allow HTTP only to the local dev emulator host -->
+<?xml version="1.0" encoding="utf-8"?><!-- Release: HTTPS only. The debug variant overrides this file to allow the emulator host. -->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">10.0.2.2</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="false" />
 </network-security-config>

@@ -6,7 +6,7 @@ SwiftUI app for iOS 17+, Swift 6.
 apps/ios/
   project.yml                  XcodeGen spec (the .xcodeproj is generated, not committed)
   Config/                      Debug/Release xcconfig (API_BASE_URL)
-  MusicDecoded/                app sources (App/, UI/…)
+  MusicDecoded/                app sources (App/, Auth/, Network/, Library/, UI/)
   MusicDecodedTests/           app unit tests (Swift Testing)
   Packages/MusicDecodedCore/   pure logic: analysis model, chord voicings, theory helpers
 ```
@@ -29,6 +29,10 @@ xcodebuild -scheme MusicDecoded -destination 'platform=iOS Simulator,name=iPhone
 
 Debug builds talk to `http://localhost:8080` (set in `Config/Debug.xcconfig`, with an ATS
 exception for localhost in Debug only).
+
+Pro purchases use RevenueCat (SPM, resolved by Xcode). Without a key the paywall says "Purchases
+aren't available in this build". To test them, put `REVENUECAT_API_KEY = appl_...` in
+`Config/Secrets.xcconfig` (gitignored); never commit a key.
 
 ## Test the core package (macOS, Linux, Windows)
 

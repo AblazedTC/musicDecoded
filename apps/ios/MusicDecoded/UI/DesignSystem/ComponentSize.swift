@@ -1,0 +1,54 @@
+import CoreGraphics
+
+/// Fixed component sizes from DESIGN.md §1. These are sizes, not spacing.
+enum ComponentSize {
+    /// Smallest tappable area on iOS. Pad smaller visuals up to it.
+    static let minTouchTarget: CGFloat = 44
+    static let iconButton: CGFloat = 40
+    static let smallIconButton: CGFloat = 32
+    static let playButton: CGFloat = 56
+    static let recordButton: CGFloat = 84
+    static let songArt: CGFloat = 56
+    static let sourceIconTile: CGFloat = 44
+    static let primaryButtonHeight: CGFloat = 48
+    static let searchFieldHeight: CGFloat = 44
+    /// Recorder: live waveform drawing height and input-meter segment height.
+    static let recorderWaveformHeight: CGFloat = 112
+    static let meterSegmentHeight: CGFloat = 20
+    /// Piano keyboard: 2 octaves in the player's visualizer card, edge to edge in the learning view.
+    static let pianoCompactHeight: CGFloat = 96
+    /// The player's compact metadata chips (Key · Time · BPM, DESIGN.md §3.7 item 2).
+    static let playerChipHeight: CGFloat = 36
+    static let pianoLargeHeight: CGFloat = 190
+    /// The fixed C3–B5 keyboard (DESIGN.md §3.7 "Owner revision 2"): 110–150 in the Timeline
+    /// view's piano panel, 90 in the compact panels (Beat grid, Chord sheet), 90 at the least.
+    static let fixedKeyboardMin: CGFloat = 110
+    static let fixedKeyboardMax: CGFloat = 150
+    static let fixedKeyboardCompact: CGFloat = 90
+    /// Piano panel rows: chord name, note names under the keys, inversion page dots.
+    static let pianoPanelChordRow: CGFloat = 28
+    static let pianoPanelNamesRow: CGFloat = 16
+    static let pianoPanelDotsRow: CGFloat = 12
+    static let pageDot: CGFloat = 6
+    /// The media panel: at least this tall, else it collapses to a strip.
+    static let mediaPanelMin: CGFloat = 120
+    static let mediaStripHeight: CGFloat = 56
+    static let mediaStripArt: CGFloat = 40
+    /// Beat grid: bar-number column and cell height.
+    static let barNumberWidth: CGFloat = 28
+    static let beatCellHeight: CGFloat = 44
+    /// Header view switcher segment (≥ 44 wide).
+    static let viewSwitcherSegmentWidth: CGFloat = 44
+    static let viewSwitcherHeight: CGFloat = 38
+    /// YouTube result thumbnail (DESIGN.md §3.4).
+    static let videoThumbnailWidth: CGFloat = 132
+    static let videoThumbnailHeight: CGFloat = 78
+    /// YouTube video detail hero.
+    static let videoHeroHeight: CGFloat = 202
+    /// The big play button in the Piano learning view.
+    static let learningPlayButton: CGFloat = 72
+    /// Seek bar (DESIGN.md §3.7 item 7): a thin track and a round thumb that grows while dragged.
+    static let seekTrackHeight: CGFloat = 4
+    static let seekThumb: CGFloat = 14
+    static let seekThumbActive: CGFloat = 20
+}

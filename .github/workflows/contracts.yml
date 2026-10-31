@@ -1,0 +1,42 @@
+name: contracts
+
+on:
+  # push only on main; branches are covered by pull_request, so PR commits don't run twice.
+  # Contract changes also run every lane's workflow (each lists contracts/** in its paths).
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contracts.yml"
+  pull_request:
+    paths:
+      - "contracts/**"
+      - ".github/workflows/contracts.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate + lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install jsonschema
+        run: python -m pip install jsonschema
+      - name: Validate fixtures against analysis.schema.json
+        run: python contracts/validate.py
+      - name: Lint OpenAPI
+        run: npx -y @redocly/cli@1 lint contracts/openapi.yaml

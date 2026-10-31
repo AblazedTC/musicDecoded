@@ -2,15 +2,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app import auth, errors
-from app.db import Base, engine
+from app import auth, billing, config, errors, jobs, sync, tracks, uploads, youtube
+from app.db import migrate
 from app.settings import get_settings
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # ponytail: create_all only adds missing tables; switch to Alembic migrations before the first deploy.
-    Base.metadata.create_all(engine)
+    migrate()  # alembic upgrade head
     yield
 
 
@@ -19,6 +18,13 @@ def create_app() -> FastAPI:
     app = FastAPI(title="MusicDecoded API", lifespan=lifespan)
     errors.install(app)
     app.include_router(auth.router)
+    app.include_router(config.router)
+    app.include_router(uploads.router)
+    app.include_router(jobs.router)
+    app.include_router(tracks.router)
+    app.include_router(youtube.router)
+    app.include_router(sync.router)
+    app.include_router(billing.router)
 
     @app.get("/health")
     def health() -> dict:

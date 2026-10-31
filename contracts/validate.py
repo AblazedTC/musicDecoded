@@ -1,6 +1,6 @@
 """Validate analysis files against analysis.schema.json.
 
-Usage: python contracts/validate.py [files...]   (defaults to contracts/fixtures/*.json)
+Usage: python contracts/validate.py [files...]   (defaults to contracts/fixtures/*.analysis.json)
 Requires: pip install jsonschema
 """
 import json, sys
@@ -30,7 +30,7 @@ def check(doc):
 
 
 if __name__ == "__main__":
-    files = [Path(f) for f in sys.argv[1:]] or sorted((here / "fixtures").glob("*.json"))
+    files = [Path(f) for f in sys.argv[1:]] or sorted((here / "fixtures").glob("*.analysis.json"))
     failed = False
     for f in files:
         errs = check(json.loads(f.read_text()))

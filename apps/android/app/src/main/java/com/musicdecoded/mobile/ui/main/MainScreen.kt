@@ -1,98 +1,200 @@
 package com.musicdecoded.mobile.ui.main
 
+import android.app.Activity
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.musicdecoded.mobile.auth.AuthViewModel
-import com.musicdecoded.mobile.ui.add.AddScreen
-import com.musicdecoded.mobile.ui.dictionary.DictionaryScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.musicdecoded.mobile.network.Plan
+import com.musicdecoded.mobile.ui.auth.AuthMode
+import com.musicdecoded.mobile.ui.paywall.LocalOpenPaywall
+import com.musicdecoded.mobile.ui.paywall.PaywallSheet
+import com.musicdecoded.mobile.ui.paywall.PaywallViewModel
+import com.musicdecoded.mobile.BuildConfig
+import com.musicdecoded.mobile.MusicDecodedApplication
+import com.musicdecoded.mobile.player.DebugFixtures
+import com.musicdecoded.mobile.player.MiniPlayer
+import com.musicdecoded.mobile.player.NowPlaying
+import com.musicdecoded.mobile.player.PlayerRoutes
+import com.musicdecoded.mobile.player.playerDestinations
+import com.musicdecoded.mobile.sources.ImportFrom
+import com.musicdecoded.mobile.sources.navigateToImport
+import com.musicdecoded.mobile.sources.navigateToRecorder
+import com.musicdecoded.mobile.sources.sourceRoutes
+import com.musicdecoded.mobile.sources.soundcloud.SoundCloudRoutes
+import com.musicdecoded.mobile.sources.soundcloud.soundCloudRoute
+import com.musicdecoded.mobile.sources.youtube.YouTubeRoutes
+import com.musicdecoded.mobile.sources.youtube.youTubeRoutes
+import com.musicdecoded.mobile.ui.auth.AccountRoutes
+import com.musicdecoded.mobile.ui.auth.accountRoutes
+import com.musicdecoded.mobile.ui.components.AppTab
+import com.musicdecoded.mobile.ui.components.MdBottomBar
+import com.musicdecoded.mobile.ui.home.HomeNavigation
+import com.musicdecoded.mobile.ui.home.HomeScreen
 import com.musicdecoded.mobile.ui.library.LibraryScreen
+import com.musicdecoded.mobile.ui.processing.ProcessingRoutes
+import com.musicdecoded.mobile.ui.processing.navigateToProcessing
+import com.musicdecoded.mobile.ui.processing.processingDestination
 import com.musicdecoded.mobile.ui.settings.SettingsScreen
+import com.musicdecoded.mobile.ui.theme.MusicDecodedColors
 
-private enum class TabDestination(val route: String, val label: String, val icon: ImageVector) {
-    LIBRARY("library", "Library", Icons.Default.LibraryMusic),
-    ADD("add", "Add", Icons.Default.Add),
-    DICTIONARY("dictionary", "Dictionary", Icons.AutoMirrored.Filled.MenuBook),
+/**
+ * App shell: Home · Library · Settings tabs (DESIGN.md §2). Pushed screens hide the bar. The mini
+ * player sits above the bar on Home and Library while [NowPlaying] has a track.
+ */
+@Composable
+fun MainScreen(sharedText: String? = null, onSharedTextHandled: () -> Unit = {}) {
+    val navController = rememberNavController()
+    // Text shared to the app (share sheet, T-502a) opens the SoundCloud link dialog prefilled.
+    LaunchedEffect(sharedText) {
+        if (sharedText != null) {
+            navController.navigate(SoundCloudRoutes.link(sharedText))
+            onSharedTextHandled()
+        }
+    }
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentTab = AppTab.entries.firstOrNull { it.route == backStackEntry?.destination?.route }
+    val nowPlaying = (LocalContext.current.applicationContext as MusicDecodedApplication).nowPlaying
+    val playing by nowPlaying.state.collectAsStateWithLifecycle()
+    val position by nowPlaying.position.collectAsStateWithLifecycle()
+    PauseWhenBackgrounded(nowPlaying)
+
+    // The Pro paywall (T-602a) lives above every screen; a guest is sent to sign-up first.
+    val app = LocalContext.current.applicationContext as MusicDecodedApplication
+    val paywall: PaywallViewModel = viewModel(factory = PaywallViewModel.factory(app))
+    val paywallState by paywall.state.collectAsStateWithLifecycle()
+    val config by app.authRepository.config.collectAsStateWithLifecycle()
+    LaunchedEffect(paywallState.needsAccount) {
+        if (paywallState.needsAccount) {
+            paywall.accountFlowStarted()
+            navController.navigate(AccountRoutes.auth(AuthMode.SIGN_UP))
+        }
+    }
+    val open = remember(paywall) { { paywall.open() } }
+    val openPaywall = open.takeIf { config?.plan != Plan.PRO }
+
+    CompositionLocalProvider(LocalOpenPaywall provides openPaywall) {
+        AppScaffold(navController, currentTab, playing, { position }, nowPlaying)
+        PaywallSheet(paywall)
+    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(authViewModel: AuthViewModel) {
-    val navController = rememberNavController()
-    val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route ?: TabDestination.LIBRARY.route
-    val onTabs = currentRoute in TabDestination.entries.map { it.route }
-
+private fun AppScaffold(
+    navController: NavHostController,
+    currentTab: AppTab?,
+    playing: NowPlaying.State?,
+    position: () -> Double,
+    nowPlaying: NowPlaying,
+) {
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("MusicDecoded") },
-                navigationIcon = {
-                    if (!onTabs) {
-                        IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    }
-                },
-                actions = {
-                    if (onTabs) {
-                        IconButton(onClick = { navController.navigate("settings") }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings")
-                        }
-                    }
-                }
-            )
-        },
+        containerColor = MusicDecodedColors.Canvas,
         bottomBar = {
-            if (onTabs) {
-                NavigationBar {
-                    TabDestination.entries.forEach { dest ->
-                        NavigationBarItem(
-                            selected = currentRoute == dest.route,
-                            onClick = {
-                                navController.navigate(dest.route) {
-                                    popUpTo(TabDestination.LIBRARY.route) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(dest.icon, contentDescription = null) },
-                            label = { Text(dest.label) }
+            if (currentTab != null) {
+                Column {
+                    val track = playing
+                    if (track != null && currentTab != AppTab.SETTINGS) {
+                        MiniPlayer(
+                            track,
+                            position = position,
+                            onTick = nowPlaying::tick,
+                            onOpen = { navController.navigate(PlayerRoutes.player(track.trackId)) },
+                            onTogglePlay = nowPlaying::togglePlay,
+                            onDismiss = nowPlaying::dismiss,
                         )
                     }
+                    MdBottomBar(selected = currentTab, onSelect = { navController.selectTab(it) })
                 }
             }
-        }
+        },
     ) { innerPadding ->
-        NavHost(
-            navController,
-            startDestination = TabDestination.LIBRARY.route,
-            Modifier.padding(innerPadding)
-        ) {
-            composable(TabDestination.LIBRARY.route) { LibraryScreen() }
-            composable(TabDestination.ADD.route) { AddScreen() }
-            composable(TabDestination.DICTIONARY.route) { DictionaryScreen() }
-            composable("settings") { SettingsScreen(authViewModel) }
+        NavHost(navController, startDestination = AppTab.HOME.route, Modifier.padding(innerPadding)) {
+            composable(AppTab.HOME.route) {
+                // Debug only: long-press the Home screen to open the player on the bundled fixture.
+                val debugFixture = Modifier.pointerInput(Unit) {
+                    detectTapGestures(onLongPress = { navController.navigate(PlayerRoutes.player(DebugFixtures.SUNNY_DAYS)) })
+                }
+                Box(if (BuildConfig.DEBUG) debugFixture else Modifier) {
+                    HomeScreen(homeNavigation(navController))
+                }
+            }
+            composable(AppTab.LIBRARY.route) {
+                LibraryScreen(
+                    onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) },
+                    onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },
+                )
+            }
+            composable(AppTab.SETTINGS.route) {
+                SettingsScreen(onAuth = { navController.navigate(AccountRoutes.auth(it)) }, onGoPro = LocalOpenPaywall.current)
+            }
+            accountRoutes(navController)
+            playerDestinations(navController)
+            // After the job starts, the import sheet / recorder is replaced by Processing.
+            sourceRoutes(navController, onDecodeStarted = navController::navigateToProcessing)
+            processingDestination(navController)
+            soundCloudRoute(navController, onDecodeStarted = navController::navigateToProcessing)
+            youTubeRoutes(
+                navController,
+                onDecodeStarted = navController::navigateToProcessing,
+                onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) },
+                onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },
+            )
         }
+    }
+}
+
+/** No background playback service in v1: the app-level session pauses when the app is stopped. */
+@Composable
+private fun PauseWhenBackgrounded(nowPlaying: NowPlaying) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val activity = LocalContext.current as? Activity
+    DisposableEffect(lifecycleOwner, nowPlaying) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP && activity?.isChangingConfigurations != true) nowPlaying.pause()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+private fun homeNavigation(navController: NavHostController) = HomeNavigation(
+    onSeeAll = { navController.selectTab(AppTab.LIBRARY) },
+    // DESIGN.md §5: the header search opens Library search.
+    onSearch = { navController.selectTab(AppTab.LIBRARY) },
+    onProfile = { navController.selectTab(AppTab.SETTINGS) },
+    onFiles = { navController.navigateToImport(ImportFrom.FILES) },
+    onMediaLibrary = { navController.navigateToImport(ImportFrom.MEDIA_LIBRARY) },
+    onYouTube = { navController.navigate(YouTubeRoutes.SEARCH) },
+    onSoundCloud = { navController.navigate(SoundCloudRoutes.link()) },
+    onRecord = { navController.navigateToRecorder() },
+    onOpenPlayer = { navController.navigate(PlayerRoutes.player(it)) },
+    onOpenProcessing = { navController.navigate(ProcessingRoutes.processing(it)) },
+)
+
+private fun NavHostController.selectTab(tab: AppTab) {
+    navigate(tab.route) {
+        popUpTo(AppTab.HOME.route) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
     }
 }

@@ -27,6 +27,7 @@ Owned by the `contracts` lane. Wire formats are defined in `contracts/` and this
 | deleted | Bool | tombstone |
 | *local:* status | enum | analyzing · ready · failed |
 | *local:* jobId | String? | while analyzing |
+| *local:* error | String? | last failure message shown with Retry (status = failed) |
 | *local:* localAudioPath | String? | null if streaming-only |
 | *local:* syncedAt | Instant? | |
 
@@ -38,7 +39,7 @@ Owned by the `contracts` lane. Wire formats are defined in `contracts/` and this
 | `uploads` | id, user_id, sha256, content_type, size_bytes, object_key, created_at | object_key = `uploads/{id}` |
 | `tracks` | id, source, dedupe_key (unique), title, duration_sec, thumbnail_url, analysis_key (nullable), audio_key (nullable), analyzer_version, created_at | Global. dedupe_key = `sha256:<hex>` / `yt:<videoId>` / `sc:<url>` |
 | `jobs` | id, track_id, user_id, status, stage, progress, error, created_at, started_at, completed_at | Durable record; live progress is mirrored in Redis |
-| `library_items` | user_id + track_id (PK), title, artist, source, source_ref, duration_sec, thumbnail_url, audio_upload_id, favorite, last_played_at, created_at, updated_at, deleted | **Accounts only**; the server copy used for sync |
+| `library_items` | user_id + track_id (PK), title, artist, source, source_ref, duration_sec, thumbnail_url, audio_upload_id, favorite, last_played_at, created_at, updated_at, deleted, server_updated_at | **Accounts only**; the server copy used for sync. `updated_at` is the client time used for last-write-wins; `server_updated_at` orders pulls so edits made offline still reach other devices |
 
 ## 3. Object storage
 

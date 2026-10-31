@@ -1,0 +1,53 @@
+name: api
+
+on:
+  # push only on main; branches are covered by pull_request, so PR commits don't run twice.
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "contracts/**"
+      - ".github/workflows/api.yml"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "contracts/**"
+      - ".github/workflows/api.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          # Keep in step with the uv image in apps/api/Dockerfile.
+          version: "0.11.26"
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+      - name: uv sync
+        run: uv sync --frozen
+      - name: uv run pytest
+        run: uv run pytest
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker build
+        run: docker build -t musicdecoded-api:ci apps/api

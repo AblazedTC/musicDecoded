@@ -67,7 +67,7 @@ public func barRange(at t: Double, in analysis: Analysis) -> Range<Double>? {
 }
 
 /// Index of the first element whose `key` is greater than `t` (elements must be sorted by `key`).
-func upperBound<Element>(_ elements: [Element], _ t: Double, _ key: (Element) -> Double) -> Int {
+public func upperBound<Element>(_ elements: [Element], _ t: Double, _ key: (Element) -> Double) -> Int {
     var low = 0
     var high = elements.count
     while low < high {

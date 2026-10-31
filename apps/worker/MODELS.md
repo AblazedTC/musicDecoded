@@ -13,6 +13,10 @@ code (PLAN.md R-7). Add a row here before adding any model.
 Supporting libraries without learned weights: PyTorch (BSD-3), NumPy (BSD-3), SciPy (BSD-3, `find_peaks`
 in the Beat Transformer wrapper).
 
+Tools (no learned weights): [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense, public domain) fetches
+YouTube/SoundCloud audio in `services/fetch.py` (T-302); FFmpeg (LGPL/GPL build from the OS package) decodes
+and transcodes audio.
+
 ## Not allowed
 
 | Component | Why |

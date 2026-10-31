@@ -1,19 +1,156 @@
+import SwiftData
 import SwiftUI
 
-/// Placeholder. The real Home screen is T-203i.
+/// DESIGN.md §3.1: brand header, Recently Decoded (3 newest + See all), the source grid, the
+/// Record card and a rotating tip. Ready rows open the Player; analyzing rows open Processing.
 struct HomeView: View {
+    let onShowLibrary: () -> Void
+    let onShowSettings: () -> Void
+
+    @Environment(SessionStore.self) private var session
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var path = NavigationPath()
+    @State private var sourceRoute: SourceRoute?
+    /// The 3 newest songs, any status.
+    @Query(LibraryItem.recent(limit: 3)) private var recent: [LibraryItem]
+
     var body: some View {
-        NavigationStack {
-            ContentUnavailableView(
-                "Nothing Decoded Yet",
-                systemImage: "waveform",
-                description: Text("Songs you transcribe will show up here.")
-            )
-            .navigationTitle("Home")
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // The violet hero block runs edge to edge; the ink body below is padded.
+                    BrandHeader(onSearch: onShowLibrary, onProfile: onShowSettings)
+                    VStack(alignment: .leading, spacing: Spacing.xxl) {
+                        recentSection
+                        transcribeSection
+                        TipCard()
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.xl)
+                }
+            }
+            .background(Palette.canvas)
+            .miniPlayerInset { path.append(PlayerRoute(trackId: $0)) }
+            .toolbar(.hidden, for: .navigationBar)
+            // The import sheet / recorder closes and Processing takes over once the job exists.
+            .sourceRoutes($sourceRoute, onDecodeStarted: { trackId in
+                openProcessing(trackId)
+            })
+            .appDestinations(path: $path)
+            .youtubeDestinations(path: $path, onDecodeStarted: { trackId in
+                openProcessing(trackId)
+            })
+            .soundcloudDestinations(onDecodeStarted: { trackId in
+                openProcessing(trackId)
+            })
         }
+    }
+
+    private var recentSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            SectionHeader(title: "Recently Decoded", numeral: "01", actionTitle: "See all", action: onShowLibrary)
+            if recent.isEmpty {
+                Text("Nothing decoded yet. Pick a source below to decode your first song.")
+                    .font(.detail)
+                    .foregroundStyle(Palette.textSecondary)
+            }
+            ForEach(recent) { item in
+                LibrarySongRow(
+                    item: item,
+                    onOpenPlayer: { path.append(PlayerRoute(trackId: $0)) },
+                    onOpenProcessing: { openProcessing($0) }
+                )
+            }
+            #if DEBUG
+            NavigationLink(value: PlayerRoute(trackId: DebugFixtures.sunnyDays)) {
+                Label("Open Sunny Days fixture (Debug)", systemImage: "ladybug")
+                    .font(.labelSmall)
+                    .foregroundStyle(Palette.secondary)
+                    .frame(minHeight: ComponentSize.minTouchTarget)
+            }
+            #endif
+        }
+    }
+
+    private var transcribeSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.sm) {
+            SectionHeader(title: "Transcribe Music", numeral: "02")
+            if dynamicTypeSize.isAccessibilitySize {
+                // One column, so large titles and descriptions wrap instead of clipping.
+                VStack(spacing: Spacing.md) {
+                    filesCard
+                    mediaLibraryCard
+                    youtubeCard
+                    if soundcloudEnabled {
+                        soundcloudCard
+                    }
+                }
+            } else {
+                // md gaps leave room for the hard shadows and the alternating tilt.
+                Grid(horizontalSpacing: Spacing.md, verticalSpacing: Spacing.md) {
+                    GridRow {
+                        filesCard
+                        mediaLibraryCard
+                    }
+                    GridRow {
+                        youtubeCard
+                        if soundcloudEnabled {
+                            soundcloudCard
+                        } else {
+                            Color.clear
+                                .gridCellUnsizedAxes(.vertical)
+                        }
+                    }
+                }
+            }
+            RecordCard {
+                sourceRoute = .record
+            }
+        }
+    }
+
+    /// DESIGN.md §3.1: the SoundCloud card is hidden unless the server enables the source.
+    private var soundcloudEnabled: Bool {
+        session.config?.soundcloudEnabled == true
+    }
+
+    private var filesCard: some View {
+        SourceCard(title: "Files", subtitle: "Import audio from this device", systemImage: "folder.fill", tint: .files, tilt: -Tilt.listCard) {
+            sourceRoute = .files
+        }
+    }
+
+    private var mediaLibraryCard: some View {
+        SourceCard(title: "Media Library", subtitle: "Choose local music", systemImage: "music.note.list", tint: .mediaLibrary, tilt: Tilt.listCard) {
+            sourceRoute = .mediaLibrary
+        }
+    }
+
+    private var youtubeCard: some View {
+        SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle.fill", tint: .youtube, tilt: Tilt.listCard) {
+            path.append(YouTubeRoute.search)
+        }
+    }
+
+    private var soundcloudCard: some View {
+        SourceCard(title: "SoundCloud", subtitle: "Find supported tracks", systemImage: "cloud.fill", tint: .soundcloud, tilt: -Tilt.listCard) {
+            path.append(SoundCloudRoute())
+        }
+    }
+
+    private func openProcessing(_ trackId: String) {
+        path.append(ProcessingRoute(trackId: trackId))
     }
 }
 
+#if DEBUG
 #Preview {
-    HomeView()
+    HomeView(onShowLibrary: {}, onShowSettings: {})
+        .environment(TranscriptionService.preview())
+        .environment(NowPlaying())
+        .environment(SessionStore.preview())
+        .modelContainer(for: LibraryItem.self, inMemory: true)
+        .preferredColorScheme(.dark)
 }
+#endif

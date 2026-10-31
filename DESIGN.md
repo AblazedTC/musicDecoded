@@ -1,9 +1,7 @@
 # DESIGN.md — Screens, tokens & player spec
 
-> **Source of truth for visuals**: Figma Make file **"Music Transcription Learning App"**
-> https://www.figma.com/make/EEN7dqUVB7LlQFTNiFKvHz/Music-Transcription-Learning-App
-> It's a React prototype: `src/App.tsx` (screens) and `src/index.css` (tokens). Read it through the Figma MCP (`get_design_context`, fileKey `EEN7dqUVB7LlQFTNiFKvHz`, nodeId `0:1`), then the `src/*` resources.
-> This doc translates it for native SwiftUI / Compose. **The prototype is a reference, not code to port.** Rebuild with native components and layout. Prototype sample data (DAY6 "Somehow", Unsplash art, "Alex Morgan") is placeholder only.
+> **Visual style: "Wrapped"**, taken from the owner's portfolio (https://jordanjerkins.dev, repo `SpotiPortfolioJordan/spotiwrap`: `tailwind.config.ts`, `src/styles/globals.css`, `src/components/story/*`, esp. `Sticker.tsx` and `NowPlayingCard.tsx`). Neo-brutalist Spotify-Wrapped look: flat saturated color blocks, thick black borders, hard offset shadows, tilted stickers, huge uppercase display type.
+> **Layout and screen content** still come from the Figma Make prototype (fileKey `EEN7dqUVB7LlQFTNiFKvHz`, section 3 below). Where the two disagree on *looks*, section 1 wins; on *what is on a screen*, section 3 wins.
 
 Both apps implement the same screens and behavior. Platform conventions (navigation, sheets, back gestures, haptics) follow each OS.
 
@@ -11,46 +9,62 @@ Both apps implement the same screens and behavior. Platform conventions (navigat
 
 ## 1. Design tokens
 
-**The app is dark-only in v1** (the prototype has no light theme; the Settings "Appearance" row is post-v1).
+**Dark-only in v1**, but "dark" here means **ink surfaces with loud color blocks**, not a navy UI. Every pairing below was checked for WCAG AA (4.5:1 for text); keep to the contrast rules.
 
 ### Colors
-| Token | Hex | Use |
+Palette (exact portfolio values):
+
+| Token | Hex | Role |
 |---|---|---|
-| `ink` | `#07101C` | window background behind everything |
-| `canvas` | `#0B1422` | screen background |
-| `surface` | `#111F30` | cards, rows, chips |
-| `surfaceRaised` | `#182A3E` | pressed/hover, gradient top of source cards |
-| `surfaceSoft` | `#20354B` | selected segment, progress track, avatar bg |
-| `line` | `#2A4057` | 1px borders |
-| `primary` | `#62DCC4` | accent: playhead, play button, selected nav, progress, links |
-| `onPrimary` | `#08221E` | text/icons on primary |
-| `primarySoft` | `#173D3D` | tinted backgrounds (offline badge, sync card, done steps) |
-| `secondary` | `#91AFFF` | secondary accent (media library, avatar icon, link icons) |
-| `chord` | `#F2DFAF` | chord names, current chord fill, loop pill |
-| `onChord` | `#322B1D` | text on chord fill |
-| `chordMuted` | bg `#463F32`, border `#645943` | inactive chord blocks on the timeline |
-| `text` | `#F5F8FB` | primary text |
-| `textSecondary` | `#9FB0C3` | secondary text |
-| `textMuted` | `#63778C` | captions, inactive nav |
-| `record` | `#EC6478` (ring `#B94D5E`) | record button |
-| `transportBg` | `#152638` (border `#30465D`) | transport sheet, import sheet, mini player `#1B2D40` |
-| `timelineBg` | `#09101A` (border `#24384B`) | waveform container |
-| `waveIdle` | `#4E6379` @72% | unplayed waveform bars (played = `primary` @80%) |
+| `violet` | `#4100F5` | hero/brand blocks (Home header, paywall, Processing) |
+| `lime` | `#CFF56A` | main accent: playhead, progress, current chord, selected tab, eyebrow text on dark |
+| `pink` | `#F774C4` | second accent: play button, loop pill, now-playing highlights, piano bass note |
+| `yellow` | `#FAE62D` | tags/badges ("PRO"), offline badge, warnings |
+| `orange` | `#FF6437` | record button, destructive actions, errors |
+| `blue` | `#509BF5` | links, info states, Media Library source |
+| `ink` | `#121212` | default screen background; text on color blocks |
+| `card` | `#1C1C1C` | cards/rows on ink |
+| `cardRaised` | `#262626` | pressed state, inputs, progress track |
+| `white` | `#FFFFFF` | text on ink/violet; white cards on violet |
+| `cream` | `#F0EDE4` | piano white keys, light paper cards |
 
-Source-icon tints (icon / bg): Files `primary`/`primarySoft` · Media Library `secondary`/`#1D3153` · YouTube `#FF8B8B`/`#452534` · SoundCloud `#FFB56F`/`#432F26` · Record `#FF9A9A`/`#412534`.
+Semantic tokens (apps keep these names; values change):
 
-Piano: white key `#E7EBEC` (border `#8D999D`), black key `#0C1218`, active white `#9DE8DB`, active black `#48BEA8`, keyboard bg `#0A111A`.
+| Token | Value | Notes |
+|---|---|---|
+| `canvas` | `ink` | screen background |
+| `surface` / `surfaceRaised` | `card` / `cardRaised` | rows, sheets, chips on dark |
+| `primary` / `onPrimary` | `lime` / `ink` | |
+| `secondary` / `onSecondary` | `pink` / `ink` | |
+| `chord` / `onChord` | `lime` / `ink` | current chord block, big chord name on dark |
+| `chordMuted` | bg `#2A2A2A`, border `#3A3A3A` | inactive chord blocks |
+| `text` | `white` on ink/violet; `ink` on lime/pink/yellow/orange/blue/cream | |
+| `textSecondary` | `#B3B3B3` on ink (8.9:1), `#D6CCFF` on violet (5.5:1), `#3A3A3A` on lime (9.2:1) | |
+| `textMuted` | `#8A8A8A`, on ink only (5.4:1) | captions, inactive tabs |
+| `border` | black 3pt on color blocks; white at 20% (3pt) around art/thumbnails on ink | |
+| `record` | `orange` | |
+| `waveIdle` / `wavePlayed` | `#3A3A3A` / `lime` | waveform bars |
 
-### Shape & elevation
-| Token | Value |
-|---|---|
-| `radiusCard` | 18 (cards, timeline, visualizer) |
-| `radiusRow` | 15 (song rows, mini player, summary) |
-| `radiusControl` | 12 (search, buttons 13, chips 10) |
-| `radiusPill` | 20 (filter chips) |
-| `radiusSheet` | 22–24 top corners (transport, import sheet) |
-| `shadowCard` | y12 blur30 black 20% |
-| `shadowPlayer` | y−14 blur35 black 28% |
+Contrast (computed): white on violet 8.3, lime on violet 6.7, yellow on violet 6.5, ink on lime 15.1, ink on pink 7.4, ink on yellow 14.7, ink on orange 6.4, ink on blue 6.6; lime/pink/yellow/blue/orange on ink all at least 6.4. **Never** pink text on violet (3.2): pink on violet only as a filled shape with ink text.
+
+Source tiles (fill / icon): Files `lime`/ink, Media Library `blue`/ink, YouTube `orange`/ink, SoundCloud `yellow`/ink, Record `pink`/ink.
+
+Piano: white keys `cream` with ink 1.5pt separators, black keys `ink`, active white key `lime`, active black key `#9DBF2E`, bass note `blue`, keyboard frame 3pt black border + hard shadow.
+
+### Shape, borders & elevation
+- **Corners are square.** Radius 0 for cards, rows, buttons, chips, sheets and inputs. Only circular play/record buttons and avatars are round.
+- **Border**: 3pt black on any color block or card on a color block; 3pt white at 20% around thumbnails/art on ink. Separators inside lists: 2pt.
+- **Hard shadow** (no blur, offset x = y): `shadowSm` 3pt (chips, small buttons), `shadowMd` 5pt (stickers, buttons, rows on color), `shadowLg` 8pt (cards, timeline, visualizer), `shadowXl` 10pt (hero cards: player now-playing card, paywall). Black on color blocks; on ink use an **accent-colored** shadow (`violet` or `pink`) so it stays visible.
+- **Tilt**: hero cards -1.5 deg, list cards alternate -1/+1 deg, stickers -3 deg (default) to -6 deg. Decoration only: never tilt the timeline, piano, inputs or anything draggable. No tilt when Reduce Motion is on.
+- **Pressed state**: move by (+2, +2) and shrink the hard shadow by 2pt (the "pushed sticker" feel); no ripple tint on color blocks.
+
+### Signature elements (shared components)
+- **Sticker** (portfolio `Sticker.tsx`): accent fill, 3pt black border, `shadowMd`, uppercase heavy body font, +0.04em tracking, tilted -3 deg. For section eyebrows ("YOUR LIBRARY", "NOW PLAYING"), status badges, "PRO".
+- **Eyebrow label**: uppercase, at least 11pt, bold, tracking +0.25em; `lime` on ink, `white` on violet.
+- **Display headline**: Archivo Black, uppercase, line height 0.95, tracking -0.01em.
+- **Big numerals**: oversized numbers at 8% opacity ("01", "#1") behind section titles and Library rows; decorative, hidden from accessibility.
+- **Waveform bars**: simple vertical bars (portfolio `Waveform.tsx`) for idle/now-playing indicators.
+- **Textures** (at most one per screen): halftone dot grid (2pt dots, 12pt pitch, 20% opacity), diagonal stripes (violet at 50% on lime blocks).
 
 ### Spacing
 **4-point scale. Every margin, padding and gap uses one of these values and nothing else.**
@@ -74,21 +88,34 @@ The prototype uses off-grid values. **Round to the nearest token; on a tie, roun
 Fixed **component sizes** (heights, icon tiles, buttons) aren't spacing and keep the prototype values, rounded to whole points: icon button 40, small icon button 32, play button 56 (prototype 58), record button 84, song art 56, source icon tile 44 (prototype 43), primary button height 48 (prototype 50), search field 44 (prototype 43), tab bar = platform default. **Minimum touch target 44pt (iOS) / 48dp (Android)**, so pad smaller visuals up to it.
 
 ### Typography
-The prototype uses Inter, falling back to SF Pro. **Native: use the system font** (SF Pro / Roboto) and map onto platform text styles so Dynamic Type and font scaling work.
-The prototype's sizes are tuned for a ~400px web frame and some go as small as 8px. **Native minimum is 11pt/sp.** Scale up the prototype's 8–10px captions to the platform's `caption2`/`labelSmall`.
+Bundle two Google Fonts (SIL Open Font License, free to ship in apps): **Archivo Black** (display) and **Space Grotesk** (body; weights 400/500/700). Keep **Dynamic Type / font scaling**: `Font.custom(_:size:relativeTo:)` on iOS, sp-based `TextUnit` with a `FontFamily` on Android. Minimum size 11pt/sp.
 
-| Role | Prototype | iOS | Android |
+| Role | Font | Default size | Notes |
 |---|---|---|---|
-| Page title | 28 / -0.05em, bold | `.largeTitle` bold | `headlineMedium` |
-| Current chord (player) | 34, chord color | `.system(size: 34, weight: .bold)` | 34sp bold |
-| Section header | 18 bold | `.title3` bold | `titleMedium` |
-| Row title | 14 semibold | `.subheadline` semibold | `titleSmall` |
-| Body / secondary | 12 | `.footnote` | `bodySmall` |
-| Caption / overline | 8–10, often uppercase +0.1em tracking | `.caption2` | `labelSmall` |
-| Times / counters | tabular numbers | `.monospacedDigit()` | `fontFeatureSettings = "tnum"` |
+| Page title | Archivo Black | 44 | uppercase, line height 0.95 |
+| Section title | Archivo Black | 28 | uppercase |
+| Current chord (player) | Archivo Black | 56 | lime on ink |
+| Card / row title | Space Grotesk Bold | 17 | song titles in sentence case |
+| Body | Space Grotesk Regular | 15 | |
+| Secondary | Space Grotesk Medium | 13 | `textSecondary` |
+| Eyebrow / caption | Space Grotesk Bold | 11 | uppercase, tracking +0.25em |
+| Times / counters / BPM | Space Grotesk Medium | 13 | tabular figures |
 
 ### Icons
-Line icons, 24 grid, 1.8 stroke, round caps (custom set in `App.tsx` `Icon`). Native: **SF Symbols** on iOS and **Material Symbols Rounded** on Android with the closest match. Exact SVG parity isn't required. YouTube and SoundCloud marks must follow their brand guidelines.
+Bold line icons (2pt stroke): closest SF Symbol / Material Symbols **Sharp** (square ends match the brutalist look). Icons on color blocks are `ink`. YouTube/SoundCloud marks follow their brand rules.
+
+### Screen color map
+| Screen | Background | Accent |
+|---|---|---|
+| Home | violet hero block (title, stickers, waveform), then ink body with source tiles in their fills | lime |
+| Library | lime header block (ink text, stripe texture), ink list | violet |
+| Processing | violet; step list on an ink card with `shadowXl` | lime progress |
+| Player | ink; now-playing card (`card`, 3pt black border, pink `shadowXl`, tilted -1.5 deg) | lime chords/playhead, pink play |
+| Piano learning view | ink; keyboard frame with lime `shadowLg` | lime |
+| Recorder | ink; orange record button with black border + `shadowMd` | orange |
+| Settings / Auth / Migration | ink; profile card as a yellow block | lime |
+| Paywall | violet; white plan cards (black border + `shadowLg`); yellow "PRO" sticker | lime CTA |
+| Tab bar | ink with 3pt black top border; selected = lime icon + label, unselected `textMuted` | |
 
 ---
 
@@ -108,7 +135,7 @@ Bottom navigation with 4 tabs: **Home · Library · Tuner · Settings**.
 ### 3.1 Home (`HomeScreen`)
 - **Brand header**: logo mark (wave icon on a `primary` rounded square, rotated -4°), the "MusicDecoded" wordmark, tagline "Your music, decoded.", plus Search and Profile (→ Settings) buttons.
 - **Recently Decoded**: up to 3 song rows plus "See all" → Library.
-  - **Song row**: 56×56 art (radius 10) · title · artist · meta line `duration · key · BPM` · offline badge (download icon on `primarySoft`) when audio is local · ⋯ menu (Delete, Favorite, Re-analyze).
+  - **Song row**: 56×56 art (square, white-20% 3pt border) · title · artist · meta line `duration · key · BPM` · offline badge (yellow sticker with download icon) when audio is local · ⋯ menu (Delete, Favorite, Re-analyze).
 - **Transcribe Music**: a 2×2 grid of **source cards** (icon tile, title, description):
   Files ("Import audio from this device"), Media Library ("Choose local music"), YouTube ("Discover & play"), SoundCloud ("Find supported tracks"; hidden unless `soundcloudEnabled`).
 - **Record card** (full width): mic icon, "Record Audio", "Capture a live performance", chevron.
@@ -150,21 +177,45 @@ Shown after picking from Files or Media Library: file name, type · size, Durati
 Mic state dot ("Microphone ready" / red "Recording"), a large timer `00:MM:SS` (light weight, tabular numbers), live waveform (dimmed when idle), a 16-segment **input level** meter with a dB value, actions **Discard · Record/Pause (84pt red ring) · Finish ✓**, a "Save" text button in the header, and a tip about background noise. Finish/Save → title prompt → Processing.
 
 ### 3.7 Player (`PlayerScreen`): main screen
-Top to bottom:
-1. **Header**: back · title/artist (centered) · favorite (heart, toggles `favorite`) · ⋯.
-2. **Metadata row**: three equal chips **Key** ("B minor") · **Time signature** ("4/4") · **BPM** ("140 BPM"), each with an icon. Keep layout space for future chips.
-3. **Timeline** (`timelineBg` card):
-   - time labels row;
-   - **chord track**: rounded blocks spanning each chord segment, labelled with the display name. The current block is filled `chord`, the others `chordMuted`. **Tapping a block seeks to its start**;
-   - **waveform**: vertical bars from `waveformPeaks` (played = primary). Spectrogram rendering is an optional alternate (`spectrogram` field) and isn't required in v1. Faint gridlines on downbeats;
-   - **playhead**: a 1.5pt primary line with a dot on top and a soft glow;
-   - hint "Pinch to zoom · drag to scrub". **Behavior**: content scrolls under a **fixed center playhead** while playing (PLAN §3.3), drag to scrub, pinch to zoom (60–400 pt/s, default 120).
-4. **Current chord**: overline "NOW PLAYING", big chord name (34, chord color), note names ("B · D · F♯") from `chord-voicings.json`, and a caption "Representative root-position voicing".
-5. **Control chips** (3 across, label above value + chevron): **Chords** (Basic / Full) · **Voicing** (Simple, v1 only) · **Transpose** (−6…+6). See §4.
-6. **Visualizer card**: segmented **Piano | Video** plus an expand button (→ Piano learning view).
-   - Piano: "CURRENT CHORD" + name + notes, a 2-octave keyboard (96 tall) with active keys highlighted.
-   - Video: the YouTube embed (16:9) with a "Authorized embedded playback" badge. **Disabled unless source = youtube.**
-7. **Transport** (bottom sheet, `transportBg`, radius 22 top): seek bar with current/total times; controls **speed** (1.00× ⇄ 0.75×; long-press for 0.5–1.25 in 0.05 steps) · **previous chord** · **play/pause** (58pt primary circle) · **next chord** · **loop**. When loop is on, a **loop pill** ("Looping 1:04–1:20 · Clear") floats above the transport.
+**Owner revision (T-214, 2026-10-30).** Layout reference: a single-screen chord player (compact header, edge-to-edge waveform with chord-name + Roman-numeral boxes, compact control row, piano filling the rest, transport at the bottom). Keep the §1 Wrapped colors, type, icons and borders; this section only changes **placement, sizing and hierarchy**.
+
+**Owner revision 2 (T-215, 2026-10-30)** supersedes items 1, 5 and 6 below where they conflict:
+- **Header**: back · **view switcher** (centered segmented icon bar, replaces the expand/fullscreen button) · ⋯ (favorite moves into the ⋯ menu). The song title becomes a single compact line under the header (ellipsized).
+- **View switcher** (4 views, §3.7.1): **Timeline** (default, waveform icon) · **Beat grid** (grid icon) · **Chord sheet** (stacked-boxes icon) · **Piano focus** (piano-keys icon). Selected = lime fill, ink icon; others white on `cardRaised`; 3pt black border around the bar; each segment ≥ 44pt wide. The choice persists per app (Settings "Default view" not required in v1).
+- **Piano and media are separate stacked panels** (no Piano | Video tabs): the **piano panel** first, the **media panel** under it. Both visible together in the Timeline view.
+- **Piano panel**: a **fixed keyboard** from **C3 to B5** (3 octaves) spanning the full width; the layout **never scrolls or re-centers**: when the chord changes only the highlighted keys change. Above it: the active chord name (+ numeral). Highlights follow §4 "Piano voicing & inversions": **bass note** (left hand, octave 3) in `blue`, **right-hand** notes in `lime`; **finger numbers** printed on each highlighted key (ink, Space Grotesk Bold, near the key's bottom); note names under the keys in the same colors. Under the keyboard, **page dots** show the current inversion (one dot per inversion of the current chord).
+- **Inversions**: **swipe left/right on the piano panel** = next/previous inversion (clamped, with a light haptic); the selection is a player setting that applies to every chord (clamped to that chord's number of inversions) and is shown in the **Voicing** chip ("Root", "1st inv", "2nd inv", "3rd inv"), which also opens a picker. Default Root. Accessibility: the panel exposes adjustable actions "Next inversion" / "Previous inversion".
+- **Media panel**: YouTube sources show the video (16:9); every other source shows the **artwork** (thumbnail, else the initial-letter art) centered on ink, letterboxed. It takes the space left after the piano panel (piano panel ~ chord name 32 + keyboard 110–150 + dots 12); if less than 120 remains, the media panel collapses to a 56-tall strip (artwork thumbnail + title + "Show video"/"Show artwork" that opens it as a sheet).
+
+#### 3.7.1 Views
+All views share the header, title line, metadata row and the transport; they swap the middle region.
+- **Timeline**: timeline · control row · piano panel · media panel (as above).
+- **Beat grid**: rows of bars (one cell per beat, `timeSignature.numerator` cells, default 4), bar numbers on the left. A cell shows the chord name (+ numeral) where a chord starts in that beat; continuation cells show a thin lime underline. Current beat = lime fill, current bar = 3pt lime outline; the grid auto-scrolls to keep the current bar in the upper third; tap a cell to seek to that beat. Under the grid: the control row and a compact piano panel (keyboard 90 tall). Missing beats → a "No beat grid for this song" state.
+- **Chord sheet**: the whole progression as a wrapping sheet of chord boxes (name + numeral, same box style as timeline labels), 4 bars per line with bar lines between bars, repeated chords within a bar shown once; current chord = lime fill; auto-scroll; tap to seek. Under it: control row + compact piano panel.
+- **Piano focus**: the Piano learning view (§3.8) inline in the middle region (current/up-next card, large fixed keyboard with the same voicing/inversion/fingering rules, progression strip, learning controls).
+
+**The whole player fits on one screen with no vertical scrolling** (target: 640pt/dp tall viewports and up, after safe areas). Top to bottom:
+
+1. **Header** (one row, ~48): back · title (one line, ellipsized; artist under it only if it fits, else omitted) · favorite · ⋯. No extra vertical padding.
+2. **Metadata row** (one row, ~36): Key · Time · BPM as compact chips with the value inline next to a small icon (no separate "KEY"/"TIME"/"TEMPO" label line). Room for future chips.
+3. **Timeline**, **full width, edge to edge**: no card, no outer horizontal margin, no offset shadow, no border on the left/right. Fixed height ~32% of the space between the metadata row and the transport (clamped 150-220). Inside, top to bottom:
+   - a thin time-label row (small `textMuted` ticks every second at default zoom);
+   - **chord labels** above the waveform (see below);
+   - the **waveform** (existing styling: played `lime`, unplayed `waveIdle`, downbeat gridlines);
+   - the **playhead**: fixed at the horizontal center, 2pt `lime` line through labels and waveform.
+   - Pinch to zoom (60-400 pt/s, default 120) and drag to scrub still work; **no hint text row** (the hint becomes the timeline's accessibility hint).
+   - **Chord labels**: one compact box per chord change (not spanning the chord's duration), its left edge anchored at the change time, a 1pt tick down to the waveform. Two text lines, centered: chord display name (Archivo Black ~20) and its **Roman numeral** relative to the detected key (Space Grotesk Bold ~15; §4 "Roman numerals"). Box: square, 2pt black border, padding 4/6; **current chord** = `lime` fill + `ink` text + `shadowSm`; others = `cardRaised` fill + `white` text. `N`/`X` segments get no box. No key detected → name only.
+   - **Collision handling**: labels are laid out in time order into up to **2 staggered rows**; a label goes in the first row where it doesn't overlap the previous label in that row (4pt gap). If neither row fits, the label is dropped at the current zoom (its tick stays); the current chord's label is never dropped (it replaces the overlapping neighbor). Re-run on zoom.
+   - Labels, ticks, waveform and playhead stay in sync during playback, seeking and zooming (same time→x mapping). Tapping a label seeks to that chord.
+4. **Control row** (one row, ~44, 8 gap): **Chords** (Basic/Full) · **Voicing** (Simple) · **Transpose** (-6...+6). Same styling as before with tighter padding (label + value on one line where width allows).
+5. **Visualizer panel** takes **all remaining height**:
+   - compact tab header (~36): **Piano | Video** segmented (Piano selected by default; Video disabled unless source = youtube) + expand button (to the Piano learning view);
+   - **Piano**: the **active chord name** centered above the keyboard (Archivo Black ~28, `lime`; Roman numeral next to it in `textSecondary`), then the keyboard sized to fill the rest of the panel (min 96, keys keep proportions; show as many octaves as fit the width, at least 2, centered on the active notes). Highlighted keys show the notes; note names (e.g. "E · G♯ · B") under the highlighted keys in small text. This replaces the old Now Playing card.
+   - **Video**: 16:9 embed letterboxed in the available space.
+6. **Transport**, anchored at the bottom above the bottom safe area (compact, ~104 total): seek bar with current/total times on one line, then speed · previous chord · play/pause (56 pink circle) · next chord · loop. The loop pill floats above the transport without covering the visualizer's keys (overlap the panel header area if needed).
+
+**Removed**: the "Now Playing" card (chord name, notes, "Representative root-position voicing" caption) and the timeline's inset card/shadow/hint row.
+**Accessibility**: at the largest text sizes the screen may scroll as a fallback; the timeline and keyboard keep their own accessibility summaries ("Current chord E major, three. Next A major, six.").
 
 ### 3.8 Piano learning view (`PianoScreen`)
 For practicing. Header with title/artist.
@@ -181,10 +232,10 @@ For practicing. Header with title/artist.
 - Guest only: a **Sync card** ("Sync your music — Keep eligible chord timelines and files available across your devices.").
 - Groups (rows: label · value · chevron):
   - **Playback**: Default speed · Autoplay next song · Remember loop regions
-  - **Music analysis**: Chord notation (Standard) · Accidentals (Auto/♯/♭) · Default visualization (Piano/Video)
+  - **Music analysis**: Chord notation (Standard) · Accidentals (Auto/♯/♭) · Default view (Timeline/Beat grid/Chord sheet/Piano focus)
   - **Storage**: Local storage (size) · Offline files (count) · Clear cache
   - **Application**: Notifications · Privacy & data · Help & support (Appearance is hidden in v1 because the app is dark-only)
-- v1 builds only the rows backed by behavior: Default speed, Chord notation, Accidentals, Default visualization, Local storage, Offline files, Privacy & data, Help. Hide the rest.
+- v1 builds only the rows backed by behavior: Default speed, Chord notation, Accidentals, Default view, Local storage, Offline files, Privacy & data, Help. Hide the rest.
 
 ### 3.10 Account migration (`SettingsScreen` → migrate)
 Shown after signup/login on a device with guest data ("Move local music"): a cloud icon, "Bring your music with you", and a checklist:
@@ -194,9 +245,36 @@ Shown after signup/login on a device with guest data ("Move local music"): a clo
 - Note: "Nothing is removed from this device. Restricted third-party audio never uploads."
 - **Confirm & sync** → links the guest data and runs the first sync (PLAN §5.2).
 
+### 3.11 Paywall (Pro, M6)
+Not in the Figma prototype; built from the existing tokens and components so it matches the rest of the app.
+- **Entry points**: the daily-limit error from `POST /jobs` (429 `rate_limited`, "You've used today's N transcriptions"), a "Go Pro" row in Settings (accounts only), and later any Pro-only feature (403 `pro_required`). **Never** from the YouTube search quota 429.
+- **Layout** (sheet, dark): sparkle icon on `primarySoft`, title "MusicDecoded Pro", one-line subtitle "Decode more, practice deeper."; a comparison list of 3–4 rows from PLAN.md §9 (Free vs Pro: daily transcriptions "N / day" vs "Unlimited*", premium analysis models, sync of your own audio files); plan options from the store as selectable cards (monthly / yearly; yearly shows the saving), using the store's localized price strings, never hard-coded prices; **Subscribe** (PrimaryButton); "Restore purchases" (SecondaryButton/text); fine print: auto-renewal terms + links to Terms and Privacy (T-504 URLs; hidden until they exist) and "* fair-use limit applies".
+- **Guests**: the Subscribe button reads "Create an account to subscribe" and opens sign-up first; the purchase continues after sign-up.
+- **States**: loading offerings (skeleton cards), purchase in progress (button spinner, sheet not dismissible), success (checkmark, "You're Pro", dismiss → app re-fetches `/config`), cancelled (silent), error (inline PolicyNote-style message with Retry), purchases unavailable (no RevenueCat key in this build → "Purchases aren't available in this build").
+- **Pro state elsewhere**: Settings profile card shows a "Pro" chip; the daily-limit message is never shown when `limits.dailyJobs` is null.
+
 ---
 
 ## 4. Player behavior (both apps)
+
+### Piano voicing & inversions (piano panel, piano focus)
+Replaces the old `chord-voicings.json` octave placement for the player; the quality table (`qualities`, `pitchClass`, `degreeSemitones`) in `chord-voicings.json` is still the source of intervals. Shared test cases: `contracts/fixtures/piano-voicings.json` (both apps must reproduce them exactly).
+1. Parse `root:quality[/bass]`; apply transpose to the root. Intervals from `qualities` (unknown → text before `(`, else `maj`); Chords **Basic** mode uses the simplified chord first.
+2. **Right hand ≤ 4 tones**: if more than 4 intervals, drop the perfect fifth (7) first, then keep the first 4 in table order. Tones = root + interval, as pitch classes, in table order.
+3. **Inversion k** (wraps modulo the tone count n): rotate the tone list left by k.
+4. **Placement**: first tone at the lowest MIDI ≥ 60 (C4) with its pitch class; each next tone at the smallest MIDI above the previous one with its pitch class. If the top note > 83 (B5), move the whole right hand down 12.
+5. **Bass** (left hand): the slash-bass degree if present, else the root; MIDI 48 + pitch class (octave C3–B3).
+6. **Fingering**: right hand n=2 → 1,5; n=3 → root position 1,3,5 · 1st inversion 1,2,5 · 2nd inversion 1,3,5; n=4 → 1,2,3,5. Bass finger 5.
+7. Keyboard range is fixed C3 (48) to B5 (83); everything above always fits.
+
+### Roman numerals (timeline labels, piano panel)
+Computed from the analysis `key` and each chord label (never hard-coded); identical on both apps (shared test cases).
+- **Degree** = semitones from the key tonic to the chord root (after transpose both shift equally, so numerals don't change with transpose).
+- **Major key** numerals by interval: 0 `I`, 1 `♭II`, 2 `II`, 3 `♭III`, 4 `III`, 5 `IV`, 6 `♯IV`, 7 `V`, 8 `♭VI`, 9 `VI`, 10 `♭VII`, 11 `VII`.
+- **Minor key** (relative to the natural minor scale): 0 `I`, 1 `♭II`, 2 `II`, 3 `III`, 4 `♯III`, 5 `IV`, 6 `♯IV`, 7 `V`, 8 `VI`, 9 `♯VI`, 10 `VII`, 11 `♯VII`.
+- **Case = chord quality**: uppercase for major/dominant/augmented/sus/power chords (`maj`, `7`, `maj7`, `9`, `aug`, `sus2`, `sus4`, `5`, ...); lowercase for minor (`min`, `min7`, `min9`, ...) and diminished; append `°` for `dim`/`dim7`, `ø` for `hdim7`, `+` for `aug`. No extensions (7, 9) in the numeral.
+- Slash chords use the chord root, not the bass. `N`/`X` and missing key → no numeral.
+- Examples: key C♯ minor: `E:maj` → `III`, `A:maj` → `VI`, `C#:min` → `i`, `G#:7` → `V`, `B:maj` → `VII`. Key C major: `D:min7` → `ii`, `G:7` → `V`, `B:hdim7` → `viiø`, `Bb:maj` → `♭VII`, `F:min` → `iv`.
 
 - **Clock**: local audio position; if there's no local audio, the YouTube player's `currentTime`.
 - **Current chord**: the segment where `start ≤ t < end`. **Up next**: the next segment whose label isn't `N`, with "in N beats" = number of `beats[].t` between t and its start.

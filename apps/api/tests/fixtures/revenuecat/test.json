@@ -1,0 +1,20 @@
+{
+  "api_version": "1.0",
+  "event": {
+    "aliases": ["$RCAnonymousID:12345678901234567890123456789012"],
+    "app_id": "app1a2b3c4d5e",
+    "app_user_id": "$RCAnonymousID:12345678901234567890123456789012",
+    "environment": "SANDBOX",
+    "event_timestamp_ms": 1761696000000,
+    "expiration_at_ms": 1761699600000,
+    "id": "F0E1D2C3-B4A5-4968-8776-554433221108",
+    "original_app_user_id": "$RCAnonymousID:12345678901234567890123456789012",
+    "period_type": "NORMAL",
+    "product_id": "test_product",
+    "purchased_at_ms": 1761696000000,
+    "store": "APP_STORE",
+    "subscriber_attributes": {},
+    "transaction_id": null,
+    "type": "TEST"
+  }
+}

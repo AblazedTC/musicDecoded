@@ -13,6 +13,26 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 
+def cache_networks(module) -> None:
+    """T-118: the submodule's chord_recognition() builds a NetworkInterface (torch.load of a checkpoint) for each
+    of its 5 models on every call. Swap the NetworkInterface name that module looks up for a per-process cache,
+    so weights load once. Inference is stateless (eval mode, no_grad), so sharing the instances is safe.
+    The submodule itself is not edited."""
+    original = module.NetworkInterface
+    if getattr(original, "_md_cached", False):
+        return
+    cache: Dict[tuple, Any] = {}
+
+    def cached(net, save_name, load_checkpoint=False, load_path="cache_data"):
+        key = (type(net).__name__, save_name, load_checkpoint, load_path)
+        if key not in cache:
+            cache[key] = original(net, save_name, load_checkpoint=load_checkpoint, load_path=load_path)
+        return cache[key]
+
+    cached._md_cached = True
+    module.NetworkInterface = cached
+
+
 class ChordCNNLSTMDetectorService:
     """
     Service wrapper for Chord-CNN-LSTM with normalized interface.
@@ -57,7 +77,8 @@ class ChordCNNLSTMDetectorService:
             try:
                 sys.path.insert(0, str(self.model_dir))
                 os.chdir(str(self.model_dir))
-                from chord_recognition import chord_recognition
+                import chord_recognition
+                cache_networks(chord_recognition)
                 self._available = True
                 print("Chord-CNN-LSTM availability: True")
                 return True
@@ -72,7 +93,23 @@ class ChordCNNLSTMDetectorService:
             print(f"Error checking Chord-CNN-LSTM availability: {e}")
             self._available = False
             return False
-    
+
+    def preload(self) -> float:
+        """Load all model weights now (consumer startup) instead of during the first job. Returns seconds."""
+        if not self.is_available():
+            return 0.0
+        import chord_recognition as cr
+
+        start = time.perf_counter()
+        original_dir = os.getcwd()
+        try:
+            os.chdir(str(self.model_dir))  # checkpoints are read relative to the model dir
+            for name in cr.MODEL_NAMES:
+                cr.NetworkInterface(cr.ChordNet(None), name, load_checkpoint=False)
+        finally:
+            os.chdir(original_dir)
+        return time.perf_counter() - start
+
     def recognize_chords(self, file_path: str, chord_dict: str = 'submission', **kwargs) -> Dict[str, Any]:
         """
         Recognize chords in an audio file using Chord-CNN-LSTM.

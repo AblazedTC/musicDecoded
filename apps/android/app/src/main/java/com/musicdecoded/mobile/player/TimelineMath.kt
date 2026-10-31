@@ -1,0 +1,152 @@
+package com.musicdecoded.mobile.player
+
+import com.musicdecoded.mobile.core.Analysis
+import com.musicdecoded.mobile.core.isNoChord
+import com.musicdecoded.mobile.core.upperBound
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+
+// Pure timeline geometry (DESIGN.md §3.7 item 3): the playhead is fixed at the horizontal center
+// and content scrolls under it, so x = center + (t − playhead) × pxPerSec.
+
+/** Zoom limits in dp per second (DESIGN.md §3.7: 60–400, default 120). */
+const val MIN_ZOOM_DP_PER_SEC = 60f
+const val MAX_ZOOM_DP_PER_SEC = 400f
+const val DEFAULT_ZOOM_DP_PER_SEC = 120f
+
+fun clampZoom(dpPerSec: Float): Float = dpPerSec.coerceIn(MIN_ZOOM_DP_PER_SEC, MAX_ZOOM_DP_PER_SEC)
+
+/** Maps time ↔ x for a viewport of [width] px whose center is the playhead at [playhead] seconds. */
+data class TimelineViewport(val width: Float, val playhead: Double, val pxPerSec: Float) {
+    val center: Float get() = width / 2f
+    val startTime: Double get() = playhead - center / pxPerSec
+    val endTime: Double get() = playhead + center / pxPerSec
+
+    fun x(t: Double): Float = (center + (t - playhead) * pxPerSec).toFloat()
+    fun time(x: Float): Double = playhead + (x - center) / pxPerSec
+}
+
+/** Indices of the chords that overlap `[from, to]`, so only the visible window is drawn. */
+fun visibleChordIndices(chords: List<Analysis.Chord>, from: Double, to: Double): IntRange {
+    if (chords.isEmpty()) return IntRange.EMPTY
+    val first = (upperBound(chords, from) { it.start } - 1).coerceAtLeast(0)
+    val last = upperBound(chords, to) { it.start } - 1
+    return first..last
+}
+
+/** Indices of the beats with `from ≤ t ≤ to`. */
+fun visibleBeatIndices(beats: List<Analysis.Beat>, from: Double, to: Double): IntRange {
+    val first = upperBound(beats, from - 1e-9) { it.t }
+    val last = upperBound(beats, to) { it.t } - 1
+    return first..last
+}
+
+/** Indices of the waveform peaks (one per `1/fps` s) inside `[from, to]`. */
+fun visiblePeakIndices(peaks: Analysis.WaveformPeaks, from: Double, to: Double): IntRange {
+    if (peaks.peaks.isEmpty() || peaks.fps <= 0 || to < 0 || from * peaks.fps >= peaks.peaks.size) return IntRange.EMPTY
+    val first = (from * peaks.fps).toInt().coerceIn(0, peaks.peaks.size - 1)
+    val last = (to * peaks.fps).toInt().coerceIn(0, peaks.peaks.size - 1)
+    return first..last
+}
+
+/** The beat time nearest to [t]; [t] itself when there are no beats. */
+fun snapToBeat(t: Double, beats: List<Analysis.Beat>): Double {
+    if (beats.isEmpty()) return t
+    val after = upperBound(beats, t) { it.t }
+    val candidates = listOfNotNull(beats.getOrNull(after - 1)?.t, beats.getOrNull(after)?.t)
+    return candidates.minBy { abs(it - t) }
+}
+
+/**
+ * A custom loop dragged between [a] and [b] (either order), snapped to beats (DESIGN.md §4).
+ * A drag that snaps to a single beat extends to the next beat. `null` if nothing usable is left.
+ */
+fun snappedLoop(a: Double, b: Double, analysis: Analysis): OpenEndRange<Double>? {
+    val duration = analysis.meta.durationSec
+    var start = snapToBeat(minOf(a, b), analysis.beats).coerceIn(0.0, duration)
+    var end = snapToBeat(maxOf(a, b), analysis.beats).coerceIn(0.0, duration)
+    if (end <= start) {
+        end = analysis.beats.firstOrNull { it.t > start }?.t ?: duration
+    }
+    if (end <= start) start = (end - 1.0).coerceAtLeast(0.0)
+    return if (start < end) start..<end else null
+}
+
+/** Seconds between time labels so they are at least [minSpacingPx] apart. */
+fun timeLabelStep(pxPerSec: Float, minSpacingPx: Float): Int =
+    LABEL_STEPS.firstOrNull { it * pxPerSec >= minSpacingPx } ?: LABEL_STEPS.last()
+
+private val LABEL_STEPS = listOf(1, 2, 5, 10, 15, 30, 60)
+
+/**
+ * Screen x of the current chord's label: anchored at its change time, but held at the left edge
+ * once that scrolls off (so the current label stays visible), and pushed off by [nextLeft], the
+ * next label in its row, so it never overlaps it.
+ */
+fun stickyLabelLeft(left: Float, width: Float, nextLeft: Float?, gap: Float): Float {
+    var x = max(left, 0f)
+    if (nextLeft != null) x = min(x, nextLeft - gap - width)
+    return max(x, left)
+}
+
+/** Chord labels are stacked in at most this many staggered rows (DESIGN.md §3.7). */
+const val CHORD_LABEL_ROWS = 2
+
+/** A chord label box placed in [row] (0 = top), spanning `[left, left + width)` px. */
+data class PlacedLabel(val index: Int, val row: Int, val left: Float, val width: Float) {
+    val right: Float get() = left + width
+}
+
+/**
+ * Lays out one label per chord change (DESIGN.md §3.7 "Collision handling"). Each label's left edge
+ * is its start time × [pxPerSec] (content coordinates: the layout is the same wherever the playhead
+ * is, so it only changes with zoom and the current chord). In time order, a label goes in the first
+ * row where it starts at least [gap] after that row's previous label; if no row fits it's dropped,
+ * except the [current] chord's label, which replaces the neighbor that ends first. `N`/`X` get none.
+ */
+fun layoutChordLabels(
+    chords: List<Analysis.Chord>,
+    pxPerSec: Float,
+    width: (index: Int) -> Float,
+    current: Int?,
+    gap: Float,
+    rows: Int = CHORD_LABEL_ROWS,
+): List<PlacedLabel> {
+    val placed = List(rows) { ArrayList<PlacedLabel>() }
+    chords.forEachIndexed { index, chord ->
+        if (isNoChord(chord.label)) return@forEachIndexed
+        val label = PlacedLabel(index, 0, (chord.start * pxPerSec).toFloat(), width(index))
+        val row = placed.indexOfFirst { it.isEmpty() || label.left >= it.last().right + gap }
+        when {
+            row >= 0 -> placed[row].add(label.copy(row = row))
+            index == current -> {
+                // Time order means only each row's last label can overlap; free the row that ends first.
+                val freed = placed.indices.minBy { placed[it].last().right }
+                placed[freed][placed[freed].lastIndex] = label.copy(row = freed)
+            }
+        }
+    }
+    return placed.flatten().sortedBy { it.index }
+}
+
+/**
+ * The labels with [current]'s label guaranteed: [base] (laid out with no current chord) when it
+ * already has it, which is what [layout] would return anyway, else a fresh [layout] for [current].
+ */
+fun withCurrentLabel(base: List<PlacedLabel>, current: Int?, layout: (current: Int?) -> List<PlacedLabel>): List<PlacedLabel> =
+    if (current == null || base.any { it.index == current }) base else layout(current)
+
+/**
+ * Label rows the band must reserve, from the layout with no current chord ([layoutChordLabels] with
+ * `current = null`). One row only if every label fits in row 0, in which case no current chord can
+ * change the layout, so this depends on the analysis and zoom alone and never changes during playback.
+ */
+fun chordLabelRowsNeeded(base: List<PlacedLabel>): Int = (base.maxOfOrNull { it.row } ?: 0) + 1
+
+/** Row of each chord's placed label (`-1` = none), for constant-time lookups while drawing. */
+class LabelRows(labels: List<PlacedLabel>, chordCount: Int) {
+    private val rows = IntArray(chordCount) { -1 }.also { rows -> labels.forEach { if (it.index in rows.indices) rows[it.index] = it.row } }
+
+    fun rowOf(index: Int): Int = rows.getOrElse(index) { -1 }
+}

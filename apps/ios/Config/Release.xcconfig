@@ -4,3 +4,9 @@
 // The production API host isn't decided yet. Set it before the first release build,
 // e.g. API_BASE_URL = https:/$()/api.example.com
 API_BASE_URL =
+
+// RevenueCat's public iOS SDK key (T-602i). Empty = purchases unavailable in this build. Never commit
+// a key: put `REVENUECAT_API_KEY = appl_...` in Config/Secrets.xcconfig (gitignored) or pass it
+// to xcodebuild.
+REVENUECAT_API_KEY =
+#include? "Secrets.xcconfig"

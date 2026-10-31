@@ -1,5 +1,6 @@
 """Every error response uses the openapi `Error` schema: {code, message}."""
 import logging
+import uuid
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -16,6 +17,18 @@ class ApiError(Exception):
     def __init__(self, status: int, code: str, message: str):
         super().__init__(message)
         self.status, self.code, self.message = status, code, message
+
+
+def not_found(what: str) -> ApiError:
+    return ApiError(404, "not_found", f"{what} not found")
+
+
+def parse_id(value: str, what: str) -> uuid.UUID:
+    """Path ids are UUIDs; anything else can't exist, so it's a 404 like any unknown id."""
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        raise not_found(what)
 
 
 def _body(status: int, code: str, message: str) -> JSONResponse:

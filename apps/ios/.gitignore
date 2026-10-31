@@ -9,3 +9,6 @@ DerivedData/
 xcuserdata/
 *.xcworkspace/xcuserdata/
 *.xcuserstate
+
+# Local secrets (REVENUECAT_API_KEY), included by Config/*.xcconfig
+Config/Secrets.xcconfig

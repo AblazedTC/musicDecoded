@@ -1,18 +1,116 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import String
+from sqlalchemy import BigInteger, ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    email: Mapped[str] = mapped_column(String(320), unique=True)
-    password_hash: Mapped[str] = mapped_column(String(100))
-    kind: Mapped[str] = mapped_column(String(10), default="account")  # guest | account (guests arrive in T-101)
+    kind: Mapped[str] = mapped_column(String(10), default="account")  # guest | account
     plan: Mapped[str] = mapped_column(String(10), default="free")  # free | pro (PLAN.md §9)
-    created_at: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc))
+    plan_expires_at: Mapped[datetime | None]
+    device_id: Mapped[str | None] = mapped_column(String(128), unique=True)  # guests only
+    email: Mapped[str | None] = mapped_column(String(320), unique=True)  # accounts only
+    password_hash: Mapped[str | None] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+
+
+class Upload(Base):
+    """User-owned audio (file or recording) at object_key = uploads/{id}."""
+    __tablename__ = "uploads"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    sha256: Mapped[str] = mapped_column(String(64))
+    content_type: Mapped[str] = mapped_column(String(50))
+    size_bytes: Mapped[int] = mapped_column(BigInteger)
+    object_key: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+
+
+class Track(Base):
+    """One song, global across users. Analysis is shared by dedupe_key (PLAN.md §5 rule 3)."""
+    __tablename__ = "tracks"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    source: Mapped[str] = mapped_column(String(20))  # file | recording | youtube | soundcloud
+    dedupe_key: Mapped[str] = mapped_column(String(600), unique=True)  # sha256:<hex> | yt:<videoId> | sc:<url>
+    title: Mapped[str | None] = mapped_column(String(500))
+    duration_sec: Mapped[float | None]
+    thumbnail_url: Mapped[str | None] = mapped_column(String(1000))
+    analysis_key: Mapped[str | None] = mapped_column(String(200))  # set by the worker when analysis is saved
+    audio_key: Mapped[str | None] = mapped_column(String(200))  # extracted-audio/..., only with OFFLINE_STREAM_AUDIO
+    analyzer_version: Mapped[str | None] = mapped_column(String(50))
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+
+
+class Job(Base):
+    """Durable job record; live progress is mirrored in Redis job:{id}."""
+    __tablename__ = "jobs"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    track_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tracks.id"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="queued")  # queued | processing | complete | failed
+    stage: Mapped[str | None] = mapped_column(String(40))
+    progress: Mapped[int] = mapped_column(default=0)
+    error: Mapped[str | None] = mapped_column(String(1000))
+    created_at: Mapped[datetime] = mapped_column(default=_now)
+    started_at: Mapped[datetime | None]
+    completed_at: Mapped[datetime | None]
+
+
+class LibraryItem(Base):
+    """Server copy of an account's library row (contracts LibraryItem), used by sync (PLAN.md §5.2).
+    updated_at is the client's clock (last-write-wins); server_updated_at orders pulls."""
+    __tablename__ = "library_items"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    track_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tracks.id"), primary_key=True)
+    title: Mapped[str] = mapped_column(String(500))
+    artist: Mapped[str | None] = mapped_column(String(500))
+    source: Mapped[str] = mapped_column(String(20))
+    source_ref: Mapped[str | None] = mapped_column(String(600))
+    duration_sec: Mapped[float | None]
+    thumbnail_url: Mapped[str | None] = mapped_column(String(1000))
+    audio_upload_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("uploads.id"))
+    favorite: Mapped[bool] = mapped_column(default=False)
+    last_played_at: Mapped[datetime | None]
+    created_at: Mapped[datetime]
+    updated_at: Mapped[datetime]
+    deleted: Mapped[bool] = mapped_column(default=False)
+    server_updated_at: Mapped[datetime] = mapped_column(default=_now)
+
+    __table_args__ = (Index("ix_library_items_user_sync", "user_id", "server_updated_at", "track_id"),)
+
+
+class BillingEvent(Base):
+    """A RevenueCat webhook event already handled (applied or ignored); its id makes redeliveries no-ops."""
+    __tablename__ = "billing_events"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    type: Mapped[str] = mapped_column(String(40))
+    app_user_id: Mapped[str] = mapped_column(String(200))
+    processed_at: Mapped[datetime] = mapped_column(default=_now)
+
+
+def as_utc(value: datetime) -> datetime:
+    """SQLite drops the offset on read; stored values are always UTC."""
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+def effective_plan(user: User, now: datetime | None = None) -> str:
+    """The plan in force now: Pro past plan_expires_at counts as free (None = no expiry).
+    Read the plan through this everywhere, never users.plan directly."""
+    if user.plan != "pro" or user.plan_expires_at is None:
+        return user.plan
+    return "pro" if as_utc(user.plan_expires_at) > (now or _now()) else "free"

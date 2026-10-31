@@ -7,7 +7,7 @@ info:
     Apps talk ONLY to this API. They never call the worker, database, or object
     storage directly, except for presigned URLs that this API hands out.
 
-    Auth: every endpoint except /auth/* and /health needs `Authorization: Bearer <jwt>`.
+    Auth: every endpoint except /auth/*, /health and /billing/revenuecat needs `Authorization: Bearer <jwt>`.
     A JWT is either a **guest** token (from /auth/anonymous, bound to one device)
     or an **account** token (from /auth/signup or /auth/login). The `sub` claim is the
     user id. The `kind` claim is `guest` or `account`. The `plan` claim is `free` or `pro`.
@@ -176,6 +176,11 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Job" }
         "400": { $ref: "#/components/responses/Error" }
+        "403":
+          description: "`feature_disabled`: source `soundcloud` while ClientConfig.soundcloudEnabled is false"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
         "404":
           description: "`uploadId` doesn't exist or belongs to another user"
           content:
@@ -258,6 +263,9 @@ paths:
                   items:
                     type: array
                     items: { $ref: "#/components/schemas/VideoSummary" }
+        "400": { $ref: "#/components/responses/Error" }
+        "403": { description: "`feature_disabled`: search is unavailable (no YouTube API key configured)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "429": { description: "`rate_limited`: the server's YouTube quota is exhausted; retry later (not a plan limit, no upsell)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   # ---------- sync (account tokens only) ----------
   /sync/library:
@@ -299,8 +307,36 @@ paths:
                   items: { type: array, items: { $ref: "#/components/schemas/LibraryItem" } }
         "403": { $ref: "#/components/responses/Error" }
 
+  # ---------- billing (server-to-server, M6) ----------
+  /billing/revenuecat:
+    post:
+      security:
+        - revenuecatWebhook: []
+      summary: RevenueCat webhook (sets the user's plan)
+      description: |
+        Called by RevenueCat, never by the apps. `event.app_user_id` is our `userId` (the apps set it as the
+        RevenueCat appUserID). INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE and UNCANCELLATION set `plan` = `pro`
+        until `expiration_at_ms`; CANCELLATION keeps Pro until expiry; BILLING_ISSUE keeps Pro through the
+        grace period; EXPIRATION sets `free`. Other event types and unknown users are acknowledged and ignored.
+        Idempotent on `event.id`: a redelivered event is acknowledged with 200 and not applied again.
+        The endpoint only exists when the server has a webhook secret configured (404 otherwise).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RevenueCatWebhook" }
+      responses:
+        "200": { description: "Processed, ignored, or already processed" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { description: "`unauthorized`: missing or wrong shared secret", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "404": { description: "`not_found`: billing is not configured on this server", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
 components:
   securitySchemes:
+    revenuecatWebhook:
+      type: http
+      scheme: bearer
+      description: "Shared secret, not a JWT: RevenueCat sends the Authorization header configured in its dashboard, `Bearer <REVENUECAT_WEBHOOK_SECRET>`."
     bearer:
       type: http
       scheme: bearer
@@ -355,6 +391,24 @@ components:
             dailyJobs: { type: [integer, "null"], description: "null = unlimited" }
             jobsUsedToday: { type: integer }
 
+    RevenueCatWebhook:
+      type: object
+      description: RevenueCat webhook body (api_version 1.0). Only the fields the API reads are listed; others are allowed and ignored.
+      required: [event]
+      properties:
+        api_version: { type: string }
+        event:
+          type: object
+          required: [id, type, app_user_id]
+          properties:
+            id: { type: string, description: Unique event id (idempotency key) }
+            type: { type: string, description: "e.g. INITIAL_PURCHASE, RENEWAL, PRODUCT_CHANGE, UNCANCELLATION, CANCELLATION, BILLING_ISSUE, EXPIRATION, TEST" }
+            app_user_id: { type: string, description: Our userId }
+            product_id: { type: string }
+            expiration_at_ms: { type: [integer, "null"], description: "Entitlement end (ms since epoch); null = non-expiring" }
+            grace_period_expiration_at_ms: { type: [integer, "null"], description: BILLING_ISSUE only }
+            event_timestamp_ms: { type: integer }
+
     Plan:
       enum: [free, pro]
       description: Server-side entitlement (PLAN.md §9). Also present as the JWT `plan` claim. Set by the billing webhook (M6).
@@ -381,6 +435,9 @@ components:
           enum: [fetching_media, normalizing_audio, detecting_beats, detecting_chords, detecting_key, rendering_spectrogram, saving_results, null]
         progress: { type: integer, minimum: 0, maximum: 100 }
         error: { type: [string, "null"] }
+        title: { type: [string, "null"], description: "Track metadata once known (e.g. from yt-dlp for streaming sources). Apps replace placeholder titles with it." }
+        thumbnailUrl: { type: [string, "null"] }
+        durationSec: { type: [number, "null"] }
 
     VideoSummary:
       type: object
@@ -404,7 +461,7 @@ components:
         sourceRef: { type: [string, "null"] }
         durationSec: { type: [number, "null"] }
         thumbnailUrl: { type: [string, "null"] }
-        audioUploadId: { type: [string, "null"], description: "For file/recording: lets another device download the user's own audio" }
+        audioUploadId: { type: [string, "null"], description: "For file/recording: lets another device download the user's own audio. **Pro only** (PLAN.md §9): for free accounts the server stores and returns null, so only chord timelines sync." }
         favorite: { type: boolean, default: false }
         lastPlayedAt: { type: [string, "null"], format: date-time }
         createdAt: { type: string, format: date-time }

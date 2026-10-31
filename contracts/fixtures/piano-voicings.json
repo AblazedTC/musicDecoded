@@ -1,0 +1,467 @@
+{
+ "description": "Shared test cases for DESIGN.md §4 'Piano voicing & inversions' (fixed C3-B5 keyboard). rightHand/bass are MIDI note numbers; inversion wraps modulo the number of right-hand tones; expected null = no notes.",
+ "cases": [
+  {
+   "label": "C:maj",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     60,
+     64,
+     67
+    ],
+    "bass": 48,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "C:maj",
+   "inversion": 1,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     64,
+     67,
+     72
+    ],
+    "bass": 48,
+    "rightHandFingers": [
+     1,
+     2,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "C:maj",
+   "inversion": 2,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     67,
+     72,
+     76
+    ],
+    "bass": 48,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "C:maj",
+   "inversion": 3,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     60,
+     64,
+     67
+    ],
+    "bass": 48,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "E:maj",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     64,
+     68,
+     71
+    ],
+    "bass": 52,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "E:maj",
+   "inversion": 1,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     68,
+     71,
+     76
+    ],
+    "bass": 52,
+    "rightHandFingers": [
+     1,
+     2,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "A:min",
+   "inversion": 2,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     64,
+     69,
+     72
+    ],
+    "bass": 57,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "C#:min",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     61,
+     64,
+     68
+    ],
+    "bass": 49,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "G#:maj",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     68,
+     72,
+     75
+    ],
+    "bass": 56,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "B:7",
+   "inversion": 3,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     69,
+     71,
+     75,
+     78
+    ],
+    "bass": 59,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "D:maj7",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     62,
+     66,
+     69,
+     73
+    ],
+    "bass": 50,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "D:maj7",
+   "inversion": 2,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     69,
+     73,
+     74,
+     78
+    ],
+    "bass": 50,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "F#:min7",
+   "inversion": 1,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     69,
+     73,
+     76,
+     78
+    ],
+    "bass": 54,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "B:hdim7",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     71,
+     74,
+     77,
+     81
+    ],
+    "bass": 59,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "G:9",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     67,
+     71,
+     77,
+     81
+    ],
+    "bass": 55,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "C:13",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     60,
+     64,
+     70,
+     74
+    ],
+    "bass": 48,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "D:maj/3",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     62,
+     66,
+     69
+    ],
+    "bass": 54,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "G:5",
+   "inversion": 1,
+   "transpose": 0,
+   "expected": {
+    "inversions": 2,
+    "rightHand": [
+     62,
+     67
+    ],
+    "bass": 55,
+    "rightHandFingers": [
+     1,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "C:maj",
+   "inversion": 0,
+   "transpose": 2,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     62,
+     66,
+     69
+    ],
+    "bass": 50,
+    "rightHandFingers": [
+     1,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "A:min7",
+   "inversion": 3,
+   "transpose": -3,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     64,
+     66,
+     69,
+     73
+    ],
+    "bass": 54,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "B:sus4(b7)",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": {
+    "inversions": 4,
+    "rightHand": [
+     71,
+     76,
+     78,
+     81
+    ],
+    "bass": 59,
+    "rightHandFingers": [
+     1,
+     2,
+     3,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "Bb:maj",
+   "inversion": 1,
+   "transpose": 0,
+   "expected": {
+    "inversions": 3,
+    "rightHand": [
+     62,
+     65,
+     70
+    ],
+    "bass": 58,
+    "rightHandFingers": [
+     1,
+     2,
+     5
+    ],
+    "bassFinger": 5
+   }
+  },
+  {
+   "label": "N",
+   "inversion": 0,
+   "transpose": 0,
+   "expected": null
+  }
+ ]
+}

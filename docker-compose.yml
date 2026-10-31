@@ -66,17 +66,23 @@ services:
     build:
       context: ./apps/api
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080" # localhost only: dev mode uses a public JWT secret
     environment:
       APP_ENV: dev # dev supplies a local JWT_SECRET default; anywhere else JWT_SECRET is required
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/musicdecoded
       REDIS_URL: redis://redis:6379
-      S3_ENDPOINT: http://minio:9000
+      # The API only signs URLs (never calls MinIO), so this must be the address *clients* use, not minio:9000.
+      S3_ENDPOINT: http://localhost:9000
       S3_BUCKET: ${S3_BUCKET:-musicdecoded}
       S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       OFFLINE_STREAM_AUDIO: "false"
-      SOUNDCLOUD_ENABLED: "false"
+      SOUNDCLOUD_ENABLED: ${SOUNDCLOUD_ENABLED:-false}
+      LIMIT_GUEST: ${LIMIT_GUEST:-10}
+      LIMIT_FREE: ${LIMIT_FREE:-50}
+      LIMIT_PRO: ${LIMIT_PRO:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-} # empty = search returns 403 feature_disabled
+      REVENUECAT_WEBHOOK_SECRET: ${REVENUECAT_WEBHOOK_SECRET:-} # empty = POST /billing/revenuecat returns 404
     depends_on:
       db:
         condition: service_healthy
@@ -88,6 +94,8 @@ services:
   worker:
     build:
       context: ./apps/worker
+      additional_contexts:
+        contracts: ./contracts # analysis.schema.json + validate.py, checked before each save
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/musicdecoded
       REDIS_URL: redis://redis:6379

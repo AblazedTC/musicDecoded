@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.MusicDecoded" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Dark only in v1 (DESIGN.md §1). -->
+    <style name="Theme.MusicDecoded" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/ink</item>
+    </style>
 </resources>
