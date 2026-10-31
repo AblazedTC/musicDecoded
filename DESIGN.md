@@ -235,7 +235,7 @@ For practicing. Header with title/artist.
   - **Music analysis**: Chord notation (Standard) · Accidentals (Auto/♯/♭) · Default view (Timeline/Beat grid/Chord sheet/Piano focus)
   - **Storage**: Local storage (size) · Offline files (count) · Clear cache
   - **Application**: Notifications · Privacy & data · Help & support (Appearance is hidden in v1 because the app is dark-only)
-- v1 builds only the rows backed by behavior: Default speed, Chord notation, Accidentals, Default visualization, Local storage, Offline files, Privacy & data, Help. Hide the rest.
+- v1 builds only the rows backed by behavior: Default speed, Chord notation, Accidentals, Default view, Local storage, Offline files, Privacy & data, Help. Hide the rest.
 
 ### 3.10 Account migration (`SettingsScreen` → migrate)
 Shown after signup/login on a device with guest data ("Move local music"): a cloud icon, "Bring your music with you", and a checklist:

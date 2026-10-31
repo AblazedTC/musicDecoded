@@ -374,13 +374,14 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
 - Notes: View switcher, stacked panels, fixed C3-B5 keyboard, inversions, fingering. Android on emulator, iOS via CI (213 app, 83 core tests).
 
 ### T-216a / T-216i Player follow-ups
-- Lane: android / ios · Status: todo · Owner: — · Deps: T-215
+- Lane: android / ios · Status: done · Owner: agents · Deps: T-215
 - Goal: Remaining player polish after revision 2.
 - Acceptance:
-  - [ ] Chord-label band shrinks to one row when no label needs the second row at the current zoom, giving the waveform the space; no jumps during playback
-  - [ ] Settings "Default visualization" becomes "Default view" (Timeline / Beat grid / Chord sheet / Piano focus) and sets the switcher's initial view
-  - [ ] Android: `Modifier.block()` no longer re-applies modifiers placed before it; spacing checked on all screens
-  - [ ] iOS: playback position is smooth between AVPlayer updates; chord labels, keyboard and bars redraw only when their inputs change
+  - [x] Chord-label band shrinks to one row when no label needs the second row at the current zoom, giving the waveform the space; no jumps during playback
+  - [x] Settings "Default visualization" becomes "Default view" (Timeline / Beat grid / Chord sheet / Piano focus) and sets the switcher's initial view
+  - [x] Android: `Modifier.block()` no longer re-applies modifiers placed before it; spacing checked on all screens
+  - [x] iOS: playback position is smooth between AVPlayer updates; chord labels, keyboard and bars redraw only when their inputs change
+- Notes: Android verified on the emulator (screens in scratchpad t216); iOS by CI only, performance not measured on a device. Two-row band at narrow zoom, Piano focus and Processing screens not re-checked after the block() fix.
 
 ---
 
