@@ -45,13 +45,14 @@ services:
       timeout: 3s
       retries: 10
 
-  # One-shot: creates the bucket (idempotent) and exits.
+  # One-shot: creates the bucket (idempotent) and exits. Retries because Bitnami MinIO restarts once
+  # during first-time setup, after the healthcheck has already passed.
   minio-init:
     image: bitnamilegacy/minio-client:2025.7.21-debian-12-r3
     entrypoint: ["/bin/bash", "-c"]
     command:
       - >-
-        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" &&
+        for i in $$(seq 1 30); do mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" && break; sleep 2; done &&
         mc mb --ignore-existing "local/$$S3_BUCKET" &&
         mc ls local
     environment:
