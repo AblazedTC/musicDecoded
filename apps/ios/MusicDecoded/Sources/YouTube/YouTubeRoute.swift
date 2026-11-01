@@ -2,6 +2,9 @@ import SwiftUI
 
 /// The YouTube sandbox screens (DESIGN.md §2: pushed, no tab bar).
 enum YouTubeRoute: Hashable, Sendable {
+    /// The in-app m.youtube.com browser (T-308i), the Home tile's entry point.
+    case browser
+    /// The API search (PLAN.md D-4); unlinked since T-308i, kept for later.
     case search
     case video(VideoSummary)
 }
@@ -31,7 +34,7 @@ extension VideoSummary {
 }
 
 extension View {
-    /// Search and video detail, pushed onto the caller's `path`. `onDecodeStarted` gets the
+    /// Browser, search and video detail, pushed onto the caller's `path`. `onDecodeStarted` gets the
     /// trackId once the job exists.
     func youtubeDestinations(
         path: Binding<NavigationPath>,
@@ -39,6 +42,8 @@ extension View {
     ) -> some View {
         navigationDestination(for: YouTubeRoute.self) { route in
             switch route {
+            case .browser:
+                YouTubeBrowserScreen(onDecodeStarted: onDecodeStarted)
             case .search:
                 YouTubeSearchScreen { video in
                     path.wrappedValue.append(YouTubeRoute.video(video))
