@@ -571,3 +571,52 @@ Read PLAN.md §9 first. **Rule: the API enforces Pro. The apps only reflect it.*
   - [x] Issue/PR templates; ~~`good first issue` labels~~ 5 small tasks listed in CONTRIBUTING.md "Good first tasks"
   - [x] README badges (license, CI) and an architecture diagram near the top
 - Notes: Blocked on repo-owner actions only: install the CLA bot and create the labels/issues (steps in CONTRIBUTING.md "Maintainer setup"). Diagram is Mermaid (PLAN.md §5).
+
+---
+
+## M7 — Open for contributors
+
+Small, self-contained tasks for new contributors. Each one has a GitHub issue labeled `good first issue`.
+
+### T-701a Android launcher icon
+- Lane: android · Status: todo · Owner: — · Deps: —
+- Goal: Android still ships the default robot icon. Match the iOS icon (`apps/ios/MusicDecoded/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png`: lime tile with ink waveform bars on violet).
+- Acceptance:
+  - [ ] Adaptive icon (vector foreground + violet background) and a monochrome layer for themed icons; legacy PNG mipmaps regenerated
+  - [ ] Screenshot of the launcher on the emulator
+
+### T-702 iOS CI also builds the Release configuration
+- Lane: infra · Status: todo · Owner: — · Deps: —
+- Goal: CI builds only Debug, so Debug-only code used from shipped code broke the first TestFlight archive. Catch it on PRs.
+- Acceptance:
+  - [ ] `.github/workflows/ios.yml` adds an unsigned `-configuration Release` build for `generic/platform=iOS Simulator` (no tests)
+  - [ ] A deliberate `#if DEBUG` misuse fails the job (show it in the PR, then revert)
+
+### T-703a Android: spacing pass after the `block()` fix
+- Lane: android · Status: todo · Owner: — · Deps: —
+- Goal: T-216a fixed `Modifier.block()` applying modifiers twice; Piano focus, Processing, Recorder, Paywall, YouTube and SoundCloud screens weren't re-checked.
+- Acceptance:
+  - [ ] Screenshot of each screen; any spacing that drifted from DESIGN.md is fixed with tokens
+
+### T-704 Queue position while processing
+- Lane: contracts → api → android / ios · Status: todo · Owner: — · Deps: —
+- Goal: The Processing screen only says "Processing". Show "#3 in line" while a job is queued.
+- Acceptance:
+  - [ ] contracts: `queuePosition` on `Job` in `openapi.yaml`: required, `type: [integer, "null"]`, minimum 1, 1 = next to run, null unless `queued`
+  - [ ] api: `GET /jobs/{id}` fills it by scanning `LRANGE jobs:analysis 0 -1` (JSON messages) for the message's `jobId`, 1-based; tested
+  - [ ] apps: Android and iOS Processing screens show "#N in line" when it's set (one PR per app)
+
+### T-705 Re-link YouTube API search when configured
+- Lane: contracts → api → android / ios · Status: todo · Owner: — · Deps: T-308a/i
+- Goal: The in-app browser replaced API search (T-308). Keep search as an option on servers that have a `YOUTUBE_API_KEY`.
+- Acceptance:
+  - [ ] contracts: `ClientConfig.youtubeSearchEnabled` (boolean)
+  - [ ] api: true only when `YOUTUBE_API_KEY` is set; tested
+  - [ ] apps: a search button in the YouTube browser header opens the existing search screen only when it's true
+
+### T-706 Daily job budget and queue alert
+- Lane: api · Status: todo · Owner: — · Deps: —
+- Goal: docs/cost-model.md recommendation 4: a global daily cap on uncached jobs as a circuit breaker, and a warning when the queue gets long.
+- Acceptance:
+  - [ ] `JOB_BUDGET_DAILY` env (unset = unlimited); over budget → 429 `rate_limited` with a clear message; tested
+  - [ ] A warning log line when queue depth passes `QUEUE_WARN_DEPTH` (default 50)
