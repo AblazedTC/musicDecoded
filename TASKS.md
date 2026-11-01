@@ -620,3 +620,11 @@ Small, self-contained tasks for new contributors. Each one has a GitHub issue la
 - Acceptance:
   - [ ] `JOB_BUDGET_DAILY` env (unset = unlimited); over budget → 429 `rate_limited` with a clear message; tested
   - [ ] A warning log line when queue depth passes `QUEUE_WARN_DEPTH` (default 50)
+
+### T-709 In-app account deletion
+- Lane: contracts → api → android / ios · Status: todo · Owner: — · Deps: —
+- Goal: App Store guideline 5.1.1(v) and Google Play require deleting an account from inside the app. Today it's by email (docs/privacy.md).
+- Acceptance:
+  - [ ] contracts + api: `DELETE /auth/account` removes the user, their uploads, library rows and jobs (analysis files stay: they're global and anonymous); tested
+  - [ ] apps: Settings → "Delete account" with a confirmation, then back to a fresh guest session
+
