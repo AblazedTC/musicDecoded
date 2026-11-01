@@ -10,6 +10,14 @@ public enum YouTubeURL {
         return YouTubeVideoID.parse(url.absoluteString)
     }
 
+    /// Whether the in-app browser may load a page on `host`: youtube.com and its subdomains,
+    /// youtu.be, and Google's sign-in and consent pages. Other links open outside the app.
+    public static func isAllowedInBrowser(host: String?) -> Bool {
+        guard let host = host?.lowercased(), host.isEmpty == false else { return false }
+        if host == "youtube.com" || host.hasSuffix(".youtube.com") { return true }
+        return ["youtu.be", "accounts.google.com", "consent.google.com"].contains(host)
+    }
+
     /// The video's title from the page's `document.title` ("(3) Song - YouTube" → "Song"), or
     /// `nil` when it's empty or just "YouTube".
     public static func videoTitle(fromPageTitle pageTitle: String?) -> String? {

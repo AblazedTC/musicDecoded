@@ -70,5 +70,22 @@ struct YouTubeBrowserTests {
         #expect(trackId == nil)
         #expect(model.errorMessage == Transcription.rateLimitedMessage)
         #expect(model.isStarting == false)
+
+        // Same video, new params: the error stays. Another video: it's cleared.
+        model.url = URL(string: "https://m.youtube.com/watch?v=dQw4w9WgXcQ&t=10s")
+        #expect(model.errorMessage == Transcription.rateLimitedMessage)
+        model.url = URL(string: "https://m.youtube.com/watch?v=aaaaaaaaaaa")
+        #expect(model.errorMessage == nil)
+    }
+
+    @Test func newURLDropsTheOldTitle() {
+        let model = YouTubeBrowserModel()
+        model.url = URL(string: "https://m.youtube.com/watch?v=dQw4w9WgXcQ")
+        model.pageTitle = "Old Song - YouTube"
+
+        model.url = URL(string: "https://m.youtube.com/watch?v=aaaaaaaaaaa")
+
+        #expect(model.pageTitle == nil)
+        #expect(model.video?.title == "")
     }
 }

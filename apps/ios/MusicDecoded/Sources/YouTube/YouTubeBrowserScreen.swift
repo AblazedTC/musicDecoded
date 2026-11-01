@@ -1,4 +1,6 @@
+import MusicDecodedCore
 import SwiftUI
+import UIKit
 import WebKit
 
 /// The in-app YouTube browser (T-308i): m.youtube.com in a web view, web back / forward / reload
@@ -83,12 +85,41 @@ private struct YouTubeWebView: UIViewRepresentable {
         webView.allowsBackForwardNavigationGestures = true
         webView.isOpaque = false
         webView.backgroundColor = .clear
+        webView.navigationDelegate = context.coordinator
         model.attach(webView)
         webView.load(URLRequest(url: YouTubeBrowserModel.homeURL))
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {}
+
+    func makeCoordinator() -> NavigationPolicy {
+        NavigationPolicy()
+    }
+
+    /// Keeps the browser on YouTube (and Google sign-in): a tapped link to any other site opens
+    /// outside the app, and non-web schemes (app links) are dropped. Embedded frames are left alone.
+    @MainActor
+    final class NavigationPolicy: NSObject, WKNavigationDelegate {
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction
+        ) async -> WKNavigationActionPolicy {
+            if let frame = navigationAction.targetFrame, frame.isMainFrame == false {
+                return .allow
+            }
+            guard let url = navigationAction.request.url else { return .cancel }
+            let scheme = url.scheme?.lowercased()
+            guard scheme == "https" || scheme == "http" else { return .cancel }
+            if YouTubeURL.isAllowedInBrowser(host: url.host) {
+                return .allow
+            }
+            if navigationAction.navigationType == .linkActivated || navigationAction.targetFrame == nil {
+                _ = await UIApplication.shared.open(url)
+            }
+            return .cancel
+        }
+    }
 }
 
 #if DEBUG

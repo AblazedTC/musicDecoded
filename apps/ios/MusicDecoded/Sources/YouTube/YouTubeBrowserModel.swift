@@ -14,7 +14,17 @@ final class YouTubeBrowserModel {
     typealias Start = @MainActor (VideoSummary) async throws -> String
 
     /// The page's URL. YouTube is a single-page app, so this changes without page loads.
-    var url: URL?
+    /// A new URL drops the old page's title (until the title observer reports the new one) and,
+    /// for another video, the old error.
+    var url: URL? {
+        didSet {
+            guard url != oldValue else { return }
+            pageTitle = nil
+            if YouTubeURL.videoId(from: oldValue) != videoId {
+                errorMessage = nil
+            }
+        }
+    }
     /// The page's `document.title`.
     var pageTitle: String?
     var canGoBack = false
@@ -46,29 +56,34 @@ final class YouTubeBrowserModel {
         self.webView = webView
         observations = [
             webView.observe(\.url, options: [.initial, .new]) { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.syncFromWebView() }
+                MainActor.assumeIsolated { self?.syncURL() }
             },
             webView.observe(\.title, options: [.initial, .new]) { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.syncFromWebView() }
+                MainActor.assumeIsolated { self?.syncTitle() }
             },
             webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.syncFromWebView() }
+                MainActor.assumeIsolated { self?.syncHistory() }
             },
             webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] _, _ in
-                MainActor.assumeIsolated { self?.syncFromWebView() }
+                MainActor.assumeIsolated { self?.syncHistory() }
             },
         ]
     }
 
-    private func syncFromWebView() {
+    private func syncURL() {
         guard let webView else { return }
         url = webView.url
+    }
+
+    private func syncTitle() {
+        guard let webView else { return }
         pageTitle = webView.title
+    }
+
+    private func syncHistory() {
+        guard let webView else { return }
         canGoBack = webView.canGoBack
         canGoForward = webView.canGoForward
-        if videoId == nil {
-            errorMessage = nil
-        }
     }
 
     func goBack() {

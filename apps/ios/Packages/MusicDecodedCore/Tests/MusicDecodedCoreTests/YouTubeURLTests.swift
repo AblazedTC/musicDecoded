@@ -53,6 +53,26 @@ struct YouTubeURLTests {
         #expect(YouTubeURL.videoTitle(fromPageTitle: pageTitle) == nil)
     }
 
+    @Test(arguments: [
+        "youtube.com", "m.youtube.com", "www.youtube.com", "music.youtube.com", "M.YouTube.com",
+        "youtu.be", "accounts.google.com", "consent.google.com",
+    ])
+    func allowsYouTubeAndSignIn(_ host: String) {
+        #expect(YouTubeURL.isAllowedInBrowser(host: host))
+    }
+
+    @Test(arguments: [
+        "", "google.com", "www.google.com", "evilyoutube.com", "youtube.com.evil.example",
+        "example.com", "accounts.google.com.evil.example",
+    ])
+    func blocksOtherHosts(_ host: String) {
+        #expect(YouTubeURL.isAllowedInBrowser(host: host) == false)
+    }
+
+    @Test func blocksNoHost() {
+        #expect(YouTubeURL.isAllowedInBrowser(host: nil) == false)
+    }
+
     @Test func noTitleWithoutAPage() {
         #expect(YouTubeURL.videoTitle(fromPageTitle: nil) == nil)
     }
