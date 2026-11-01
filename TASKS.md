@@ -436,6 +436,22 @@ Each `a`/`i` pair has identical acceptance criteria unless noted.
   - [x] When local audio exists (flag on), the audio is the clock and the video is muted and kept within 150 ms
 - Notes: Both platforms; IFrame API in WebView/WKWebView, 150 ms drift sync. Embed error 152/153 risk unverified on device.
 
+### T-308a / T-308i In-app YouTube browser
+- Lane: android / ios · Status: in-progress · Owner: agents · Deps: T-304a/i
+- Goal: The YouTube tile opens m.youtube.com in an in-app web view (owner decision 2026-11-01, supersedes the API search UI of PLAN.md D-4; the search screen stays reachable only if the API key is configured).
+- Acceptance:
+  - [ ] Screen: header (back to app, title "YouTube"), full-height web view, bottom bar with web back / forward / reload (Wrapped tokens, DESIGN.md §1)
+  - [ ] When the page is a single video (`/watch?v=`, `/shorts/`, `youtu.be/`), a "Transcribe this" button appears; it starts the existing youtube job with that videoId and the page title, then opens Processing like search results do
+  - [ ] Pure, tested videoId extraction from URLs (watch, shorts, youtu.be, music.youtube.com, with extra params); playlists/channels show no button
+  - [ ] Video playback in the web view pauses when leaving the screen; no downloads from the device (PLAN.md R-1)
+
+### T-309 Worker: optional cookies / proxy for YouTube fetches (dev only)
+- Lane: worker · Status: in-progress · Owner: agents · Deps: T-302
+- Goal: Datacenter IPs get "Sign in to confirm you're not a bot" (PLAN.md R-8); PO tokens alone didn't help on the DigitalOcean droplet. Owner accepted the YouTube ToS risk for testing; **remove or disable before store submission**.
+- Acceptance:
+  - [ ] `YTDLP_COOKIES_FILE` and `YTDLP_PROXY` env vars (both optional, unset = current behavior) passed to yt-dlp; tested
+  - [ ] deploy/compose.prod.yml mounts `/opt/musicdecoded/secrets` read-only for the cookies file
+
 ### T-306 Apply for a YouTube Data API quota increase
 - Lane: infra · Status: todo · Owner: product owner · Deps: T-301, T-504 (privacy policy)
 - Goal: PLAN.md R-6. The default 10,000 units/day ≈ 100 searches/day for the whole app.
