@@ -9,16 +9,32 @@
 
 Turn any song into chords you can follow. Pick a file, record audio, or find a song on YouTube or SoundCloud. MusicDecoded transcribes the beats, chords, key, BPM and time signature, then shows them on a scrolling player with a piano that plays along. Transcriptions are saved on your phone and work offline. An account is optional and only adds sync across devices.
 
+<p align="center">
+  <img src="docs/screenshots/home.png" width="200" alt="Home: recent songs and sources">
+  <img src="docs/screenshots/player.png" width="200" alt="Player: scrolling chord timeline over the waveform, piano with fingering">
+  <img src="docs/screenshots/chord-sheet.png" width="200" alt="Chord sheet view with Roman numerals">
+  <img src="docs/screenshots/piano-focus.png" width="200" alt="Piano focus: current and next chord, inversions">
+</p>
+
+**Features**
+- Native **iOS (SwiftUI)** and **Android (Jetpack Compose)** apps that share one API contract
+- Sources: files, the music library, the microphone, an in-app YouTube browser, SoundCloud links
+- Four player views: timeline, beat grid, chord sheet and piano focus, with Roman numerals, transpose,
+  simplified chords, and piano voicings with inversions and fingering
+- Local-first: audio and chord files are stored on the device and play offline; accounts only add sync
+- Python worker: beat tracking, a CNN-LSTM chord model, key, BPM and time signature detection
+- Runs on one small server with Docker Compose ([deploy/README.md](deploy/README.md))
+
 ## Architecture
 
 ```mermaid
 flowchart TD
     ios["iOS app (SwiftUI)<br/>SwiftData + local audio/analysis"]
     android["Android app (Compose)<br/>Room + local audio/analysis"]
-    api["FastAPI API<br/>auth (guest + account JWT) · uploads · jobs<br/>YouTube search proxy · sync · config"]
+    api["FastAPI API<br/>auth (guest + account JWT) · uploads · jobs<br/>sync · config"]
     pg[(PostgreSQL)]
     redis[(Redis queue)]
-    s3[("Object storage<br/>MinIO local / R2 prod")]
+    s3[("Object storage<br/>MinIO or any S3")]
     worker["Python worker<br/>FFmpeg → beats → chords → key → BPM/time sig → spectrogram<br/>→ analysis.json"]
 
     ios -- "HTTPS / REST (contracts/openapi.yaml)" --> api
@@ -72,13 +88,14 @@ docs/        architecture, data model, user flows, running locally
 See [docs/running-locally.md](docs/running-locally.md).
 
 ```bash
-docker compose up db -d
-cd apps/api && APP_ENV=dev uv run uvicorn app.main:app --reload --port 8080
+git clone --recurse-submodules https://github.com/AblazedTC/musicDecoded.git && cd musicDecoded
+docker compose up --build -d          # API on http://localhost:8080, worker, Postgres, Redis, MinIO
 ```
 
-> **Upgrading from the old Spring Boot API?** Its local `users` table is missing the new columns, and the API
-> only creates missing tables (migrations arrive with T-101). Reset the dev database with `docker compose down -v`,
-> which **deletes all local Postgres and MinIO data**.
+Then run the Android app from Android Studio (emulator) or the iOS app from Xcode (simulator); both point at
+the local API in debug builds. The debug builds also include a sample song: long-press the Home title.
+
+To run it on a server, see [deploy/README.md](deploy/README.md).
 
 ## License
 

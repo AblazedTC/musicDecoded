@@ -2,6 +2,7 @@
 
 Thanks for helping. All work is tracked in [TASKS.md](TASKS.md), and every PR closes exactly one task from it.
 Read [PLAN.md](PLAN.md) for the architecture and decisions, and [DESIGN.md](DESIGN.md) before touching UI.
+Please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security issues go through [SECURITY.md](SECURITY.md), not public issues.
 
 ## Setup by lane
 
@@ -13,7 +14,7 @@ Full instructions are in [docs/running-locally.md](docs/running-locally.md). Sho
 | `api` | `apps/api` | [uv](https://docs.astral.sh/uv/); Docker to run it against Postgres | `uv run pytest` |
 | `worker` | `apps/worker` | Python 3.14; FFmpeg and the model submodules (`git submodule update --init`) for real analyses | `pip install -r requirements-dev.txt && pytest` (unit tests need no models) |
 | `android` | `apps/android` | Android Studio, JDK 21 | `./gradlew assembleDebug testDebugUnitTest` |
-| `ios` | `apps/ios` | macOS, Xcode 16+, XcodeGen | `xcodegen generate`, then `xcodebuild test` (see `apps/ios/README.md`) |
+| `ios` | `apps/ios` | macOS, Xcode 26+, XcodeGen (no Mac? CI builds and tests every PR) | `xcodegen generate`, then `xcodebuild test` (see `apps/ios/README.md`) |
 | `infra` | `docker-compose.yml`, `.github/`, `scripts/`, docs | Docker | `docker compose up --build -d`, `scripts/e2e.sh` |
 | `design` | `DESIGN.md` | | Review against the existing screens |
 
@@ -40,14 +41,15 @@ Small, self-contained, and with no open dependencies:
 
 | Task | Lane | What |
 |---|---|---|
-| T-213a / T-213i: seek bar | android / ios | Style the player seek bar per DESIGN.md (thin track, round thumb) instead of the stock slider |
-| T-213a / T-213i: song-row art | android / ios | Song rows show the initial-letter art (as in the mini player) when there's no thumbnail |
-| T-213a / T-213i: import sheet | android / ios | Present the import sheet over Home instead of on an empty screen |
-| T-502a | android | SoundCloud link source: paste or share a SoundCloud URL to start a `soundcloud` job |
-| T-502i | ios | The same SoundCloud link source on iOS |
+| T-701a | android | Replace the default robot launcher icon with the app's icon |
+| T-702 | infra | iOS CI also builds the Release configuration |
+| T-703a | android | Screenshot pass over the screens not re-checked after a spacing fix |
+| T-704 | contracts → api → apps | Show "#3 in line" while a job is queued |
+| T-705 | contracts → api → apps | Re-link the YouTube search screen when the server has an API key |
+| T-706 | api | Daily job budget and a queue-length warning |
 
-The T-213 items are independent, so one item per PR is fine: tick only that box and leave the task `todo`
-until all items are done.
+Each one is also an issue labeled [`good first issue`](https://github.com/AblazedTC/musicDecoded/labels/good%20first%20issue).
+Tasks marked `contracts → api → apps` are done in that order, one PR each.
 
 ## Lanes
 
