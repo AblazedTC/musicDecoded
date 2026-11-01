@@ -38,3 +38,6 @@ env/
 
 # Docker
 docker-compose.override.yml
+
+# Server-only files mounted into the worker (deploy/compose.prod.yml), e.g. YouTube cookies
+secrets/

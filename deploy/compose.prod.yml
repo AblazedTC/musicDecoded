@@ -26,6 +26,12 @@ services:
       S3_ENDPOINT: https://${FILES_HOST:?set FILES_HOST in .env}
   worker:
     restart: unless-stopped
+    environment:
+      # Testing only (T-309): YouTube blocks datacenter IPs. Both are unset unless added to .env.
+      YTDLP_COOKIES_FILE: ${YTDLP_COOKIES_FILE:-}
+      YTDLP_PROXY: ${YTDLP_PROXY:-}
+    volumes:
+      - ./secrets:/secrets:ro
   caddy:
     image: caddy:2.10.2-alpine
     restart: unless-stopped
