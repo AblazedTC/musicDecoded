@@ -2,34 +2,45 @@ import MusicDecodedCore
 import SwiftUI
 
 /// Piano focus (DESIGN.md §3.7.1): the Piano learning view (§3.8) inline in the player's middle
-/// region. Shares the player's `PlayerModel` and transport: head card, the large fixed keyboard
-/// (same voicing, inversion and fingering rules as the piano panel), the progression strip and
-/// the learning controls.
+/// region. Shares the player's `PlayerModel` and transport: head card, the fixed keyboard (same
+/// voicing, inversion and fingering rules as the piano panel), the progression strip and the
+/// learning controls. The keyboard takes the height the rest leaves (between the compact and the
+/// large height), so it all fits without scrolling; only below the minimum does the view scroll.
 struct PianoFocusView: View {
     let model: PlayerModel
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: Spacing.md) {
-                PianoHeadCard(model: model)
-                    .padding(.horizontal, Spacing.md)
-                // Inset by the gutter so the frame's hard shadow shows (DESIGN.md §1: lime shadowLg).
-                PianoPanel(
-                    model: model,
-                    keysHeight: ComponentSize.pianoLargeHeight,
-                    showsChordName: false,
-                    showsNoteNames: model.showNoteNames,
-                    shadow: HardShadow.lg
-                )
-                .padding(.horizontal, Spacing.md)
-                .padding(.trailing, HardShadow.lg)
-                ProgressionStrip(model: model)
-                LearningControls(model: model)
-                    .padding(.horizontal, Spacing.md)
+        // A scroll view proposes no height, so there the keyboard settles at its minimum.
+        ViewThatFits(in: .vertical) {
+            content
+            ScrollView {
+                content
             }
-            .padding(.vertical, Spacing.md)
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private var content: some View {
+        VStack(spacing: Spacing.md) {
+            PianoHeadCard(model: model)
+                .padding(.horizontal, Spacing.md)
+            // Inset by the gutter so the frame's hard shadow shows (DESIGN.md §1: lime shadowLg).
+            PianoPanel(
+                model: model,
+                keysHeight: ComponentSize.pianoLargeHeight,
+                minKeysHeight: ComponentSize.pianoCompactHeight,
+                showsChordName: false,
+                showsNoteNames: model.showNoteNames,
+                shadow: HardShadow.lg
+            )
+            .padding(.horizontal, Spacing.md)
+            .padding(.trailing, HardShadow.lg)
+            ProgressionStrip(model: model)
+            LearningControls(model: model)
+                .padding(.horizontal, Spacing.md)
+        }
+        .padding(.vertical, Spacing.md)
     }
 }
 
