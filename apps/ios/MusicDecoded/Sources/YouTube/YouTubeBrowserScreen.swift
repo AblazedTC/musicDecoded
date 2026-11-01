@@ -5,15 +5,11 @@ import WebKit
 /// at the bottom, and "Transcribe this" while a single video is open. Nothing is downloaded on
 /// the device (PLAN.md R-1): the worker fetches the audio by videoId.
 struct YouTubeBrowserScreen: View {
-    /// Pushes the API search screen (shown only when the server has search on).
-    let onOpenSearch: () -> Void
     /// Gets the trackId once the job exists (the caller pushes Processing).
     let onDecodeStarted: (String) -> Void
 
-    @Environment(SessionStore.self) private var session
     @Environment(TranscriptionService.self) private var transcription
     @State private var model = YouTubeBrowserModel()
-    @State private var searchAvailable = false
 
     var body: some View {
         YouTubeWebView(model: model)
@@ -32,19 +28,6 @@ struct YouTubeBrowserScreen: View {
             .toolbarBackground(Palette.canvas, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar(.hidden, for: .tabBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    if searchAvailable {
-                        Button("Search YouTube", systemImage: "magnifyingglass", action: onOpenSearch)
-                            .tint(Palette.primary)
-                    }
-                }
-            }
-            .task {
-                if searchAvailable == false {
-                    searchAvailable = await YouTubeSearchModel.isAvailable(session: session)
-                }
-            }
             .onDisappear {
                 model.pause()
             }
@@ -111,9 +94,8 @@ private struct YouTubeWebView: UIViewRepresentable {
 #if DEBUG
 #Preview {
     NavigationStack {
-        YouTubeBrowserScreen(onOpenSearch: {}, onDecodeStarted: { _ in })
+        YouTubeBrowserScreen(onDecodeStarted: { _ in })
     }
-    .environment(SessionStore.preview())
     .environment(TranscriptionService.preview())
     .preferredColorScheme(.dark)
 }

@@ -102,22 +102,6 @@ final class YouTubeSearchModel {
         )
     }
 
-    /// Whether the server has search switched on (a YouTube API key). `/config` has no flag for
-    /// it, so this asks `/youtube/search` for a blank query: the API checks the key first
-    /// (`403 feature_disabled`) and then rejects the blank query (`400`) without spending quota.
-    static func isAvailable(session: SessionStore) async -> Bool {
-        do {
-            _ = try await session.authorized { api, token in
-                try await api.youtubeSearch(query: " ", pageToken: nil, token: token)
-            }
-            return true
-        } catch let error as APIError {
-            return error.status == 400
-        } catch {
-            return false
-        }
-    }
-
     var canLoadMore: Bool {
         phase == .loaded && nextPageToken != nil
     }

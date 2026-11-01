@@ -4,7 +4,7 @@ import SwiftUI
 enum YouTubeRoute: Hashable, Sendable {
     /// The in-app m.youtube.com browser (T-308i), the Home tile's entry point.
     case browser
-    /// The API search; reachable from the browser only when the server has search on.
+    /// The API search (PLAN.md D-4); unlinked since T-308i, kept for later.
     case search
     case video(VideoSummary)
 }
@@ -43,10 +43,7 @@ extension View {
         navigationDestination(for: YouTubeRoute.self) { route in
             switch route {
             case .browser:
-                YouTubeBrowserScreen(
-                    onOpenSearch: { path.wrappedValue.append(YouTubeRoute.search) },
-                    onDecodeStarted: onDecodeStarted
-                )
+                YouTubeBrowserScreen(onDecodeStarted: onDecodeStarted)
             case .search:
                 YouTubeSearchScreen { video in
                     path.wrappedValue.append(YouTubeRoute.video(video))

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import MusicDecoded
 
-/// The in-app YouTube browser's state (T-308i) and the search-availability probe.
+/// The in-app YouTube browser's state (T-308i).
 @MainActor
 struct YouTubeBrowserTests {
     @Test func noVideoOnTheFeedOrPlaylists() {
@@ -70,29 +70,5 @@ struct YouTubeBrowserTests {
         #expect(trackId == nil)
         #expect(model.errorMessage == Transcription.rateLimitedMessage)
         #expect(model.isStarting == false)
-    }
-
-    // MARK: - Search availability
-
-    private func isAvailable(_ status: Int, _ body: String) async -> Bool {
-        let defaults = UserDefaults(suiteName: "YouTubeBrowserTests-\(UUID().uuidString)")!
-        let session = SessionStore(
-            api: StubURLProtocol.client { _ in (status, Data(body.utf8)) },
-            secureStore: InMemorySecureStore(["deviceId": "device-1", "token": "token-1"]),
-            defaults: defaults
-        )
-        return await YouTubeSearchModel.isAvailable(session: session)
-    }
-
-    @Test func searchIsOffWithoutAnAPIKey() async {
-        #expect(await isAvailable(403, #"{"code": "feature_disabled", "message": "Search unavailable"}"#) == false)
-    }
-
-    @Test func searchIsOnWhenTheBlankQueryIsRejected() async {
-        #expect(await isAvailable(400, #"{"code": "bad_request", "message": "q: must not be blank"}"#))
-    }
-
-    @Test func searchIsOffWhenTheServerFails() async {
-        #expect(await isAvailable(500, #"{"code": "internal", "message": "boom"}"#) == false)
     }
 }
