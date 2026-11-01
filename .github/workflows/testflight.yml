@@ -45,7 +45,13 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           [ -n "$ASC_KEY_P8" ] || { echo "::error::Missing secret ASC_KEY_P8"; exit 1; }
-          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+          # Rebuild the PEM so a paste without the BEGIN/END lines, or with lost line breaks, still works.
+          body=$(printf '%s' "$ASC_KEY_P8" | tr -d '\r' | sed 's/-----[A-Z ]*-----//g' | tr -d ' \n\t')
+          { echo "-----BEGIN PRIVATE KEY-----"; echo "$body" | fold -w 64; echo "-----END PRIVATE KEY-----"; } > "$RUNNER_TEMP/asc.p8"
+          openssl pkey -in "$RUNNER_TEMP/asc.p8" -noout 2>/dev/null || {
+            echo "::error::ASC_KEY_P8 is not a valid .p8 key (${#body} base64 characters; a .p8 has about 184). Paste the whole file again."
+            exit 1
+          }
       - run: xcodebuild -version
       - run: brew install xcodegen && xcodegen generate
       - name: Archive (unsigned; export signs it)
