@@ -627,4 +627,15 @@ Small, self-contained tasks for new contributors. Each one has a GitHub issue la
 - Acceptance:
   - [ ] contracts + api: `DELETE /auth/account` removes the user, their library rows and jobs, and their upload records **and** the `uploads/{id}` objects in storage (analysis files stay: they're global and anonymous); tested, including that no upload object remains
   - [ ] apps: Settings → "Delete account" with a confirmation, then back to a fresh guest session
+### T-707i iOS: Voicing control in Piano focus
+- Lane: ios · Status: todo · Owner: — · Deps: —
+- Goal: Parity with Android: Piano focus learning controls end with a full-width **Voicing** chip (Root / 1st inv / ...), not only the swipe.
+- Acceptance:
+  - [ ] Voicing chip under the 2×2 controls, same picker as the Timeline control row; still fits without scrolling on iPhone 15/16
+
+### T-708 "Up next: in 0 beats" at the start of a song
+- Lane: android / ios · Status: todo · Owner: — · Deps: —
+- Goal: Before the first chord (position 0:00, no current chord), Piano focus shows "Up next … in 0 beats".
+- Acceptance:
+  - [ ] Up next counts the beats until the next chord correctly from any position, including before the first chord; unit test on both apps
 
