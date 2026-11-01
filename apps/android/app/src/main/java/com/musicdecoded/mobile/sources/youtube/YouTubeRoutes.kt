@@ -11,6 +11,13 @@ import com.musicdecoded.mobile.network.VideoSummary
 
 /** YouTube search and video detail (pushed, no tab bar). */
 object YouTubeRoutes {
+    /** In-app m.youtube.com (T-308a); the Home tile opens this. */
+    const val BROWSER = "youtube/browse"
+    /**
+     * API search (PLAN.md D-4, superseded by the browser). Still registered, but nothing links to
+     * it: the client can't tell whether the server has a YouTube API key until a search returns
+     * 403 `feature_disabled`.
+     */
     const val SEARCH = "youtube"
     const val DETAIL = "youtube/video/{videoId}?title={title}&channel={channel}&thumb={thumb}&duration={duration}"
 
@@ -33,6 +40,9 @@ fun NavGraphBuilder.youTubeRoutes(
     onOpenPlayer: (trackId: String) -> Unit,
     onOpenProcessing: (trackId: String) -> Unit,
 ) {
+    composable(YouTubeRoutes.BROWSER) {
+        YouTubeBrowserScreen(onBack = { navController.popBackStack() }, onDecodeStarted = onDecodeStarted)
+    }
     composable(YouTubeRoutes.SEARCH) {
         YouTubeSearchScreen(
             onBack = { navController.popBackStack() },

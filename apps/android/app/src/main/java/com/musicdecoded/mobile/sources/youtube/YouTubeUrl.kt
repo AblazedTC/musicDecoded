@@ -33,6 +33,10 @@ object YouTubeUrl {
         return candidate?.takeIf { VIDEO_ID.matches(it) }
     }
 
+    /** A page's `document.title` without YouTube's " - YouTube" suffix; `null` if nothing is left. */
+    fun pageTitle(raw: String?): String? =
+        raw?.trim()?.removeSuffix("- YouTube")?.trim()?.takeIf { it.isNotEmpty() && it != "YouTube" }
+
     private fun queryParam(query: String?, name: String): String? =
         query?.split('&')?.firstNotNullOfOrNull { part ->
             val (key, value) = part.split('=', limit = 2).let { it[0] to it.getOrNull(1) }
