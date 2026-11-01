@@ -10,6 +10,13 @@ val localRelease = project.hasProperty("localRelease")
 /** Backend for `-PlocalRelease`: the emulator's host by default, or a LAN address via `-PapiBaseUrl`. */
 val localApiUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.0.2.2:8080"
 
+/** Play upload key, from ~/.gradle/gradle.properties or env (never the repo). Unset = unsigned release. */
+fun uploadKey(name: String): String? =
+    ((project.findProperty("musicdecodedUpload$name") as String?)
+        ?: providers.environmentVariable("MUSICDECODED_UPLOAD_${name.replace(Regex("(?<=.)([A-Z])"), "_$1").uppercase()}").orNull)
+        ?.takeIf { it.isNotBlank() }
+val uploadStoreFile = uploadKey("StoreFile")
+
 android {
     namespace = "com.musicdecoded.mobile"
     compileSdk {
@@ -22,7 +29,8 @@ android {
         applicationId = "com.musicdecoded.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        // Play needs a higher versionCode for every upload: -PversionCode=N.
+        versionCode = (project.findProperty("versionCode") as String?)?.toInt() ?: 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -36,6 +44,17 @@ android {
         val revenueCatApiKey = (project.findProperty("revenuecatApiKey") as String?)
             ?: providers.environmentVariable("REVENUECAT_ANDROID_API_KEY").orNull ?: ""
         buildConfigField("String", "REVENUECAT_API_KEY", "\"$revenueCatApiKey\"")
+    }
+
+    signingConfigs {
+        if (uploadStoreFile != null) {
+            create("upload") {
+                storeFile = file(uploadStoreFile)
+                storePassword = uploadKey("StorePassword")
+                keyAlias = uploadKey("KeyAlias")
+                keyPassword = uploadKey("KeyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -55,6 +74,8 @@ android {
                 signingConfig = signingConfigs.getByName("debug")
                 buildConfigField("String", "API_BASE_URL", "\"$localApiUrl\"")
                 resValue("string", "app_name", "MusicDecoded R")
+            } else if (uploadStoreFile != null) {
+                signingConfig = signingConfigs.getByName("upload")
             }
         }
     }
