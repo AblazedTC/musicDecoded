@@ -81,14 +81,19 @@ internal fun PianoFocusView(state: PlayerUiState, analysis: Analysis, position: 
     val minKeys = with(density) { PianoKeyboardDefaults.FocusMinHeight.roundToPx() }
     val maxKeys = with(density) { PianoKeyboardDefaults.LargeHeight.roundToPx() }
     var keysPx by remember(density) { mutableIntStateOf(maxKeys) }
+    var contentPx by remember { mutableIntStateOf(0) }
 
     BoxWithConstraints(modifier) {
         val viewport = constraints.maxHeight
+        // Re-fit when the content or the viewport (rotation, split screen) changes.
+        LaunchedEffect(viewport, contentPx) {
+            if (contentPx > 0) keysPx = fitKeysHeight(viewport, contentPx, keysPx, minKeys, maxKeys)
+        }
         Column(
             Modifier
                 .verticalScroll(rememberScrollState())
                 // Content height minus the keys is the rest; the keys get what the viewport has left.
-                .onSizeChanged { keysPx = fitKeysHeight(viewport, it.height, keysPx, minKeys, maxKeys) },
+                .onSizeChanged { contentPx = it.height },
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             HeadCard(
