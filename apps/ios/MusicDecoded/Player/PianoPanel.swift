@@ -10,6 +10,8 @@ import SwiftUI
 struct PianoPanel: View {
     let model: PlayerModel
     var keysHeight: CGFloat = ComponentSize.fixedKeyboardCompact
+    /// When set, the keys flex between this and `keysHeight` to fill the space offered.
+    var minKeysHeight: CGFloat?
     var showsChordName = true
     var showsNoteNames = true
     /// The Piano focus view's frame: lime hard shadow (DESIGN.md §1).
@@ -34,6 +36,7 @@ struct PianoPanel: View {
             FixedKeyboard(
                 voicing: voicing,
                 keysHeight: keysHeight,
+                minKeysHeight: minKeysHeight,
                 namesHeight: showsNoteNames ? ComponentSize.pianoPanelNamesRow : 0,
                 names: FixedKeyboard.names(voicing, chords: chords)
             )
@@ -115,17 +118,23 @@ struct PianoPanel: View {
 /// Its inputs are plain values (no closures), so SwiftUI skips it while they're unchanged.
 struct FixedKeyboard: View {
     let voicing: PianoVoicing?
+    /// Keys height; the most the keys grow to when `minKeysHeight` is set.
     let keysHeight: CGFloat
+    /// When set, the keys flex between this and `keysHeight` (ideal height: the minimum).
+    var minKeysHeight: CGFloat?
     var namesHeight: CGFloat = ComponentSize.pianoPanelNamesRow
     /// Name per highlighted MIDI note.
     let names: [Int: String]
 
     var body: some View {
-        let renderer = FixedKeyboardRenderer(voicing: voicing, keysHeight: keysHeight, names: names)
+        let renderer = FixedKeyboardRenderer(voicing: voicing, namesHeight: namesHeight, names: names)
         Canvas { context, size in
             renderer.draw(in: &context, size: size)
         }
-        .frame(height: keysHeight + namesHeight)
+        .frame(
+            minHeight: (minKeysHeight ?? keysHeight) + namesHeight,
+            maxHeight: keysHeight + namesHeight
+        )
         .accessibilityHidden(true)
     }
 
@@ -143,7 +152,8 @@ struct FixedKeyboard: View {
 @MainActor
 private struct FixedKeyboardRenderer {
     let voicing: PianoVoicing?
-    let keysHeight: CGFloat
+    /// The note-name row under the keys; the keys take the rest of the height.
+    let namesHeight: CGFloat
     /// Name per highlighted MIDI note.
     let names: [Int: String]
 
@@ -164,7 +174,7 @@ private struct FixedKeyboardRenderer {
     }
 
     func draw(in context: inout GraphicsContext, size: CGSize) {
-        let keys = CGRect(x: 0, y: 0, width: size.width, height: min(keysHeight, size.height))
+        let keys = CGRect(x: 0, y: 0, width: size.width, height: max(size.height - namesHeight, 0))
         let whiteWidth = keys.width / CGFloat(Self.whiteCount)
         let fingers = fingers
         context.fill(Path(keys), with: .color(Palette.ink))
