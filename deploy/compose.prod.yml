@@ -5,6 +5,8 @@
 services:
   db:
     restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
   redis:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"] # keep queued jobs across restarts
@@ -12,6 +14,9 @@ services:
       - redis_data:/data
   minio:
     restart: unless-stopped
+    environment: # never the public dev defaults: Caddy exposes MinIO on FILES_HOST
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
   api:
     restart: unless-stopped
     environment:
