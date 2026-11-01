@@ -21,7 +21,8 @@ Turn any song into chords you can follow. Pick a file, record audio, or find a s
 - Sources: files, the music library, the microphone, an in-app YouTube browser, SoundCloud links
 - Four player views: timeline, beat grid, chord sheet and piano focus, with Roman numerals, transpose,
   simplified chords, and piano voicings with inversions and fingering
-- Local-first: audio and chord files are stored on the device and play offline; accounts only add sync
+- Local-first: chord files and your own audio (files, recordings) are stored on the device and play offline;
+  an optional account adds sync and Pro purchases
 - Python worker: beat tracking, a CNN-LSTM chord model, key, BPM and time signature detection
 - Runs on one small server with Docker Compose ([deploy/README.md](deploy/README.md))
 
@@ -93,7 +94,8 @@ docker compose up --build -d          # API on http://localhost:8080, worker, Po
 ```
 
 Then run the Android app from Android Studio (emulator) or the iOS app from Xcode (simulator); both point at
-the local API in debug builds. The debug builds also include a sample song: long-press the Home title.
+the local API in debug builds. Debug builds include a sample song: long-press the Home title on Android, or
+tap **Open Sunny Days fixture (Debug)** on iOS.
 
 To run it on a server, see [deploy/README.md](deploy/README.md).
 

@@ -14,7 +14,7 @@ Full instructions are in [docs/running-locally.md](docs/running-locally.md). Sho
 | `api` | `apps/api` | [uv](https://docs.astral.sh/uv/); Docker to run it against Postgres | `uv run pytest` |
 | `worker` | `apps/worker` | Python 3.14; FFmpeg and the model submodules (`git submodule update --init`) for real analyses | `pip install -r requirements-dev.txt && pytest` (unit tests need no models) |
 | `android` | `apps/android` | Android Studio, JDK 21 | `./gradlew assembleDebug testDebugUnitTest` |
-| `ios` | `apps/ios` | macOS, Xcode 26+, XcodeGen (no Mac? CI builds and tests every PR) | `xcodegen generate`, then `xcodebuild test` (see `apps/ios/README.md`) |
+| `ios` | `apps/ios` | macOS, Xcode 26+, XcodeGen (no Mac? CI builds and tests PRs that touch `apps/ios/**` or `contracts/**`) | `xcodegen generate`, then `xcodebuild test` (see `apps/ios/README.md`) |
 | `infra` | `docker-compose.yml`, `.github/`, `scripts/`, docs | Docker | `docker compose up --build -d`, `scripts/e2e.sh` |
 | `design` | `DESIGN.md` | | Review against the existing screens |
 
@@ -48,7 +48,7 @@ Small, self-contained, and with no open dependencies:
 | T-705 | contracts → api → apps | Re-link the YouTube search screen when the server has an API key |
 | T-706 | api | Daily job budget and a queue-length warning |
 
-Each one is also an issue labeled [`good first issue`](https://github.com/AblazedTC/musicDecoded/labels/good%20first%20issue).
+Open issues for them are labeled [`good first issue`](https://github.com/AblazedTC/musicDecoded/labels/good%20first%20issue).
 Tasks marked `contracts → api → apps` are done in that order, one PR each.
 
 ## Lanes
@@ -113,5 +113,4 @@ One-time steps for the repo owner. They aren't automated because they need owner
   those `paths` filters, plus a CLA document (for example based on the Apache Individual CLA) and a branch
   to store signatures. Either way the bot posts the signing link on the PR.
 - Protect `main`: require PRs and the CI checks.
-- Create the labels `good first issue`, `lane:contracts`, `lane:api`, `lane:worker`, `lane:android`,
-  `lane:ios`, `lane:infra`, `lane:design`, and open issues for the good first tasks above.
+- Labels (`good first issue`, `lane:*`) exist; open a `good first issue` issue for each new good first task.

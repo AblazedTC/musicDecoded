@@ -576,7 +576,7 @@ Read PLAN.md §9 first. **Rule: the API enforces Pro. The apps only reflect it.*
 
 ## M7 — Open for contributors
 
-Small, self-contained tasks for new contributors. Each one is also a GitHub issue labeled `good first issue`.
+Small, self-contained tasks for new contributors. Each one has a GitHub issue labeled `good first issue`.
 
 ### T-701a Android launcher icon
 - Lane: android · Status: todo · Owner: — · Deps: —
@@ -602,9 +602,9 @@ Small, self-contained tasks for new contributors. Each one is also a GitHub issu
 - Lane: contracts → api → android / ios · Status: todo · Owner: — · Deps: —
 - Goal: The Processing screen only says "Processing". Show "#3 in line" while a job is queued.
 - Acceptance:
-  - [ ] contracts: optional `queuePosition` (integer, null unless `queued`) on `Job` in `openapi.yaml`
-  - [ ] api: `GET /jobs/{id}` fills it from the Redis queue (`LPOS jobs:analysis`); tested
-  - [ ] apps (twin tasks T-704a / T-704i): Processing shows it when present
+  - [ ] contracts: `queuePosition` on `Job` in `openapi.yaml`: required, `type: [integer, "null"]`, minimum 1, 1 = next to run, null unless `queued`
+  - [ ] api: `GET /jobs/{id}` fills it by scanning `LRANGE jobs:analysis 0 -1` (JSON messages) for the message's `jobId`, 1-based; tested
+  - [ ] apps: Android and iOS Processing screens show "#N in line" when it's set (one PR per app)
 
 ### T-705 Re-link YouTube API search when configured
 - Lane: contracts → api → android / ios · Status: todo · Owner: — · Deps: T-308a/i
