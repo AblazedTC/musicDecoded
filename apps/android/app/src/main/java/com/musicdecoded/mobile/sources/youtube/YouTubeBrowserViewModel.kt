@@ -39,7 +39,15 @@ class YouTubeBrowserViewModel(
     /** The WebView's history while the screen is off the composition (e.g. under Processing). */
     var webState: Bundle? = null
 
+    /** The current page's title, from `onReceivedTitle`; cleared on every navigation so a stale one is never used. */
+    private var pageTitle: String? = null
+
+    fun titleReceived(title: String?) {
+        pageTitle = title
+    }
+
     fun pageChanged(url: String?, canGoBack: Boolean, canGoForward: Boolean) = _state.update {
+        pageTitle = null
         val videoId = url?.let(YouTubeUrl::videoId)
         it.copy(
             videoId = videoId,
@@ -49,7 +57,7 @@ class YouTubeBrowserViewModel(
         )
     }
 
-    fun transcribe(pageTitle: String?) {
+    fun transcribe() {
         val videoId = _state.value.videoId ?: return
         if (_state.value.starting) return
         _state.update { it.copy(starting = true, error = null) }

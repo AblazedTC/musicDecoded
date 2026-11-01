@@ -1,7 +1,9 @@
 package com.musicdecoded.mobile.sources.youtube
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class YouTubeUrlTest {
@@ -63,5 +65,16 @@ class YouTubeUrlTest {
         assertNull(YouTubeUrl.pageTitle("YouTube"))
         assertNull(YouTubeUrl.pageTitle(" "))
         assertNull(YouTubeUrl.pageTitle(null))
+    }
+
+    @Test fun inAppHostsAreYouTubeAndGoogleSignInOnly() {
+        listOf(
+            "youtube.com", "m.youtube.com", "WWW.YouTube.com", "music.youtube.com", "consent.youtube.com", "youtu.be",
+            "accounts.google.com", "consent.google.com",
+        ).forEach { assertTrue(it, YouTubeUrl.isInAppHost(it)) }
+        listOf(
+            null, "", "google.com", "evil.com", "youtube.com.evil.com", "notyoutube.com", "evilyoutube.com",
+            "allstate.com", "docs.google.com",
+        ).forEach { assertFalse(it.toString(), YouTubeUrl.isInAppHost(it)) }
     }
 }

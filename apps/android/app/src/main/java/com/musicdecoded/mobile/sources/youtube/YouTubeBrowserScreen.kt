@@ -3,6 +3,9 @@ package com.musicdecoded.mobile.sources.youtube
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -122,7 +125,7 @@ fun YouTubeBrowserScreen(onBack: () -> Unit, onDecodeStarted: (trackId: String) 
             if (state.videoId != null) {
                 PrimaryButton(
                     if (state.starting) "Starting…" else "Transcribe this",
-                    onClick = { viewModel.transcribe(webView?.title) },
+                    onClick = viewModel::transcribe,
                     icon = Icons.Rounded.AutoAwesome,
                     loading = state.starting,
                 )
@@ -155,10 +158,23 @@ private fun createBrowser(context: android.content.Context, viewModel: YouTubeBr
     settings.allowContentAccess = false
     // No downloads from the device (PLAN.md R-1).
     setDownloadListener { _, _, _, _, _ -> }
+    webChromeClient = object : WebChromeClient() {
+        override fun onReceivedTitle(view: WebView, title: String?) = viewModel.titleReceived(title)
+    }
     webViewClient = object : WebViewClient() {
-        // Only web pages load here; app links (intent://, vnd.youtube:) are ignored.
-        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
-            request.url.scheme !in setOf("http", "https")
+        // YouTube and Google sign-in load here; other web links open in the system browser and
+        // app links (intent://, vnd.youtube:) are ignored.
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            val url = request.url
+            if (url.scheme !in setOf("http", "https")) return true
+            if (YouTubeUrl.isInAppHost(url.host)) return false
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: ActivityNotFoundException) {
+                // Nothing can open it; stay on the page.
+            }
+            return true
+        }
 
         override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) =
             viewModel.pageChanged(url, view.canGoBack(), view.canGoForward())

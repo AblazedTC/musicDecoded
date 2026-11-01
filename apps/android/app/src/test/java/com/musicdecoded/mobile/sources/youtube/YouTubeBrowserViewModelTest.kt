@@ -31,7 +31,8 @@ class YouTubeBrowserViewModelTest {
         val vm = viewModel()
         vm.pageChanged("https://m.youtube.com/", canGoBack = false, canGoForward = false)
         assertNull(vm.state.value.videoId)
-        vm.transcribe("YouTube")
+        vm.titleReceived("YouTube")
+        vm.transcribe()
         assertTrue(started.isEmpty())
         vm.pageChanged("https://m.youtube.com/watch?v=$id&pp=x", canGoBack = true, canGoForward = false)
         assertEquals(id, vm.state.value.videoId)
@@ -41,7 +42,8 @@ class YouTubeBrowserViewModelTest {
     @Test fun transcribeStartsTheJobWithThePageTitle() {
         val vm = viewModel()
         vm.pageChanged("https://m.youtube.com/watch?v=$id", canGoBack = true, canGoForward = false)
-        vm.transcribe("Sunny Days - YouTube")
+        vm.titleReceived("Sunny Days - YouTube")
+        vm.transcribe()
         assertEquals(listOf(id to "Sunny Days"), started)
         assertEquals("track-1", vm.state.value.startedTrackId)
         vm.navigated()
@@ -51,14 +53,23 @@ class YouTubeBrowserViewModelTest {
     @Test fun noTitleFallsBackToThePlaceholder() {
         val vm = viewModel()
         vm.pageChanged("https://m.youtube.com/shorts/$id", canGoBack = false, canGoForward = false)
-        vm.transcribe(null)
+        vm.transcribe()
         assertEquals(listOf(id to LibraryItem.YOUTUBE_PLACEHOLDER_TITLE), started)
+    }
+
+    @Test fun aTitleFromThePreviousPageIsNeverUsed() {
+        val vm = viewModel()
+        vm.pageChanged("https://m.youtube.com/watch?v=$id", canGoBack = false, canGoForward = false)
+        vm.titleReceived("Old Song - YouTube")
+        vm.pageChanged("https://m.youtube.com/watch?v=abcdefghijk", canGoBack = true, canGoForward = false)
+        vm.transcribe()
+        assertEquals(listOf("abcdefghijk" to LibraryItem.YOUTUBE_PLACEHOLDER_TITLE), started)
     }
 
     @Test fun aFailedStartShowsTheMessageUntilTheVideoChanges() {
         val vm = viewModel { _, _ -> throw TranscriptionException("You've reached today's decode limit") }
         vm.pageChanged("https://m.youtube.com/watch?v=$id", canGoBack = false, canGoForward = false)
-        vm.transcribe("x")
+        vm.transcribe()
         assertEquals("You've reached today's decode limit", vm.state.value.error)
         vm.pageChanged("https://m.youtube.com/", canGoBack = true, canGoForward = false)
         assertNull(vm.state.value.error)
