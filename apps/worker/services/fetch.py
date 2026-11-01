@@ -82,7 +82,8 @@ def fetch_stream(url: str, dest_dir: Path, *, ydl_factory: Callable[[Dict[str, A
         "noprogress": True,
         "retries": 3,
     }
-    if "youtube.com/" in url:
+    host = (urlparse(url).hostname or "").lower()
+    if host == "youtube.com" or host.endswith(".youtube.com"):
         opts.update(_youtube_access(Path(dest_dir)))
     last: Optional[Exception] = None
     for attempt in (1, 2):

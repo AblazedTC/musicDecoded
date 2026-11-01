@@ -31,7 +31,7 @@ ssh root@<server> /opt/musicdecoded/deploy/update.sh
 YouTube blocks most datacenter IPs ("Sign in to confirm you're not a bot"). For testing, the worker can use
 a cookies file or a proxy (T-309). Both break YouTube's terms: remove them before the store release.
 - Cookies: export `cookies.txt` (Netscape format) from a throwaway Google account, copy it to
-  `/opt/musicdecoded/secrets/youtube-cookies.txt`, and add `YTDLP_COOKIES_FILE=/secrets/youtube-cookies.txt`
+  `/opt/musicdecoded/secrets/youtube-cookies.txt` (`mkdir -p /opt/musicdecoded/secrets` first), and add `YTDLP_COOKIES_FILE=/secrets/youtube-cookies.txt`
   to `.env`.
 - Proxy: add `YTDLP_PROXY=http://user:pass@host:port` to `.env`.
 Then run `deploy/update.sh`.
