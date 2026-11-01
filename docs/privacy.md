@@ -37,16 +37,21 @@ choose to transcribe it.
 ## Services we use
 - **DigitalOcean** hosts the server and stores uploaded audio and analysis files.
 - **YouTube**: the in-app YouTube browser loads youtube.com, where Google's privacy policy applies.
-- **A proxy provider** may be used to download audio from YouTube links. It sees the video, not who asked.
+- **IPRoyal** (a proxy provider) is used during the beta to download audio from YouTube links. It sees which
+  video is downloaded, not who asked for it.
 - **RevenueCat, Apple and Google** handle purchases, if you make one.
 
 All traffic between the app and the server is encrypted (HTTPS).
 
 ## Deleting your data
 Deleting a song in the app removes it from your device (and from your synced library if you have an account).
-To delete your account and everything the server holds about you, email
-[jordan879upbeat@gmail.com](mailto:jordan879upbeat@gmail.com) from the address on your account; we do it within
-30 days.
+To delete your account and everything the server holds about you (your uploaded audio, library, jobs and
+account record), email [jordan879upbeat@gmail.com](mailto:jordan879upbeat@gmail.com) from the address on your
+account; we do it within 30 days. Chord analyses stay, because they are shared and contain nothing about you.
+
+Guest data on the server is linked only to a random device ID that isn't shown in the app. To delete it,
+create an account in the app (your guest data moves to it), then request deletion as above. Uninstalling the
+app deletes everything stored on your phone.
 
 ## Children
 MusicDecoded is not directed at children under 13, and we don't knowingly collect their data.

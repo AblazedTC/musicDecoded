@@ -625,6 +625,6 @@ Small, self-contained tasks for new contributors. Each one has a GitHub issue la
 - Lane: contracts → api → android / ios · Status: todo · Owner: — · Deps: —
 - Goal: App Store guideline 5.1.1(v) and Google Play require deleting an account from inside the app. Today it's by email (docs/privacy.md).
 - Acceptance:
-  - [ ] contracts + api: `DELETE /auth/account` removes the user, their uploads, library rows and jobs (analysis files stay: they're global and anonymous); tested
+  - [ ] contracts + api: `DELETE /auth/account` removes the user, their library rows and jobs, and their upload records **and** the `uploads/{id}` objects in storage (analysis files stay: they're global and anonymous); tested, including that no upload object remains
   - [ ] apps: Settings → "Delete account" with a confirmation, then back to a fresh guest session
 
