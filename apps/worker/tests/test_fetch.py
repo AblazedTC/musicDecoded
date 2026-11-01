@@ -101,3 +101,26 @@ def test_to_m4a_copies_m4a_without_ffmpeg(tmp_path):
     src.write_bytes(b"aac")
     fetch.to_m4a(src, tmp_path / "out.m4a")
     assert (tmp_path / "out.m4a").read_bytes() == b"aac"
+
+
+def test_youtube_cookies_and_proxy_from_env(tmp_path, monkeypatch):
+    cookies = tmp_path / "secret-cookies.txt"
+    cookies.write_text("# Netscape HTTP Cookie File\n")
+    monkeypatch.setenv("YTDLP_COOKIES_FILE", str(cookies))
+    monkeypatch.setenv("YTDLP_PROXY", "http://user:pw@proxy:8000")
+    dest = tmp_path / "job"
+    dest.mkdir()
+    ydl = FakeYDL()
+    fetch.fetch_stream("https://www.youtube.com/watch?v=dQw4w9WgXcQ", dest, ydl_factory=ydl, sleep=lambda s: None)
+    assert ydl.opts["cookiefile"] == str(dest / "cookies.txt") and ydl.opts["proxy"] == "http://user:pw@proxy:8000"
+    soundcloud = FakeYDL()
+    fetch.fetch_stream("https://soundcloud.com/a/b", dest, ydl_factory=soundcloud, sleep=lambda s: None)
+    assert "cookiefile" not in soundcloud.opts and "proxy" not in soundcloud.opts
+
+
+def test_no_cookies_or_proxy_by_default(tmp_path, monkeypatch):
+    monkeypatch.delenv("YTDLP_COOKIES_FILE", raising=False)
+    monkeypatch.delenv("YTDLP_PROXY", raising=False)
+    ydl = FakeYDL()
+    run(tmp_path, ydl)
+    assert "cookiefile" not in ydl.opts and "proxy" not in ydl.opts

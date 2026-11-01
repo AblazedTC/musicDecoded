@@ -5,6 +5,7 @@ fetch_stream(url, dest_dir) checks the duration with extract_info(download=False
 FetchError whose message is safe to show to users.
 """
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -49,6 +50,19 @@ def _readable(err: Exception) -> str:
     return "Could not fetch the audio from the streaming site."
 
 
+def _youtube_access(dest_dir: Path) -> Dict[str, Any]:
+    """Optional cookies/proxy for YouTube from datacenter IPs (T-309, PLAN.md R-8). Testing only: both break
+    YouTube's terms, so they must be unset in store builds' backend."""
+    opts: Dict[str, Any] = {}
+    cookies = os.environ.get("YTDLP_COOKIES_FILE")
+    if cookies and Path(cookies).is_file():
+        # yt-dlp writes cookies back on exit, so give it a per-job copy (the original is mounted read-only).
+        opts["cookiefile"] = str(shutil.copy(cookies, dest_dir / "cookies.txt"))
+    if os.environ.get("YTDLP_PROXY"):
+        opts["proxy"] = os.environ["YTDLP_PROXY"]
+    return opts
+
+
 def _ydl_factory(opts: Dict[str, Any]):
     import yt_dlp
 
@@ -68,6 +82,8 @@ def fetch_stream(url: str, dest_dir: Path, *, ydl_factory: Callable[[Dict[str, A
         "noprogress": True,
         "retries": 3,
     }
+    if "youtube.com/" in url:
+        opts.update(_youtube_access(Path(dest_dir)))
     last: Optional[Exception] = None
     for attempt in (1, 2):
         try:
