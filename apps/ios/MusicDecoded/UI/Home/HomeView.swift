@@ -129,7 +129,7 @@ struct HomeView: View {
 
     private var youtubeCard: some View {
         SourceCard(title: "YouTube", subtitle: "Discover & play", systemImage: "play.rectangle.fill", tint: .youtube, tilt: Tilt.listCard) {
-            path.append(YouTubeRoute.search)
+            path.append(YouTubeRoute.browser)
         }
     }
 
