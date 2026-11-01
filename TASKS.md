@@ -621,6 +621,12 @@ Small, self-contained tasks for new contributors. Each one has a GitHub issue la
   - [ ] `JOB_BUDGET_DAILY` env (unset = unlimited); over budget → 429 `rate_limited` with a clear message; tested
   - [ ] A warning log line when queue depth passes `QUEUE_WARN_DEPTH` (default 50)
 
+### T-709 In-app account deletion
+- Lane: contracts → api → android / ios · Status: todo · Owner: — · Deps: —
+- Goal: App Store guideline 5.1.1(v) and Google Play require deleting an account from inside the app. Today it's by email (docs/privacy.md).
+- Acceptance:
+  - [ ] contracts + api: `DELETE /auth/account` removes the user, their library rows and jobs, and their upload records **and** the `uploads/{id}` objects in storage (analysis files stay: they're global and anonymous); tested, including that no upload object remains
+  - [ ] apps: Settings → "Delete account" with a confirmation, then back to a fresh guest session
 ### T-707i iOS: Voicing control in Piano focus
 - Lane: ios · Status: todo · Owner: — · Deps: —
 - Goal: Parity with Android: Piano focus learning controls end with a full-width **Voicing** chip (Root / 1st inv / ...), not only the swipe.
