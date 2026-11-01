@@ -33,6 +33,21 @@ object YouTubeUrl {
         return candidate?.takeIf { VIDEO_ID.matches(it) }
     }
 
+    private val IN_APP_HOSTS = setOf("youtube.com", "youtu.be", "accounts.google.com", "consent.google.com")
+
+    /**
+     * Whether the in-app browser may load [host]: youtube.com and its subdomains, youtu.be, and
+     * Google sign-in / consent. Anything else opens in the system browser.
+     */
+    fun isInAppHost(host: String?): Boolean {
+        val h = host?.lowercase()?.trimEnd('.') ?: return false
+        return h in IN_APP_HOSTS || h.endsWith(".youtube.com")
+    }
+
+    /** A page's `document.title` without YouTube's " - YouTube" suffix; `null` if nothing is left. */
+    fun pageTitle(raw: String?): String? =
+        raw?.trim()?.removeSuffix("- YouTube")?.trim()?.takeIf { it.isNotEmpty() && it != "YouTube" }
+
     private fun queryParam(query: String?, name: String): String? =
         query?.split('&')?.firstNotNullOfOrNull { part ->
             val (key, value) = part.split('=', limit = 2).let { it[0] to it.getOrNull(1) }
