@@ -35,3 +35,6 @@ a cookies file or a proxy (T-309). Both break YouTube's terms: remove them befor
   to `.env`.
 - Proxy: add `YTDLP_PROXY=http://user:pass@host:port` to `.env`.
 Then run `deploy/update.sh`.
+
+Offline audio for YouTube/SoundCloud songs (PLAN.md R-1, testing only): add `OFFLINE_STREAM_AUDIO=true` to
+`.env`. The worker then keeps the audio and the apps download it. Turn it off before the store release.
