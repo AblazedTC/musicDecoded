@@ -27,6 +27,16 @@ class PianoKeyboardTest {
         assertEquals(20, keyboardWhiteIndex(83))
     }
 
+    @Test fun focusKeysTakeTheSpaceLeft() {
+        // Rest = 900 − 190 = 710, so an 800 viewport leaves 90 → clamped to the 96 minimum.
+        assertEquals(96, fitKeysHeight(viewport = 800, content = 900, keys = 190, min = 96, max = 190))
+        assertEquals(150, fitKeysHeight(viewport = 860, content = 900, keys = 190, min = 96, max = 190))
+        // Plenty of room: never taller than the max.
+        assertEquals(190, fitKeysHeight(viewport = 2000, content = 806, keys = 96, min = 96, max = 190))
+        // Rounding jitter under 2px keeps the current height.
+        assertEquals(150, fitKeysHeight(viewport = 861, content = 860, keys = 150, min = 96, max = 190))
+    }
+
     @Test fun inversionNames() {
         assertEquals(listOf("Root", "1st inv", "2nd inv", "3rd inv"), (0..3).map(::inversionName))
     }

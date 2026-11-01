@@ -61,8 +61,9 @@ object PianoKeyboardDefaults {
     /** Beat grid / chord sheet compact piano panel. */
     val CompactHeight = 90.dp
 
-    /** Piano focus. */
+    /** Piano focus: flexes to the space left on screen, between these two. */
     val LargeHeight = 190.dp
+    val FocusMinHeight = 96.dp
 
     /** Key separators: ink, 1.5pt (DESIGN.md §1 piano). */
     internal val Separator = 1.5.dp

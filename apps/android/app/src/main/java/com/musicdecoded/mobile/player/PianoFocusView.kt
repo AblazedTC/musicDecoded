@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,10 +29,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import com.musicdecoded.mobile.core.Analysis
 import com.musicdecoded.mobile.core.currentState
@@ -50,6 +55,7 @@ import com.musicdecoded.mobile.ui.theme.Shapes
 import com.musicdecoded.mobile.ui.theme.Sizes
 import com.musicdecoded.mobile.ui.theme.Spacing
 import com.musicdecoded.mobile.ui.theme.TextStyles
+import kotlin.math.abs
 
 /** A chord in the progression strip: its index in `analysis.chords` and length in beats. */
 private data class StripChord(val index: Int, val beats: Int)
@@ -57,7 +63,9 @@ private data class StripChord(val index: Int, val beats: Int)
 /**
  * Piano focus (DESIGN.md §3.7.1): the Piano learning view (§3.8) inline in the player's middle
  * region: current / up-next card, the large fixed keyboard (same voicing, inversion and fingering
- * rules; swipe for inversions), progression strip and learning controls. Scrolls if it must.
+ * rules; swipe for inversions), progression strip and learning controls. The keyboard takes the
+ * height the rest leaves (between [PianoKeyboardDefaults.FocusMinHeight] and `LargeHeight`), so
+ * everything fits without scrolling; it scrolls only when even the minimum doesn't fit.
  */
 @Composable
 internal fun PianoFocusView(state: PlayerUiState, analysis: Analysis, position: State<Double>, viewModel: PlayerViewModel, modifier: Modifier = Modifier) {
@@ -69,33 +77,59 @@ internal fun PianoFocusView(state: PlayerUiState, analysis: Analysis, position: 
     val voicing = remember(chords, currentLabel, state.inversion) { currentLabel?.let { chords.voicing(it, state.inversion) } }
     val description = remember(chords, currentLabel, state.inversion) { currentLabel?.let { chords.noteNames(it, state.inversion) } }
 
-    Column(
-        modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        HeadCard(
-            current = currentLabel,
-            next = next?.let { analysis.chords[it.chordIndex].label },
-            inBeats = next?.inBeats,
-            chords = chords,
-            inversion = state.inversion,
-            modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.xs),
-        )
-        FixedPianoKeyboard(
-            voicing = voicing,
-            noteName = chords::noteName,
-            keysHeight = PianoKeyboardDefaults.LargeHeight,
-            onStepInversion = viewModel::stepInversion,
-            inversion = voicing?.let { state.inversion.coerceAtMost(it.inversions - 1) } ?: 0,
-            showNoteNames = state.showNoteNames,
-            description = description,
-            // Inset by the gutter so the frame's lime shadowLg stays on screen (DESIGN.md §1).
-            modifier = Modifier.padding(horizontal = Spacing.gutter),
-            frameShadow = Shadows.lg,
-        )
-        ProgressionStrip(analysis, chordIndex, chords, onSeek = viewModel::seekTo)
-        LearningControls(state, viewModel, voicing?.inversions ?: 0, Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.md))
+    val density = LocalDensity.current
+    val minKeys = with(density) { PianoKeyboardDefaults.FocusMinHeight.roundToPx() }
+    val maxKeys = with(density) { PianoKeyboardDefaults.LargeHeight.roundToPx() }
+    var keysPx by remember(density) { mutableIntStateOf(maxKeys) }
+    var contentPx by remember { mutableIntStateOf(0) }
+
+    BoxWithConstraints(modifier) {
+        val viewport = constraints.maxHeight
+        // Re-fit when the content or the viewport (rotation, split screen) changes.
+        LaunchedEffect(viewport, contentPx) {
+            if (contentPx > 0) keysPx = fitKeysHeight(viewport, contentPx, keysPx, minKeys, maxKeys)
+        }
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                // Content height minus the keys is the rest; the keys get what the viewport has left.
+                .onSizeChanged { contentPx = it.height },
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            HeadCard(
+                current = currentLabel,
+                next = next?.let { analysis.chords[it.chordIndex].label },
+                inBeats = next?.inBeats,
+                chords = chords,
+                inversion = state.inversion,
+                modifier = Modifier.padding(horizontal = Spacing.gutter).padding(top = Spacing.xs),
+            )
+            FixedPianoKeyboard(
+                voicing = voicing,
+                noteName = chords::noteName,
+                keysHeight = with(density) { keysPx.toDp() },
+                onStepInversion = viewModel::stepInversion,
+                inversion = voicing?.let { state.inversion.coerceAtMost(it.inversions - 1) } ?: 0,
+                showNoteNames = state.showNoteNames,
+                description = description,
+                // Inset by the gutter so the frame's lime shadowLg stays on screen (DESIGN.md §1).
+                modifier = Modifier.padding(horizontal = Spacing.gutter),
+                frameShadow = Shadows.lg,
+            )
+            ProgressionStrip(analysis, chordIndex, chords, onSeek = viewModel::seekTo)
+            LearningControls(state, viewModel, voicing?.inversions ?: 0, Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.md))
+        }
     }
+}
+
+/**
+ * The keyboard height (px) that makes content of height [content], laid out with keys of height
+ * [keys], fill [viewport]: the rest stays, the keys take what is left, clamped to [min]..[max].
+ * Changes under 2px are ignored so rounding can't make the layout ping-pong.
+ */
+internal fun fitKeysHeight(viewport: Int, content: Int, keys: Int, min: Int, max: Int): Int {
+    val fitted = (viewport - (content - keys)).coerceIn(min, max)
+    return if (abs(fitted - keys) < 2) keys else fitted
 }
 
 /** CURRENT CHORD (name + notes) | UP NEXT (name + "in N beats"). */
