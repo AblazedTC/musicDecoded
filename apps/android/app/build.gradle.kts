@@ -12,8 +12,9 @@ val localApiUrl = (project.findProperty("apiBaseUrl") as String?) ?: "http://10.
 
 /** Play upload key, from ~/.gradle/gradle.properties or env (never the repo). Unset = unsigned release. */
 fun uploadKey(name: String): String? =
-    (project.findProperty("musicdecodedUpload$name") as String?)
-        ?: providers.environmentVariable("MUSICDECODED_UPLOAD_${name.replace(Regex("(?<=.)([A-Z])"), "_$1").uppercase()}").orNull
+    ((project.findProperty("musicdecodedUpload$name") as String?)
+        ?: providers.environmentVariable("MUSICDECODED_UPLOAD_${name.replace(Regex("(?<=.)([A-Z])"), "_$1").uppercase()}").orNull)
+        ?.takeIf { it.isNotBlank() }
 val uploadStoreFile = uploadKey("StoreFile")
 
 android {
