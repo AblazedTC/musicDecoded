@@ -1,0 +1,47 @@
+# Production overrides for one server (deploy/README.md). Use with:
+#   docker compose -f docker-compose.yml -f deploy/compose.prod.yml up -d --build
+# Secrets come from the gitignored .env that deploy/setup.sh generates. Only Caddy (80/443) is public;
+# the base file binds everything else to 127.0.0.1.
+services:
+  db:
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+  redis:
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"] # keep queued jobs across restarts
+    volumes:
+      - redis_data:/data
+  minio:
+    restart: unless-stopped
+    environment: # never the public dev defaults: Caddy exposes MinIO on FILES_HOST
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+  api:
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      # Presigned URLs must use the public storage host (Caddy forwards it to MinIO).
+      S3_ENDPOINT: https://${FILES_HOST:?set FILES_HOST in .env}
+  worker:
+    restart: unless-stopped
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_HOST: ${API_HOST:?set API_HOST in .env}
+      FILES_HOST: ${FILES_HOST}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - api
+      - minio
+
+volumes:
+  redis_data:
+  caddy_data:

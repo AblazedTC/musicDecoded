@@ -1,0 +1,9 @@
+# HTTPS certificates are automatic (Let's Encrypt). Both hosts must point at this server.
+{$API_HOST} {
+	reverse_proxy api:8080
+}
+
+# Presigned upload/download URLs. Caddy keeps the Host header, which the S3 signature covers.
+{$FILES_HOST} {
+	reverse_proxy minio:9000
+}
