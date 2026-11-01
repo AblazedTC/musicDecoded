@@ -311,6 +311,7 @@ private struct PermissionCard: View {
     }
 }
 
+#if DEBUG
 #Preview {
     NavigationStack {
         RecorderView { _ in }
@@ -318,3 +319,4 @@ private struct PermissionCard: View {
     .environment(TranscriptionService.preview())
     .preferredColorScheme(.dark)
 }
+#endif
